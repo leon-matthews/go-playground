@@ -6,6 +6,5 @@ Exploring the Go Programing language
 
 ## Next
 
-Carry on with next part of Go tutorial:
-
-https://go.dev/doc/tutorial/compile-install
+Count frequency of words from given file, to compare with similar programs
+written in Rust & Python.
