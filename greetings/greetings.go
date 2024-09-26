@@ -1,7 +1,6 @@
 
 package greetings
 
-
 import (
     "errors"
     "fmt"

@@ -8,4 +8,4 @@ Exploring the Go Programing language
 
 Carry on with next part of Go tutorial:
 
-https://go.dev/doc/tutorial/add-a-test
+https://go.dev/doc/tutorial/compile-install
