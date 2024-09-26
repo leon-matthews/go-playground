@@ -3,10 +3,10 @@ package main
 
 import (
     "bufio"
-    //~ "errors"
     "fmt"
     "log"
     "os"
+    "strings"
 )
 
 
@@ -24,7 +24,8 @@ func count_words(path string) (map[string]int, error) {
     // Count word freqencies using a map
     words := make(map[string]int)
     for scanner.Scan() {
-        words[scanner.Text()] += 1;
+        word := scanner.Text()
+        words[strings.ToLower(word)] += 1;
     }
     return words, nil
 }
