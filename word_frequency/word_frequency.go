@@ -6,6 +6,7 @@ import (
     "fmt"
     "log"
     "os"
+    "sort"
     "strings"
 )
 
@@ -31,10 +32,22 @@ func count_words(path string) (map[string]int, error) {
 }
 
 
-// Print the given mapping of word frequencies
+// Print the given mapping of words, ordered by frequency
 func print_words(words map[string]int) {
-    for word, count := range words {
-        fmt.Printf("%v %v\n", word, count)
+    // Extract keys into a slice
+    keys := make([]string, 0, len(words))
+    for key := range words {
+        keys = append(keys, key)
+    }
+
+    // Sort new keys slice by frequency from words mapping
+    sort.Slice(keys, func(i, j int) bool {
+        return words[keys[i]] > words[keys[j]]
+    })
+
+    // Print words and their freqencies
+    for _, key := range keys {
+        fmt.Printf("%v %v\n", key, words[key])
     }
 }
 
