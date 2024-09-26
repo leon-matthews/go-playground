@@ -21,12 +21,11 @@ func count_words(path string) (map[string]int, error) {
     scanner := bufio.NewScanner(fileHandle)
     scanner.Split(bufio.ScanWords)
 
-    for scanner.Scan() {
-        fmt.Println(scanner.Text())
-    }
-
+    // Count word freqencies using a map
     words := make(map[string]int)
-
+    for scanner.Scan() {
+        words[scanner.Text()] = 1;
+    }
     return words, nil
 }
 
