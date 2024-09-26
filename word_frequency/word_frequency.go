@@ -7,7 +7,6 @@ import (
     "log"
     "os"
     "sort"
-    "strings"
 )
 
 
@@ -25,8 +24,7 @@ func count_words(path string) (map[string]int, error) {
     // Count word freqencies using a map
     words := make(map[string]int)
     for scanner.Scan() {
-        word := scanner.Text()
-        words[strings.ToLower(word)] += 1;
+        words[scanner.Text()] += 1;
     }
     return words, nil
 }
@@ -49,7 +47,7 @@ func print_words(words map[string]int, limit int) {
 
     // Print words and their freqencies
     for index, key := range keys {
-        fmt.Printf("%v %v\n", key, words[key])
+        fmt.Printf("%12v %v\n", key, words[key])
         if index == limit - 1 {
             break
         }
@@ -73,7 +71,7 @@ func main() {
     }
 
     // Print them
-    limit := 10
+    limit := 40
     fmt.Printf("Found %v unique words.\n", len(words))
     if limit > 0 {
         fmt.Printf("%v most popular words are:\n", limit)
