@@ -15,15 +15,20 @@ func main() {
     log.SetPrefix("greetings: ")
     log.SetFlags(0)
 
-    // Format message
-    message, err := greetings.Hello("Leon")
-    //~ message, err := greetings.Hello("")
+    // Slice of names
+    names := []string {
+        "Leon",
+        "Alyson",
+        "Blake",
+        "Stella",
+    }
+    messages, err := greetings.Hellos(names)
 
-    // Error? Logand exit
+    // Error? Log and exit
     if err != nil {
         log.Fatal(err)
     }
 
     // Print formatted message
-    fmt.Println(message)
+    fmt.Println(messages)
 }
