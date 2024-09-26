@@ -38,11 +38,11 @@ func main() {
     }
 
     path := os.Args[1]
-    fmt.Println(fmt.Sprintf("Counting words from %v", path))
+    fmt.Printf("Counting words from %v\n", path)
 
     words, err := count_words(path)
     if err != nil {
         log.Fatal(err)
     }
-    fmt.Println(fmt.Sprintf("Found %v unique words", len(words)))
+    fmt.Printf("Found %v unique words\n", len(words))
 }
