@@ -24,9 +24,17 @@ func count_words(path string) (map[string]int, error) {
     // Count word freqencies using a map
     words := make(map[string]int)
     for scanner.Scan() {
-        words[scanner.Text()] = 1;
+        words[scanner.Text()] += 1;
     }
     return words, nil
+}
+
+
+// Print the given mapping of word frequencies
+func print_words(words map[string]int) {
+    for word, count := range words {
+        fmt.Printf("%v %v\n", word, count)
+    }
 }
 
 
@@ -40,6 +48,7 @@ func main() {
     fmt.Printf("Counting words from %v\n", path)
 
     words, err := count_words(path)
+    print_words(words)
     if err != nil {
         log.Fatal(err)
     }
