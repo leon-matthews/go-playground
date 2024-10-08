@@ -11,14 +11,26 @@ func assertCorrectMessage(t testing.TB, got, want string) {
 
 func TestHello(t *testing.T) {
 	t.Run("passing name as a parameter", func(t *testing.T) {
-		got := Hello("Leon")
+		got := Hello("Leon", "")
 		want := "Hello, Leon"
 		assertCorrectMessage(t, got, want)
 	})
 
 	t.Run("using default if name empty", func(t *testing.T) {
-		got := Hello("")
+		got := Hello("", "")
 		want := "Hello, world"
+		assertCorrectMessage(t, got, want)
+	})
+
+	t.Run("in Spanish", func(t *testing.T) {
+		got := Hello("León", "Spanish")
+		want := "Hola, León"
+		assertCorrectMessage(t, got, want)
+	})
+
+	t.Run("in French", func(t *testing.T) {
+		got := Hello("Leon", "French")
+		want := "Bonjour, Leon"
 		assertCorrectMessage(t, got, want)
 	})
 }
