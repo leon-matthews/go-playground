@@ -1,12 +1,4 @@
-/*
-Count the frequency of every unique word found in the given file.
-
-Written as an initial exploration of Go, and to compare with similar programs
-written in Python and Rust.
-
-The output is sorted by the popularity of the words found, for example, using
-the Gutenberg Project's plain-text version of Darwin's book 'Voyage of the
-Beagle' the output is:
+// Count the frequency of every unique word found in the given file.
 
     $ ./word_frequency ../data/voyage-of-the-beagle.txt
     Counting words from ../data/voyage-of-the-beagle.txt
