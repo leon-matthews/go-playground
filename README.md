@@ -1,9 +1,7 @@
 
 # Go Playground
 
-Exploring the Go Programing language
+Learning and exploring the Go Programing language.
 
-
-## Next
-
-Explore Go's 'goroutines' and channels, using the [Go by Example](https://gobyexample.com/) site.
+Contains worked examples and exercises from books as well as a catch-all for
+trying out new techniques or ideas for new projects.
