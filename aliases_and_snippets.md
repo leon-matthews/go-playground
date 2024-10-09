@@ -23,5 +23,6 @@ ends up after hitting *<tab>*.
 
 	[Go]
 	bench=func Benchmark%cursor%(b *testing.B) {\n\tfor i := 0; i < b.N; i++ {}\n}
+	p=fmt.Println(%cursor%)
 	stest=t.Run("%cursor%", func(t *testing.T) {\n})
 	test=func Test%cursor%(t *testing.T) {\n}

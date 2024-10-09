@@ -11,9 +11,10 @@ This folder contains the exercises I've completed for this book so far.
 
 ## Currently
 
-Working through Chapter 2, *Predeclared Types and Declarations*.
+Continue working through Chapter 3, *Composite Types*.
+function `SlicingSlices()`, page 47.
 
 
-## Sample Code
+## Sample Code Repo
 
 https://github.com/learning-go-book-2e

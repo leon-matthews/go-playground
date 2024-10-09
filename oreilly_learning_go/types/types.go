@@ -34,14 +34,14 @@ func NarrowingConversion() {
 
 // Various declaration styles
 func Declarations() {
-	var a int = 65						// Keyword `var` plus explicit type
-	var b = 66							// Literal's default type
-	var c int							// Declare & assign zero value
-	var d, e int = 68, 69				// Multiple variables with same type
-	var f, g int						// Multiple zero values with same type
-	var (								// Declaration list
+	var a int = 65        // Keyword `var` plus explicit type
+	var b = 66            // Literal's default type
+	var c int             // Declare & assign zero value
+	var d, e int = 68, 69 // Multiple variables with same type
+	var f, g int          // Multiple zero values with same type
+	var (                 // Declaration list
 		h int = 72
-		i = 73
+		i     = 73
 	)
 
 	// Short declaration and assignment format, only available within
@@ -72,8 +72,8 @@ func Exercise3() {
 	fmt.Println(b, smallI, bigI)
 
 	// Force overflow
-	b += 1								// 0
-	smallI += 1							// -2_147_483_648
-	bigI += 1							// 0
+	b += 1      // 0
+	smallI += 1 // -2_147_483_648
+	bigI += 1   // 0
 	fmt.Println(b, smallI, bigI)
 }
