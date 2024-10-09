@@ -2,6 +2,11 @@ package structs
 
 import "math"
 
+// A Shape is any object with an `Area()` method
+type Shape interface {
+	Area() float64
+}
+
 type Circle struct {
 	Radius float64
 }
