@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Working on examples for Slices:
-https://gobyexample.com/slices
+Working on examples for Maps:
+https://gobyexample.com/maps
