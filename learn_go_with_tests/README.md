@@ -6,6 +6,6 @@ Examples from the online book [Learn Go with Tests](https://quii.gitbook.io/lear
 
 ## Currently
 
-Work through *Structs, methods & interfaces*
+Work through *Pointers & errors*
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/structs-methods-and-interfaces
+https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/pointers-and-errors

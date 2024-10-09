@@ -5,7 +5,7 @@ Work through the examples on the excellent [Go by Example](https://gobyexample.c
 website. No copy-and-paste cheating!
 
 
-## Next
+## Currently
 
-Explore Go's 'goroutines' and channels, using
-the [Go by Example](https://gobyexample.com/) site.
+Working on Switch examples:
+https://gobyexample.com/switch
