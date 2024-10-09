@@ -5,7 +5,7 @@ Work through the examples on the excellent [Go by Example](https://gobyexample.c
 website. No copy-and-paste cheating!
 
 
-## Currently
+## Next
 
-Working on Switch examples:
-https://gobyexample.com/switch
+Working on Array examples:
+https://gobyexample.com/arrays
