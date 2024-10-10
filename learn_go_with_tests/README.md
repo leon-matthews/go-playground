@@ -6,6 +6,6 @@ Examples from the online book [Learn Go with Tests](https://quii.gitbook.io/lear
 
 ## Currently
 
-Work through *Pointers & errors*
+Work through *Maps*
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/pointers-and-errors
+https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/maps
