@@ -5,7 +5,7 @@ Work through the examples on the excellent [Go by Example](https://gobyexample.c
 website. No copy-and-paste cheating!
 
 
-## Next
+## Currently
 
-Working on examples for Maps:
-https://gobyexample.com/maps
+Working on examples for functions:
+https://gobyexample.com/functions
