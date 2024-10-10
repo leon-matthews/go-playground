@@ -1,5 +1,5 @@
 
-# Aliases, Setup, and Snippets
+# My Go Setup
 
 This is my ongoing collection of shell aliases and editor snippets for the
 Go programming language.
@@ -14,6 +14,7 @@ Shell aliases for command-line quickness! Add to your *.bashrc* or equivalent.
 	alias got="go test"
 	alias gov="go vet ./..."
 
+
 ## Bash setup
 
 Install Go stuff into a dotfolder and add its *bin* directory to `$PATH`.
@@ -26,9 +27,27 @@ In your *.profile* or similar:
 		PATH="$FOLDER:$PATH"
 	fi
 
-Install `errcheck` linter to check for un-inspected error return values:
 
-	go install github.com/kisielk/errcheck@latest
+## Go tools
+
+### errcheck
+
+The `errcheck` linter checks for un-inspected error return values:
+
+	$ go install github.com/kisielk/errcheck@latest
+
+### gotestsum
+
+Reformat test output, and automatically run tests after code changes
+with `gotestsum`:
+
+	$ go install gotest.tools/gotestsum@latest
+	$ gotestsum
+	$ gotestsum
+	✓  . (cached)
+	DONE 4 tests in 0.050s
+
+	$ gotestsum --watch
 
 
 ## Editor snippets
