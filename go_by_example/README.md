@@ -5,7 +5,7 @@ Work through the examples on the excellent [Go by Example](https://gobyexample.c
 website. No copy-and-paste cheating!
 
 
-## Currently
+## Next
 
-Working on examples for functions:
-https://gobyexample.com/functions
+Go by Example: Range over Built-in Types
+https://gobyexample.com/range-over-built-in-types
