@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Range over Built-in Types
-https://gobyexample.com/range-over-built-in-types
+Go by Example: Pointers
+https://gobyexample.com/pointers
