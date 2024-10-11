@@ -56,8 +56,11 @@ Like shell aliases, I like to automate my text editor to emit common
 boilerplate code. In the following section `%cursor%` is where your cursor
 ends up after hitting *<tab>*.
 
-	[Go]
-	bench=func Benchmark%cursor%(b *testing.B) {\n\tfor i := 0; i < b.N; i++ {}\n}
+	# General
 	p=fmt.Println(%cursor%)
+
+	# Testing
+	btest=func Benchmark%cursor%(b *testing.B) {\n\tfor i := 0; i < b.N; i++ {}\n}
+	htest=func assert%cursor%(t testing.TB) {\n\tt.Helper()\n}
 	stest=t.Run("%cursor%", func(t *testing.T) {\n})
 	test=func Test%cursor%(t *testing.T) {\n}
