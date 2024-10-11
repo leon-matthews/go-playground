@@ -6,6 +6,6 @@ Examples from the online book [Learn Go with Tests](https://quii.gitbook.io/lear
 
 ## Currently
 
-Work through *Maps*
+Work through *Dependency Injection*
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/maps
+https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/dependency-injection
