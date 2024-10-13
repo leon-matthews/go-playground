@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Pointers
-https://gobyexample.com/pointers
+Go by Example: Structs
+https://gobyexample.com/structs
