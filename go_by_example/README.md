@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Methods
-https://gobyexample.com/methods
+Go by Example: Interfaces
+https://gobyexample.com/interfaces

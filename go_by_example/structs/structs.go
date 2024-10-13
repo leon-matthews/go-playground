@@ -37,7 +37,7 @@ func main() {
 	}
 	fmt.Println(cat)
 
-	// Used to build table-driven tests
+	// Anonymous structs are used to build table-driven tests
 	dogs := []struct {
 		name   string
 		isGood bool
