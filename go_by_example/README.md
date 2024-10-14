@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Interfaces
-https://gobyexample.com/interfaces
+Go by Example: Enums
+https://gobyexample.com/enums
