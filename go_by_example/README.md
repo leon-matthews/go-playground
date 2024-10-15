@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Enums
-https://gobyexample.com/enums
+Go by Example: Struct Embedding
+https://gobyexample.com/struct-embedding
