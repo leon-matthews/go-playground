@@ -11,6 +11,7 @@ Shell aliases for command-line quickness! Add to your *.bashrc* or equivalent.
 
 	alias gob="go test -bench ."
 	alias gof="go fmt ./..."
+	alias goi="goimports -l -w ."
 	alias got="go test"
 	alias gov="go vet ./..."
 

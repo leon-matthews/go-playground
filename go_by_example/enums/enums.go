@@ -27,14 +27,14 @@ func (s ServerState) String() string {
 
 func transition(s ServerState) ServerState {
 	switch s {
-		case StateIdle:
-			return StateConnected
-		case StateConnected, StateRetrying:
-			return StateIdle
-		case StateError:
-			return StateError
-		default:
-			panic(fmt.Errorf("unknown state: %s", s))
+	case StateIdle:
+		return StateConnected
+	case StateConnected, StateRetrying:
+		return StateIdle
+	case StateError:
+		return StateError
+	default:
+		panic(fmt.Errorf("unknown state: %s", s))
 	}
 }
 
