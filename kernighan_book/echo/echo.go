@@ -1,3 +1,4 @@
+// Print command-line argument separated by a single space.
 package main
 
 import (

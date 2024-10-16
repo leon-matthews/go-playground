@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// Naive use of + operator (221.8 ns/op)
-// Suprisingly fast!
+// Naive use of + operator (264 ns/op)
+// Slowest, but still suprisingly fast.
 func ConcatOperator(args ...string) string {
 	var s, sep string
 	for _, arg := range(args) {
@@ -18,7 +18,7 @@ func ConcatOperator(args ...string) string {
 	return s
 }
 
-// Explicit use of `strings.Builder` (172.1 ns/op)
+// Explicit use of `strings.Builder` (172 ns/op)
 func ConcatBuilder(args ...string) string {
 	var sb strings.Builder
 	var sep string
@@ -30,13 +30,7 @@ func ConcatBuilder(args ...string) string {
 	return sb.String()
 }
 
-// Use `strings.Join()` a la Python (363.7 ns/op)
-// Suprisingly slow!
+// Use `strings.Join()` a la Python (106 ns/op)
 func ConcatJoin(args ...string) string {
-	var parts []string
-	for _, arg := range(args) {
-		parts = append(parts, arg)
-	}
-	s := strings.Join(parts, " ")
-	return s
+	return strings.Join(args, " ")
 }
