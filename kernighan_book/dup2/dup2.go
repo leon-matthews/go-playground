@@ -1,4 +1,5 @@
-// Print lines from stdin or given text files
+// Print duplicated lines from stdin or given text files
+// Files are only read in line-by-line
 package main
 
 import (
