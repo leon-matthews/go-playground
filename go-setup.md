@@ -14,6 +14,7 @@ Shell aliases for command-line quickness! Add to your *.bashrc* or equivalent.
 	alias goi="goimports -l -w ."
 	alias got="go test"
 	alias gov="go vet ./..."
+	alias goc="go clean -r -cache -fuzzcache -modcache -testcache"
 
 
 ## Bash setup
