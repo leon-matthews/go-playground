@@ -9,8 +9,8 @@ import (
 func main() {
 	// Elegant use of zero-value to handle first use of `sep`
 	var s, sep string
-	for i := 1; i < len(os.Args); i++ {
-		s += sep + os.Args[i]
+	for _, arg := range os.Args[1:] {
+		s += sep + arg
 		sep = " "
 	}
 	fmt.Println(s)
