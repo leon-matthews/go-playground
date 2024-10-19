@@ -5,6 +5,6 @@
 
 Exercises and examples from the original 2016 'Blue Book'.
 
-## Currently
+## Next
 
-Chapter 1, *Tutorial*, Count lines in open files in *dup3.go*
+Chapter 3, *Floating-point Nmubers*, experiment with `mandelbrot` example.
