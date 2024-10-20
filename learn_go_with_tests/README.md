@@ -4,8 +4,8 @@
 Examples from the online book [Learn Go with Tests](https://quii.gitbook.io/learn-go-with-tests).
 
 
-## Currently
+## Next
 
-Work through *Dependency Injection*
+Work through *Mocking*
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/dependency-injection
+https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/mocking
