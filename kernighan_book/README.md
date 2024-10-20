@@ -7,4 +7,4 @@ Exercises and examples from the original 2016 'Blue Book'.
 
 ## Next
 
-Chapter 3, *Floating-point Nmubers*, experiment with `mandelbrot` example.
+Chapter 3, *Basic Data Types*, finish reading chapter and complete exercises.
