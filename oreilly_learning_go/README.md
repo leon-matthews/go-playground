@@ -12,4 +12,3 @@ This folder contains the exercises I've completed for this book so far.
 ## Currently
 
 Read through Chapter 4, *Blocks, Shadows, and Control Structures*.
-
