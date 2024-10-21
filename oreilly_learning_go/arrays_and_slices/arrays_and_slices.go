@@ -12,6 +12,9 @@ func main() {
 	SliceMake()
 	SliceClear()
 	SlicingSlices()
+	CopySlices()
+	ArrayToSlice()
+	SliceToArray()
 }
 
 func ArrayDeclarations() {
@@ -110,5 +113,32 @@ func SlicingSlices() {
 	s := []uint{2, 3, 5, 7, 11, 13, 17, 19, 23, 29}
 	first := s[0]
 	fmt.Println(first)
-	fmt.Println(s)
+}
+
+func CopySlices() {
+	x := []int{1, 2, 3, 4, 5}
+	y := make([]int, 10)
+	num := copy(y, x)		// Think: y = x
+	fmt.Println(num, y)
+}
+
+func ArrayToSlice() {
+	x := [...]int{9, 8, 7, 6, 5, 4, 3, 2, 1}
+	fmt.Printf("%T %[1]v\n", x)
+
+	// Taking slice of an array makes a s
+	s := x[:]
+	fmt.Printf("%T %[1]p %[1]v\n", s)
+
+	// Memory is shared
+	s[5] = 42
+	fmt.Println(cap(s))
+	fmt.Printf("%T %[1]p %[1]v\n", s)
+	fmt.Println(s, x)
+}
+
+func SliceToArray() {
+	s := []int{1, 2, 3, 4, 5}
+	x := [5]int(s)
+	fmt.Println(s, x)
 }
