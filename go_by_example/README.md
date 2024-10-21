@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Struct Embedding
-https://gobyexample.com/struct-embedding
+Go by Example: Generics
+https://gobyexample.com/generics
