@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Generics
-https://gobyexample.com/generics
+Go by Example: Range over Iterators
+https://gobyexample.com/range-over-iterators
