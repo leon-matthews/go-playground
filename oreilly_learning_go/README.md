@@ -11,4 +11,4 @@ This folder contains the exercises I've completed for this book so far.
 
 ## Currently
 
-Read through Chapter 4, *Blocks, Shadows, and Control Structures*.
+Read through Chapter 5, *Functions*, continue from closures.
