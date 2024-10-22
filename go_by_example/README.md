@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Range over Iterators
-https://gobyexample.com/range-over-iterators
+Go by Example: Errors
+https://gobyexample.com/errors
