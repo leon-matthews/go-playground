@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Errors
-https://gobyexample.com/errors
+Go by Example: Channels
+https://gobyexample.com/channels
