@@ -59,6 +59,7 @@ boilerplate code. In the following section `%cursor%` is where your cursor
 ends up after hitting *<tab>*.
 
 	# General
+	d=fmt.Printf("[%T]%+[1]v\\n", %cursor%)
 	err=if err != nil {\n\t%cursor%\n}
 	p=fmt.Println(%cursor%)
 
