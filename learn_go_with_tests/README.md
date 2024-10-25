@@ -6,6 +6,6 @@ Examples from the online book [Learn Go with Tests](https://quii.gitbook.io/lear
 
 ## Next
 
-Work through testing *Concurrency*
+Work through chapter *Select*
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/concurrency
+https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/select
