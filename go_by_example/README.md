@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Non-Blocking Channel Operations
-https://gobyexample.com/non-blocking-channel-operations
+Go by Example: Closing Channels
+https://gobyexample.com/closing-channels
