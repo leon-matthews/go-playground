@@ -1,0 +1,27 @@
+package main
+
+import (
+	"fmt"
+	"net/http"
+	"time"
+)
+
+func main() {
+	fmt.Println("select")
+}
+
+func Racer(a, b string) (winner string) {
+	startA := time.Now()
+	http.Get(a)
+	aDuration := time.Since(startA)
+
+	startB := time.Now()
+	http.Get(b)
+	bDuration := time.Since(startB)
+
+	if aDuration > bDuration {
+		return b
+	}
+
+	return a
+}
