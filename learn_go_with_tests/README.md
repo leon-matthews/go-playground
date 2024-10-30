@@ -6,6 +6,6 @@ Examples from the online book [Learn Go with Tests](https://quii.gitbook.io/lear
 
 ## Next
 
-Work through chapter *Select*
+Work through chapter *Reflection*
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/select
+https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/reflection

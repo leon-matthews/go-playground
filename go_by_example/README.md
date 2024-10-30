@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Closing Channels
-https://gobyexample.com/closing-channels
+Go by Example: Timers
+https://gobyexample.com/timers

@@ -6,14 +6,16 @@ import (
 )
 
 func main() {
-	unbuffered()
-	buffering()
-	synchronisation()
-	directions()
-	selectChannel()
-	selectTimeout()
-	selectTimeoutTriggered()
-	NonBlockingOperations()
+	// unbuffered()
+	// buffering()
+	// synchronisation()
+	// directions()
+	// selectChannel()
+	// selectTimeout()
+	// selectTimeoutTriggered()
+	// NonBlockingOperations()
+	ClosingChannels()
+	RangeOverChannels()
 }
 
 // By default sends and receives block until both the sender and
@@ -175,5 +177,56 @@ func NonBlockingOperations() {
 		fmt.Println("received signal", sig)
 	default:
 		fmt.Println("No activity")
+	}
+}
+
+// Closing a channel indicates that no more values will be sent on it.
+func ClosingChannels() {
+	jobs := make(chan int, 2)
+	done := make(chan bool)
+
+	go func() {
+		for {
+			j, more := <-jobs
+			if more {
+				fmt.Println("received job", j)
+			} else {
+				fmt.Println("received all jobs")
+				done <- true
+				return
+			}
+		}
+	}()
+
+	for j := range 3 {
+		job := j + 1
+		jobs <- job
+		fmt.Println("sent job", job)
+	}
+	close(jobs)
+	fmt.Println("sent all jobs")
+	
+	// Block until we receive a notification from the worker on the channel.
+	<- done
+	
+	// Check that `jobs` is empty
+	_, more := <-jobs
+	fmt.Println("received more jobs", more)
+}
+
+// Range iterates over each element as it’s received from channel
+func RangeOverChannels() {
+	queue := make(chan string, 5)
+	queue <- "one"
+	queue <- "two"
+	queue <- "three"
+	
+	// Without `close()`, program panics
+	// fatal error: all goroutines are asleep - deadlock!
+	close(queue)
+	
+	// Values can still be received from closed channel
+	for word := range queue {
+		fmt.Println(word)
 	}
 }
