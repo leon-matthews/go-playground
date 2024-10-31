@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Timers
-https://gobyexample.com/timers
+Go by Example: Worker Pools
+https://gobyexample.com/worker-pools
