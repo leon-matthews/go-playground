@@ -1,10 +1,12 @@
+// Basic setup and CRUD operations using GORM version 1.
+// https://v1.gorm.io/docs/
 package main
 
 import "fmt"
 
 import (
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 // Product contains fields for the database table
@@ -23,11 +25,11 @@ type Product struct {
 }
 
 func main() {
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
-
+	db, err := gorm.Open("sqlite3", "file::memory:?cache=shared")
 	if err != nil {
 		panic("failed to connect to database")
 	}
+	defer db.Close()
 
 	// Migrate schema
 	db.AutoMigrate(&Product{})
@@ -49,13 +51,7 @@ func main() {
 	// Update single field
 	db.Model(&product).Update("Price", 200)
 
-	// Update multiple fields #1
-	db.Model(&product).Updates(Product{Price: 499, Code: "F43"})
-
-	// Update multiple fields #2
-	db.Model(&product).Updates(map[string]any{"Price": 200, "Code": "F42"})
-
 	// Delete
-	db.Delete(&product, 1)
+	db.Delete(&product)
 	fmt.Printf("[%T]%+[1]v\n", product)
 }
