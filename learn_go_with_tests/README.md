@@ -3,9 +3,8 @@
 
 Examples from the online book [Learn Go with Tests](https://quii.gitbook.io/learn-go-with-tests).
 
-
 ## Next
 
-Start example for *Sync*
+Start example for *Context*
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/sync
+https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/context

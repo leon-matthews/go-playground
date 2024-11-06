@@ -1,17 +1,29 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
 
 func main() {
 	fmt.Println("Synchronisation Example")
 }
 
-type Counter struct{}
+func NewCounter() *Counter {
+	return &Counter{}
+}
+
+type Counter struct {
+	value int
+	lock  sync.Mutex
+}
 
 func (c *Counter) Increment() {
-	fmt.Println("Incrementing")
+	c.lock.Lock()
+	c.value++
+	c.lock.Unlock()
 }
 
 func (c *Counter) Value() int {
-	return 3
+	return c.value
 }
