@@ -6,6 +6,6 @@ Examples from the online book [Learn Go with Tests](https://quii.gitbook.io/lear
 
 ## Next
 
-Continue working through *Reflection*
+Start example for *Sync*
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/reflection
+https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/sync
