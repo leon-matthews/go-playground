@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 )
 
@@ -20,8 +19,17 @@ type Store interface {
 func Server(store Store) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		ctx := request.Context()
-		log.Printf("[%T] %+[1]v\n", ctx)
+		data := make(chan string, 1)
 
-		fmt.Fprint(response, store.Fetch())
+		go func() {
+			data <- store.Fetch()
+		}()
+
+		select {
+		case d := <-data:
+			fmt.Fprintf(response, d)
+		case <-ctx.Done():
+			store.Cancel()
+		}
 	}
 }
