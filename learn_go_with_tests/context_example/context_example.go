@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net/http"
 )
 
@@ -11,25 +13,17 @@ func main() {
 
 // Store holds content
 type Store interface {
-	Cancel()
-	Fetch() string
+	Fetch(ctx context.Context) (string, error)
 }
 
 // Server fetches content from store and send to client
 func Server(store Store) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
-		ctx := request.Context()
-		data := make(chan string, 1)
-
-		go func() {
-			data <- store.Fetch()
-		}()
-
-		select {
-		case d := <-data:
-			fmt.Fprintf(response, d)
-		case <-ctx.Done():
-			store.Cancel()
+		data, err := store.Fetch(request.Context())
+		if err != nil {
+			log.Println("error fetching string from store:", err)
+			return
 		}
+		fmt.Fprint(response, data)
 	}
 }
