@@ -5,6 +5,6 @@ Examples from the online book [Learn Go with Tests](https://quii.gitbook.io/lear
 
 ## Next
 
-Start example for *Context*
+Start example for *Maths*
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/context
+https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/math
