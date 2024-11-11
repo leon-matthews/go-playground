@@ -6,6 +6,21 @@ import (
 	"os"
 )
 
+// ShortAndTall finds the lengths of the shortest and longest lines
+func ShortAndTall(lines []string) (int, int) {
+	if len(lines) == 0 {
+		return 0, 0
+	}
+
+	shortest := len(lines[0])
+	longest := shortest
+	for _, line := range lines {
+		shortest = min(shortest, len(line))
+		longest = max(longest, len(line))
+	}
+	return shortest, longest
+}
+
 // Readlines build slice of every non-blank, not-comment line.
 // Comments start at the '#' character and continue to the end of the line.
 // Whitespace is trimmed from both ends of returned lines.

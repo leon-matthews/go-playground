@@ -22,6 +22,9 @@ func main() {
 		log.Fatal(err)
 	}
 
+	short, long := ShortAndTall(lines)
+	fmt.Println("shortest", short, "longest", long)
+
 	counts := make(map[int]int)
 	for _, line := range lines {
 		counts[len(line)]++
