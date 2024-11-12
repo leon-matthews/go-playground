@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 )
 
 func main() {
@@ -22,27 +21,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	short, long := ShortAndTall(lines)
-	fmt.Println("shortest", short, "longest", long)
+	shortest, longest := ShortAndTall(lines)
+	fmt.Println("shortest", shortest, "longest", longest)
 
-	counts := make(map[int]int)
-	for _, line := range lines {
-		counts[len(line)]++
-	}
-
-	numBins := 14
+	counts := CountLengths(lines)
 	binSize := 5
-	for bin := 0; bin < numBins; bin++ {
-		count := 0
-		for i := 0; i < binSize; i++ {
-			index := binSize*bin + i
-			c, ok := counts[index]
-			if ok {
-				count += c
-			}
-		}
-		fmt.Printf("%2d: %v\n", bin*binSize, strings.Repeat("#", count))
-	}
+	printHistogram(counts, binSize, longest)
 }
 
 // usage add positional argument details
