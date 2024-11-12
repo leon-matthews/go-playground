@@ -3,9 +3,13 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 	"math"
 	"os"
 	"strings"
+	"unicode"
 )
 
 // CountLengths builds a map of string lengths vs count
@@ -77,4 +81,12 @@ func ShortAndTall(lines []string) (int, int) {
 		longest = max(longest, len(line))
 	}
 	return shortest, longest
+}
+
+func ToAscii(str string) (string, error) {
+	result, _, err := transform.String(transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn))), str)
+	if err != nil {
+		return "", err
+	}
+	return result, nil
 }
