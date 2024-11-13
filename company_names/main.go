@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/cespare/go-smaz"
 	"log"
 	"os"
 )
@@ -17,24 +16,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	lines, err := ReadLines(path)
+	names, err := ReadNames(path)
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println(names)
+	/*
+		shortest, longest := ShortAndTall(lines)
+		fmt.Print("Unicode strings, lengths in bytes. ")
+		fmt.Println("shortest", shortest, "longest", longest)
 
-	shortest, longest := ShortAndTall(lines)
-	fmt.Print("Unicode strings, lengths in bytes. ")
-	fmt.Println("shortest", shortest, "longest", longest)
+		counts := CountLengths(lines)
+		binSize := 5
+		printHistogram(counts, binSize, longest)
 
-	counts := CountLengths(lines)
-	binSize := 5
-	printHistogram(counts, binSize, longest)
-
-	for _, line := range lines {
-		line, _ = ToAscii(line)
-		var b = smaz.Compress([]byte(line))
-		fmt.Printf("%d -> %d\n", len(line), len(b))
-	}
+		for _, line := range lines {
+			line, _ = ToAscii(line)
+			var b = smaz.Compress([]byte(line))
+			fmt.Printf("%d -> %d\n", len(line), len(b))
+		}
+	*/
 }
 
 // usage add positional argument details

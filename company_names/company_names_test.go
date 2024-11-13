@@ -1,23 +1,36 @@
 package main
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"path/filepath"
 	"runtime"
 	"testing"
 )
 
+func TestName_String(t *testing.T) {
+	name := NewName("Flintstone")
+
+	t.Run("stringer", func(t *testing.T) {
+		assert.Equal(t, "Flintstone", fmt.Sprintf("%s", name))
+	})
+
+	t.Run("length", func(t *testing.T) {
+		assert.Equal(t, 10, name.Length())
+	})
+}
+
 func TestCountLengths(t *testing.T) {
-	var dogs = []string{
-		"Bear",
-		"Buddy",
-		"Duke",
-		"Jack",
-		"Lucky",
-		"Moose",
-		"Scout",
-		"Teddy",
-		"Tucker",
+	var dogs = []Name{
+		NewName("Bear"),
+		NewName("Buddy"),
+		NewName("Duke"),
+		NewName("Jack"),
+		NewName("Lucky"),
+		NewName("Moose"),
+		NewName("Scout"),
+		NewName("Teddy"),
+		NewName("Tucker"),
 	}
 	counts := CountLengths(dogs)
 	assert.Equal(t, counts, map[int]int{4: 3, 5: 5, 6: 1})
@@ -45,36 +58,22 @@ func TestReadLines(t *testing.T) {
 
 	t.Run("missing file error", func(t *testing.T) {
 		path := testDataPath("missing_file.txt")
-		lines, err := ReadLines(path)
-		assert.Nil(t, lines)
+		names, err := ReadNames(path)
+		assert.Nil(t, names)
 		assert.Error(t, err)
 	})
 
 	t.Run("read company names", func(t *testing.T) {
 		path := testDataPath("companies.txt")
-		lines, err := ReadLines(path)
+		names, err := ReadNames(path)
 		assert.Nil(t, err)
-		assert.Equal(t, companies, lines)
+		assert.Equal(t, companies, names)
 	})
 
 	t.Run("ignore comments and blank lines", func(t *testing.T) {
 		path := testDataPath("blanks_and_comments.txt")
-		lines, err := ReadLines(path)
+		names, err := ReadNames(path)
 		assert.Nil(t, err)
-		assert.Equal(t, companies, lines)
+		assert.Equal(t, companies, names)
 	})
-}
-
-func TestShortAndTall(t *testing.T) {
-	var pangrams = []string{
-		"The quick brown fox jumps over the lazy dog",
-		"Sphinx of black quartz judge my vow",
-		"The five boxing wizards jump quickly",
-		"Jackdaws love my big sphinx of quartz",
-	}
-
-	short, long := ShortAndTall(pangrams)
-
-	assert.Equal(t, 35, short)
-	assert.Equal(t, 43, long)
 }

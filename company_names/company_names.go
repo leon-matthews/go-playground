@@ -12,11 +12,27 @@ import (
 	"unicode"
 )
 
-// CountLengths builds a map of string lengths vs count
-func CountLengths(lines []string) map[int]int {
+type Name struct {
+	utf8 []byte
+}
+
+func NewName(name string) Name {
+	return Name{utf8: []byte(name)}
+}
+
+func (n Name) Length() int {
+	return len(n.utf8)
+}
+
+func (n Name) String() string {
+	return string(n.utf8)
+}
+
+// CountLengths builds a map of name lengths vs count
+func CountLengths(names []Name) map[int]int {
 	counts := make(map[int]int)
-	for _, line := range lines {
-		counts[len(line)]++
+	for _, name := range names {
+		counts[name.Length()]++
 	}
 	return counts
 }
@@ -40,32 +56,32 @@ func printHistogram(counts map[int]int, binSize, largest int) {
 	}
 }
 
-// Readlines build slice of every non-blank, non-comment line.
-// Whitespace is trimmed from both ends of returned lines, comments are lines
-// that start with the '#' character.
-func ReadLines(path string) ([]string, error) {
+// ReadNames builds a slice of names from every non-blank, non-comment line.
+// Whitespace is trimmed from both ends of input lines, while comments are
+// lines that start with the '#' character.
+func ReadNames(path string) ([]Name, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	lines := make([]string, 0)
+	names := make([]Name, 0)
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		var line string
-		line = scanner.Text()
-		line = strings.TrimSpace(line)
-		if line == "" || line[0] == '#' {
+		var str string
+		str = scanner.Text()
+		str = strings.TrimSpace(str)
+		if str == "" || str[0] == '#' {
 			continue
 		}
-		lines = append(lines, line)
+		names = append(names, NewName(str))
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
 
-	return lines, nil
+	return names, nil
 }
 
 // ShortAndTall finds the lengths of the shortest and longest lines
