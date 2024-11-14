@@ -1,6 +1,7 @@
 package main
 
 import (
+	"company_names/internal"
 	"flag"
 	"fmt"
 	"log"
@@ -16,18 +17,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	names, err := ReadNames(path)
+	names, err := lib.ReadNames(path)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	shortest, longest := ShortestAndLongest(names)
+	shortest, longest := lib.ShortestAndLongest(names)
 	fmt.Print("Unicode strings, lengths in bytes. ")
 	fmt.Println("shortest", shortest, "longest", longest)
 
 	binSize := 5
-	counts := CountLengths(names)
-	PrintHistogram(counts, binSize)
+	counts := lib.CountLengths(names)
+	lib.PrintHistogram(counts, binSize)
 }
 
 // usage add positional argument details

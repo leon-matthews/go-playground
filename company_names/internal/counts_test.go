@@ -1,4 +1,4 @@
-package main
+package lib
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -26,7 +26,7 @@ func TestCountLengths(t *testing.T) {
 // testDataPath calculates path to a data file for testing
 func testDataPath(name string) string {
 	_, filename, _, _ := runtime.Caller(0)
-	data_folder := filepath.Join(filepath.Dir(filename), "data")
+	data_folder := filepath.Join(filepath.Dir(filename), "test_data")
 	data_path := filepath.Join(data_folder, name)
 	return data_path
 }

@@ -1,8 +1,9 @@
-package main
+package lib
 
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"testing"
 )
 
@@ -40,14 +41,14 @@ func TestReadNames(t *testing.T) {
 	t.Run("read company names", func(t *testing.T) {
 		path := testDataPath("companies.txt")
 		names, err := ReadNames(path)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, companies, names)
 	})
 
 	t.Run("ignore comments and blank lines", func(t *testing.T) {
 		path := testDataPath("blanks_and_comments.txt")
 		names, err := ReadNames(path)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, companies, names)
 	})
 }
