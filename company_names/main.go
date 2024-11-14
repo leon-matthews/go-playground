@@ -20,22 +20,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(names)
-	/*
-		shortest, longest := ShortAndTall(lines)
-		fmt.Print("Unicode strings, lengths in bytes. ")
-		fmt.Println("shortest", shortest, "longest", longest)
 
-		counts := CountLengths(lines)
-		binSize := 5
-		printHistogram(counts, binSize, longest)
+	shortest, longest := ShortestAndLongest(names)
+	fmt.Print("Unicode strings, lengths in bytes. ")
+	fmt.Println("shortest", shortest, "longest", longest)
 
-		for _, line := range lines {
-			line, _ = ToAscii(line)
-			var b = smaz.Compress([]byte(line))
-			fmt.Printf("%d -> %d\n", len(line), len(b))
-		}
-	*/
+	binSize := 5
+	counts := CountLengths(names)
+	PrintHistogram(counts, binSize)
 }
 
 // usage add positional argument details
