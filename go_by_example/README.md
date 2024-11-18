@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Worker Pools
-https://gobyexample.com/worker-pools
+Go by Example: Rate Limiting
+https://gobyexample.com/rate-limiting
