@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Mutexes
-https://gobyexample.com/mutexes
+Go by Example: Stateful Goroutines
+https://gobyexample.com/stateful-goroutines
