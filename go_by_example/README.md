@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Rate Limiting
-https://gobyexample.com/rate-limiting
+Go by Example: Atomic Counters
+https://gobyexample.com/atomic-counters
