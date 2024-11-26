@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Atomic Counters
-https://gobyexample.com/atomic-counters
+Go by Example: Mutexes
+https://gobyexample.com/mutexes
