@@ -6,7 +6,10 @@ import (
 )
 
 type Post struct {
-	Title string
+	Title       string
+	Description string
+	Tags        []string
+	Body        string
 }
 
 func NewPostsFromFS(fileSystem fs.FS) ([]Post, error) {
@@ -15,7 +18,7 @@ func NewPostsFromFS(fileSystem fs.FS) ([]Post, error) {
 	for _, f := range dir {
 		post, err := getPost(fileSystem, f.Name())
 		if err != nil {
-			log.Printf("rrror getting post %s: %v", f.Name(), err)
+			log.Printf("error getting post %s: %v", f.Name(), err)
 			continue
 		}
 		posts = append(posts, post)
