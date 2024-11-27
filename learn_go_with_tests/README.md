@@ -5,6 +5,6 @@ Examples from the online book [Learn Go with Tests](https://quii.gitbook.io/lear
 
 ## Next
 
-Start example for *Maths*
+Continue example for *Reading Files* and parsing
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/math
+https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/reading-files#test-helper
