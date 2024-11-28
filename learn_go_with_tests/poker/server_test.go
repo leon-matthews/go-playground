@@ -32,7 +32,7 @@ func TestGetPlayerScore(t *testing.T) {
 		"alyson": 20,
 		"leon":   10,
 	})
-	server := &PlayerServer{storage: storage}
+	server := NewPlayerServer(storage)
 
 	t.Run("get Alyson's score", func(t *testing.T) {
 		request := getScoreRequest("alyson")
@@ -64,13 +64,27 @@ func TestGetPlayerScore(t *testing.T) {
 	})
 }
 
+func TestLeague(t *testing.T) {
+	storage := NewStorageMock()
+	server := NewPlayerServer(storage)
+
+	t.Run("return 200 from league", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodGet, "/league", nil)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, http.StatusOK, response.Code)
+	})
+}
+
 func TestPostPlayerScore(t *testing.T) {
 	storage := NewStorageMock()
 	storage.Reset(map[string]int{
 		"alyson": 20,
 		"leon":   10,
 	})
-	server := &PlayerServer{storage: storage}
+	server := NewPlayerServer(storage)
 
 	t.Run("ensure wins are recorded in storage", func(t *testing.T) {
 		player := "eric"

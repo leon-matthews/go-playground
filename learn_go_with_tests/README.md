@@ -5,6 +5,6 @@ Examples from the online book [Learn Go with Tests](https://quii.gitbook.io/lear
 
 ## Next
 
-Continue final application example, in the HTTP server chapter:
+Continue final application example, in the JSON + routing chapter:
 
-https://quii.gitbook.io/learn-go-with-tests/build-an-application/http-server#integration-tests
+https://quii.gitbook.io/learn-go-with-tests/build-an-application/json
