@@ -1,5 +1,7 @@
 package main
 
+import "sync"
+
 // PlayerStorage keeps track of players and their scores
 type PlayerStorage interface {
 	// GetPlayerScore returns number of wins by player with given name
@@ -22,6 +24,7 @@ func NewInMemoryStorage() *InMemoryStorage {
 
 // InMemoryStorage is as simple interface implementation for testing
 type InMemoryStorage struct {
+	lock sync.Mutex
 	wins map[string]int
 }
 
@@ -31,6 +34,8 @@ func (s *InMemoryStorage) GetPlayerScore(name string) int {
 }
 
 func (s *InMemoryStorage) RecordWin(name string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	s.wins[name]++
 }
 
