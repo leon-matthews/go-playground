@@ -8,8 +8,8 @@ import (
 )
 
 func TestRecordAndRetrieveWins(t *testing.T) {
-	store := InMemoryStorage{}
-	server := PlayerServer{&store}
+	store := NewInMemoryStorage()
+	server := PlayerServer{store}
 	player := "Leon"
 
 	// On a winning streak!
