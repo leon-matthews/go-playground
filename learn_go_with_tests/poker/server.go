@@ -1,10 +1,18 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 )
+
+const jsonContentType = "application/json"
+
+type Player struct {
+	Name string
+	Wins int
+}
 
 type PlayerServer struct {
 	storage PlayerStorage
@@ -24,7 +32,12 @@ func NewPlayerServer(storage PlayerStorage) *PlayerServer {
 }
 
 func (s *PlayerServer) leagueHandler(w http.ResponseWriter, r *http.Request) {
+	// Pants first
+	w.Header().Set("content-type", jsonContentType)
 	w.WriteHeader(http.StatusOK)
+
+	// Then shoes
+	json.NewEncoder(w).Encode(s.storage.GetLeague())
 }
 
 func (s *PlayerServer) playersHandler(w http.ResponseWriter, r *http.Request) {

@@ -4,6 +4,9 @@ import "sync"
 
 // PlayerStorage keeps track of players and their scores
 type PlayerStorage interface {
+	// GetLeague builds list of all players
+	GetLeague() []Player
+
 	// GetPlayerScore returns number of wins by player with given name
 	// Returns zero if player not found, or has no wins.
 	GetPlayerScore(name string) int
@@ -26,6 +29,10 @@ func NewInMemoryStorage() *InMemoryStorage {
 type InMemoryStorage struct {
 	lock sync.Mutex
 	wins map[string]int
+}
+
+func (s *InMemoryStorage) GetLeague() []Player {
+	return nil
 }
 
 func (s *InMemoryStorage) GetPlayerScore(name string) int {
