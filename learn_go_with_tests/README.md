@@ -5,6 +5,6 @@ Examples from the online book [Learn Go with Tests](https://quii.gitbook.io/lear
 
 ## Next
 
-Continue example for *Reading Files* and parsing
+Continue final application example, in the HTTP server chapter:
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/reading-files#test-helper
+https://quii.gitbook.io/learn-go-with-tests/build-an-application/http-server#integration-tests
