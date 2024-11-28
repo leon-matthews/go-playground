@@ -8,31 +8,31 @@ import (
 	"testing"
 )
 
-// PlayerStoreStub provides in-memory player store
-type PlayerStorageStub struct {
-	scores   map[string]int
+func NewStorageMock() *StorageMock {
+	return &StorageMock{
+		NewInMemoryStorage(),
+		make([]string, 0),
+	}
+}
+
+// StorageMock provides in-memory player store
+type StorageMock struct {
+	*InMemoryStorage
 	winCalls []string
 }
 
-func (s *PlayerStorageStub) GetPlayerScore(name string) int {
-	score := s.scores[name]
-	return score
-}
-
-func (s *PlayerStorageStub) RecordWin(name string) {
-	s.scores[name]++
+func (s *StorageMock) RecordWin(name string) {
+	s.InMemoryStorage.RecordWin(name)
 	s.winCalls = append(s.winCalls, name)
 }
 
 func TestGetPlayerScore(t *testing.T) {
-	storage := PlayerStorageStub{
-		scores: map[string]int{
-			"alyson": 20,
-			"leon":   10,
-		},
-		winCalls: []string{},
-	}
-	server := &PlayerServer{storage: &storage}
+	storage := NewStorageMock()
+	storage.Reset(map[string]int{
+		"alyson": 20,
+		"leon":   10,
+	})
+	server := &PlayerServer{storage: storage}
 
 	t.Run("get Alyson's score", func(t *testing.T) {
 		request := getScoreRequest("alyson")
@@ -65,11 +65,12 @@ func TestGetPlayerScore(t *testing.T) {
 }
 
 func TestPostPlayerScore(t *testing.T) {
-	storage := PlayerStorageStub{
-		make(map[string]int),
-		make([]string, 0),
-	}
-	server := &PlayerServer{storage: &storage}
+	storage := NewStorageMock()
+	storage.Reset(map[string]int{
+		"alyson": 20,
+		"leon":   10,
+	})
+	server := &PlayerServer{storage: storage}
 
 	t.Run("ensure wins are recorded in storage", func(t *testing.T) {
 		player := "eric"

@@ -1,5 +1,11 @@
 package main
 
+type PlayerStorage interface {
+	GetPlayerScore(name string) int
+	RecordWin(name string)
+	Reset(wins map[string]int)
+}
+
 func NewInMemoryStorage() *InMemoryStorage {
 	return &InMemoryStorage{
 		wins: make(map[string]int),
@@ -19,4 +25,12 @@ func (s *InMemoryStorage) GetPlayerScore(name string) int {
 
 func (s *InMemoryStorage) RecordWin(name string) {
 	s.wins[name]++
+}
+
+func (s *InMemoryStorage) Reset(wins map[string]int) {
+	if wins == nil {
+		s.wins = map[string]int{}
+	} else {
+		s.wins = wins
+	}
 }

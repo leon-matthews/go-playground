@@ -32,8 +32,3 @@ func (s *PlayerServer) processWin(w http.ResponseWriter, player string) {
 	s.storage.RecordWin(player)
 	w.WriteHeader(http.StatusAccepted)
 }
-
-type PlayerStorage interface {
-	GetPlayerScore(name string) int
-	RecordWin(name string)
-}
