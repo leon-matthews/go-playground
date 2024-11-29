@@ -1,6 +1,8 @@
 package main
 
-import "sync"
+import (
+	"sync"
+)
 
 // PlayerStorage keeps track of players and their scores
 type PlayerStorage interface {
@@ -32,7 +34,11 @@ type InMemoryStorage struct {
 }
 
 func (s *InMemoryStorage) GetLeague() []Player {
-	return nil
+	league := make([]Player, 0, len(s.wins))
+	for name, score := range s.wins {
+		league = append(league, Player{name, score})
+	}
+	return league
 }
 
 func (s *InMemoryStorage) GetPlayerScore(name string) int {
