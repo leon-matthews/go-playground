@@ -13,14 +13,11 @@ func main() {
 	fmt.Println("Let's play poker")
 	fmt.Println("Type '{name} wins' to record a win")
 
-	db, err := os.OpenFile(dbFilename, os.O_RDWR|os.O_CREATE, 0666)
+	storage, closer, err := poker.NewFileSystemStorageFromFile(dbFilename)
 	if err != nil {
-		log.Fatalf("could not open database file: %v: %v", dbFilename, err)
+		log.Fatal(err)
 	}
-	storage, err := poker.NewFileSystemStorage(db)
-	if err != nil {
-		log.Fatalf("problem creating file system player store, %v ", err)
-	}
+	defer closer()
 
 	game := poker.NewCLI(storage, os.Stdin)
 	game.PlayPoker()
