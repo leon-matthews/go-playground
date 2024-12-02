@@ -1,4 +1,4 @@
-package poker
+package poker_test
 
 import (
 	"encoding/json"
@@ -7,40 +7,17 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"poker"
 	"testing"
 )
 
-func NewStorageMock(league []Player) *StorageMock {
-	return &StorageMock{
-		NewInMemoryStorage(),
-		make([]string, 0),
-		league,
-	}
-}
-
-// StorageMock provides in-memory player store
-type StorageMock struct {
-	*InMemoryStorage
-	winCalls []string
-	league   []Player
-}
-
-func (s *StorageMock) GetLeague() League {
-	return s.league
-}
-
-func (s *StorageMock) RecordWin(name string) {
-	s.InMemoryStorage.RecordWin(name)
-	s.winCalls = append(s.winCalls, name)
-}
-
 func TestGetPlayerScore(t *testing.T) {
-	storage := NewStorageMock(nil)
+	storage := poker.NewStorageMock(nil)
 	storage.Reset(map[string]int{
 		"alyson": 20,
 		"leon":   10,
 	})
-	server := NewPlayerServer(storage)
+	server := poker.NewPlayerServer(storage)
 
 	t.Run("get Alyson's score", func(t *testing.T) {
 		request := getScoreRequest("alyson")
@@ -73,12 +50,12 @@ func TestGetPlayerScore(t *testing.T) {
 }
 
 func TestLeague(t *testing.T) {
-	league := []Player{
+	league := []poker.Player{
 		{"Alyson", 20},
 		{"Leon", 10},
 	}
-	storage := NewStorageMock(league)
-	server := NewPlayerServer(storage)
+	storage := poker.NewStorageMock(league)
+	server := poker.NewPlayerServer(storage)
 
 	t.Run("return JSON data from league", func(t *testing.T) {
 		request := getLeagueRequest()
@@ -97,12 +74,12 @@ func TestLeague(t *testing.T) {
 }
 
 func TestPostPlayerScore(t *testing.T) {
-	storage := NewStorageMock(nil)
+	storage := poker.NewStorageMock(nil)
 	storage.Reset(map[string]int{
 		"alyson": 20,
 		"leon":   10,
 	})
-	server := NewPlayerServer(storage)
+	server := poker.NewPlayerServer(storage)
 
 	t.Run("ensure wins are recorded in storage", func(t *testing.T) {
 		player := "eric"
@@ -112,8 +89,8 @@ func TestPostPlayerScore(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		assertStatus(t, http.StatusAccepted, response.Code)
-		assert.Equal(t, 1, len(storage.winCalls), "expected 1 call to win, but got %d", len(storage.winCalls))
-		assert.Equal(t, player, storage.winCalls[0])
+		assert.Equal(t, 1, len(storage.WinCalls), "expected 1 call to win, but got %d", len(storage.WinCalls))
+		assert.Equal(t, player, storage.WinCalls[0])
 	})
 }
 
@@ -136,8 +113,8 @@ func assertStatus(t testing.TB, want, got int) {
 	}
 }
 
-func getLeagueFromResponse(t testing.TB, body io.Reader) []Player {
-	var league []Player
+func getLeagueFromResponse(t testing.TB, body io.Reader) []poker.Player {
+	var league []poker.Player
 	err := json.NewDecoder(body).Decode(&league)
 	if err != nil {
 		t.Fatalf("Unable to parse response from server %q into slice of Player, '%v'", body, err)

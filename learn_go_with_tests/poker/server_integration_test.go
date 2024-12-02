@@ -1,18 +1,19 @@
-package poker
+package poker_test
 
 import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
+	"poker"
 	"testing"
 )
 
 func TestRecordAndRetrieveWins(t *testing.T) {
-	database, cleanDatabase := createTempFile(t, "[]")
+	database, cleanDatabase := poker.CreateTempFile(t, "[]")
 	defer cleanDatabase()
-	store, err := NewFileSystemStorage(database)
+	store, err := poker.NewFileSystemStorage(database)
 	assert.NoError(t, err)
-	server := NewPlayerServer(store)
+	server := poker.NewPlayerServer(store)
 	player := "Leon"
 
 	// On a winning streak!
@@ -45,7 +46,7 @@ func TestRecordAndRetrieveWins(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, response.Code)
 		got := getLeagueFromResponse(t, response.Body)
-		want := []Player{
+		want := []poker.Player{
 			{"Leon", 3},
 		}
 		assert.Equal(t, want, got)
