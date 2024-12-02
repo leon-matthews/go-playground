@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
+	"os"
 	"sync"
 )
 
@@ -21,17 +23,33 @@ type PlayerStorage interface {
 
 // FileSystemStorage saves data as simple JSON file
 type FileSystemStorage struct {
-	database io.ReadWriteSeeker
+	database *json.Encoder
 	league   League // Cache of database contents
 }
 
-func NewFileSystemStorage(database io.ReadWriteSeeker) *FileSystemStorage {
-	database.Seek(0, io.SeekStart)
-	league, _ := NewLeague(database)
-	return &FileSystemStorage{
-		database: database,
+func NewFileSystemStorage(file *os.File) (*FileSystemStorage, error) {
+	file.Seek(0, io.SeekStart)
+	info, err := file.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("problem reading file: %v: %w", file.Name(), err)
+	}
+
+	// Handle empty file
+	if info.Size() == 0 {
+		file.Write([]byte("[]"))
+		file.Seek(0, io.SeekStart)
+	}
+
+	// Read data from file
+	league, err := NewLeague(file)
+	if err != nil {
+		return nil, fmt.Errorf("problem loading league from file: %s: %w", file.Name(), err)
+	}
+	storage := &FileSystemStorage{
+		database: json.NewEncoder(&tape{file}),
 		league:   league,
 	}
+	return storage, nil
 }
 
 func (f *FileSystemStorage) GetLeague() League {
@@ -55,8 +73,7 @@ func (f *FileSystemStorage) RecordWin(name string) {
 		player.Wins++
 	}
 
-	f.database.Seek(0, io.SeekStart)
-	json.NewEncoder(f.database).Encode(f.league)
+	f.database.Encode(f.league)
 }
 
 // InMemoryStorage is as simple interface implementation for testing

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"io"
+	"log"
 	"os"
 	"testing"
 
@@ -15,7 +15,8 @@ func TestFileSystemStorage(t *testing.T) {
 			{"Name": "Alyson", "Wins": 33}
 		]`)
 		defer cleanDatabase()
-		store := NewFileSystemStorage(database)
+		store, err := NewFileSystemStorage(database)
+		assert.NoError(t, err)
 
 		got := store.GetPlayerScore("Leon")
 
@@ -28,7 +29,8 @@ func TestFileSystemStorage(t *testing.T) {
 			{"Name": "Alyson", "Wins": 33}
 		]`)
 		defer cleanDatabase()
-		store := NewFileSystemStorage(database)
+		store, err := NewFileSystemStorage(database)
+		assert.NoError(t, err)
 
 		got := store.GetLeague()
 
@@ -50,7 +52,8 @@ func TestFileSystemStorage(t *testing.T) {
 			{"Name": "Alyson", "Wins": 33}
 		]`)
 		defer cleanDatabase()
-		store := NewFileSystemStorage(database)
+		store, err := NewFileSystemStorage(database)
+		assert.NoError(t, err)
 
 		store.RecordWin("Leon")
 
@@ -64,18 +67,27 @@ func TestFileSystemStorage(t *testing.T) {
 			{"Name": "Alyson", "Wins": 33}
 		]`)
 		defer cleanDatabase()
-		store := NewFileSystemStorage(database)
+		store, err := NewFileSystemStorage(database)
+		assert.NoError(t, err)
 
 		store.RecordWin("Blake")
 
 		got := store.GetPlayerScore("Blake")
 		assert.Equal(t, 1, got)
 	})
+
+	t.Run("works with an empty file", func(t *testing.T) {
+		file, clean := createTempFile(t, "")
+		defer clean()
+		store, err := NewFileSystemStorage(file)
+		assert.NoError(t, err)
+		log.Println(store)
+	})
 }
 
 // createTempFile creates a real file-system file containing initialData.
 // Run the returned function to remove the temporary file.
-func createTempFile(t testing.TB, initialData string) (io.ReadWriteSeeker, func()) {
+func createTempFile(t testing.TB, initialData string) (*os.File, func()) {
 	t.Helper()
 	tempfile, err := os.CreateTemp("", "db")
 	if err != nil {
