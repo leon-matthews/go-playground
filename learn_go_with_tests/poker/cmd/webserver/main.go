@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"poker"
 )
 
 const dbFilename = "poker.db.json"
@@ -14,12 +16,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not open database file: %v: %v", dbFilename, err)
 	}
-	storage, err := NewFileSystemStorage(db)
+	storage, err := poker.NewFileSystemStorage(db)
 	if err != nil {
 		log.Fatalf("problem creating file system player store, %v ", err)
 	}
 
-	server := NewPlayerServer(storage)
+	server := poker.NewPlayerServer(storage)
 	log.Println("starting server on", serverAddress)
 	if err := http.ListenAndServe(serverAddress, server); err != nil {
 		log.Fatalf("could not start server: %v", err)
