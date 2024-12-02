@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"sync"
 )
 
@@ -45,14 +46,18 @@ func NewFileSystemStorage(file *os.File) (*FileSystemStorage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("problem loading league from file: %s: %w", file.Name(), err)
 	}
+
 	storage := &FileSystemStorage{
-		database: json.NewEncoder(&tape{file}),
-		league:   league,
+		json.NewEncoder(&tape{file}),
+		league,
 	}
 	return storage, nil
 }
 
 func (f *FileSystemStorage) GetLeague() League {
+	sort.SliceStable(f.league, func(i, j int) bool {
+		return f.league[i].Wins > f.league[j].Wins
+	})
 	return f.league
 }
 

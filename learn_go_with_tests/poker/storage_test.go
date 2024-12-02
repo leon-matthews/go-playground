@@ -34,15 +34,34 @@ func TestFileSystemStorage(t *testing.T) {
 
 		got := store.GetLeague()
 
-		// Returned in original order
+		// Returned order of most wins
 		want := League{
-			Player{"Leon", 10},
 			Player{"Alyson", 33},
+			Player{"Leon", 10},
 		}
 		assert.Equal(t, want, got)
 
 		// Read again
 		got = store.GetLeague()
+		assert.Equal(t, want, got)
+	})
+
+	t.Run("sort league by number of wins", func(t *testing.T) {
+		file, clean := createTempFile(t, `[
+			{"Name": "Leon", "Wins": 10},
+			{"Name": "Alyson", "Wins": 33}
+		]`)
+		defer clean()
+		store, err := NewFileSystemStorage(file)
+		assert.NoError(t, err)
+
+		got := store.GetLeague()
+
+		want := League{
+			{"Alyson", 33},
+			{"Leon", 10},
+		}
+
 		assert.Equal(t, want, got)
 	})
 
