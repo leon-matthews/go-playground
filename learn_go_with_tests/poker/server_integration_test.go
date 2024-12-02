@@ -8,7 +8,9 @@ import (
 )
 
 func TestRecordAndRetrieveWins(t *testing.T) {
-	store := NewInMemoryStorage()
+	database, cleanDatabase := createTempFile(t, "")
+	defer cleanDatabase()
+	store := &FileSystemStorage{database}
 	server := NewPlayerServer(store)
 	player := "Leon"
 

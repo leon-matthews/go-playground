@@ -25,7 +25,7 @@ type StorageMock struct {
 	league   []Player
 }
 
-func (s *StorageMock) GetLeague() []Player {
+func (s *StorageMock) GetLeague() League {
 	return s.league
 }
 
