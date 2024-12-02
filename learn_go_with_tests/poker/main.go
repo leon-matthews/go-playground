@@ -14,7 +14,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not open database file: %v: %v", dbFilename, err)
 	}
-	storage := &FileSystemStorage{db}
+	storage := NewFileSystemStorage(db)
 	server := NewPlayerServer(storage)
 
 	log.Println("starting server on", serverAddress)

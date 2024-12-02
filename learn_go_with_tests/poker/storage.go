@@ -22,17 +22,24 @@ type PlayerStorage interface {
 // FileSystemStorage saves data as simple JSON file
 type FileSystemStorage struct {
 	database io.ReadWriteSeeker
+	league   League // Cache of database contents
+}
+
+func NewFileSystemStorage(database io.ReadWriteSeeker) *FileSystemStorage {
+	database.Seek(0, io.SeekStart)
+	league, _ := NewLeague(database)
+	return &FileSystemStorage{
+		database: database,
+		league:   league,
+	}
 }
 
 func (f *FileSystemStorage) GetLeague() League {
-	f.database.Seek(0, io.SeekStart)
-	league, _ := NewLeague(f.database)
-	return league
+	return f.league
 }
 
 func (f *FileSystemStorage) GetPlayerScore(name string) int {
-	league := f.GetLeague()
-	player := league.Find(name)
+	player := f.league.Find(name)
 	if player == nil {
 		return 0
 	}
@@ -40,16 +47,16 @@ func (f *FileSystemStorage) GetPlayerScore(name string) int {
 }
 
 func (f *FileSystemStorage) RecordWin(name string) {
-	league := f.GetLeague()
-	player := league.Find(name)
+	player := f.league.Find(name)
+
 	if player == nil {
-		league = append(league, Player{Name: name, Wins: 1})
+		f.league = append(f.league, Player{Name: name, Wins: 1})
 	} else {
 		player.Wins++
 	}
 
 	f.database.Seek(0, io.SeekStart)
-	json.NewEncoder(f.database).Encode(league)
+	json.NewEncoder(f.database).Encode(f.league)
 }
 
 // InMemoryStorage is as simple interface implementation for testing

@@ -23,6 +23,5 @@ func NewLeague(r io.Reader) (League, error) {
 	if err != nil {
 		err = fmt.Errorf("problem parsing league, %w", err)
 	}
-	fmt.Printf("[%T]%+[1]v\n", err)
 	return league, err
 }
