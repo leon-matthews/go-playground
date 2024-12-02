@@ -3,11 +3,22 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 )
 
+const dbFilename = "poker.db.json"
+const serverAddress = ":8080"
+
 func main() {
-	storage := NewInMemoryStorage()
+	db, err := os.OpenFile(dbFilename, os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		log.Fatalf("could not open database file: %v: %v", dbFilename, err)
+	}
+	storage := &FileSystemStorage{db}
 	server := NewPlayerServer(storage)
-	log.Println("starting server on :8080")
-	log.Fatal(http.ListenAndServe(":8080", server))
+
+	log.Println("starting server on", serverAddress)
+	if err := http.ListenAndServe(serverAddress, server); err != nil {
+		log.Fatalf("could not start server: %v", err)
+	}
 }
