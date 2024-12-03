@@ -19,6 +19,7 @@ func main() {
 	}
 	defer closer()
 
-	game := poker.NewCLI(storage, os.Stdin)
+	var dummyAlerter = &poker.BlindAlerterMock{}
+	game := poker.NewCLI(storage, os.Stdin, dummyAlerter)
 	game.PlayPoker()
 }
