@@ -7,4 +7,4 @@ Examples from the online book [Learn Go with Tests](https://quii.gitbook.io/lear
 
 Continue final application example, in the Time Chapter:
 
-https://quii.gitbook.io/learn-go-with-tests/build-an-application/time#write-the-test-first-1
+https://quii.gitbook.io/learn-go-with-tests/build-an-application/time#write-the-test-first-2
