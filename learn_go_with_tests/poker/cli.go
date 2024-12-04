@@ -7,11 +7,6 @@ import (
 	"time"
 )
 
-// BlindAlerter alerts users to blind increases after some time interval
-type BlindAlerter interface {
-	ScheduleAlert(duration time.Duration, amount int)
-}
-
 // CLI manages the command-line interface
 type CLI struct {
 	storage PlayerStorage
@@ -28,6 +23,12 @@ func NewCLI(storage PlayerStorage, in io.Reader, alerter BlindAlerter) *CLI {
 }
 
 func (cli *CLI) PlayPoker() {
+	blinds := []int{100, 200, 300, 400, 500, 600, 800, 1000, 2000, 4000, 8000}
+	blindTime := 0 * time.Second
+	for _, amount := range blinds {
+		cli.alerter.ScheduleAlert(blindTime, amount)
+		blindTime = blindTime + 10*time.Second
+	}
 	cli.alerter.ScheduleAlert(5*time.Second, 100)
 	winner := ExtractWinner(cli.readLine())
 	cli.storage.RecordWin(winner)

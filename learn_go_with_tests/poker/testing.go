@@ -3,23 +3,7 @@ package poker
 import (
 	"os"
 	"testing"
-	"time"
 )
-
-// BlindAlerterMock fakes blind alterting for testing
-type BlindAlerterMock struct {
-	Alerts []struct {
-		scheduledAt time.Duration
-		amount      int
-	}
-}
-
-func (b *BlindAlerterMock) ScheduleAlert(duration time.Duration, amount int) {
-	b.Alerts = append(b.Alerts, struct {
-		scheduledAt time.Duration
-		amount      int
-	}{duration, amount})
-}
 
 // CreateTempFile creates a real file-system file containing initialData.
 // Run the returned function to remove the temporary file.
