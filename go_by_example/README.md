@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Stateful Goroutines
-https://gobyexample.com/stateful-goroutines
+Go by Example: Sorting by Functions
+https://gobyexample.com/sorting-by-functions
