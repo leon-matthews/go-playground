@@ -2,36 +2,41 @@ package poker
 
 import (
 	"bufio"
+	"fmt"
 	"io"
+	"strconv"
 	"strings"
-	"time"
 )
+
+const NumPlayersPrompt = "Please enter the number of players: "
 
 // CLI manages the command-line interface
 type CLI struct {
-	storage PlayerStorage
-	scanner *bufio.Scanner
-	alerter BlindAlerter
+	in   *bufio.Scanner
+	out  io.Writer
+	game *Game
 }
 
-func NewCLI(storage PlayerStorage, in io.Reader, alerter BlindAlerter) *CLI {
+func NewCLI(in io.Reader, out io.Writer, game *Game) *CLI {
 	return &CLI{
-		storage: storage,
-		scanner: bufio.NewScanner(in),
-		alerter: alerter,
+		in:   bufio.NewScanner(in),
+		out:  out,
+		game: game,
 	}
 }
 
 func (cli *CLI) PlayPoker() {
-	blinds := []int{100, 200, 300, 400, 500, 600, 800, 1000, 2000, 4000, 8000}
-	blindTime := 0 * time.Second
-	for _, amount := range blinds {
-		cli.alerter.ScheduleAlert(blindTime, amount)
-		blindTime = blindTime + 10*time.Second
-	}
-	cli.alerter.ScheduleAlert(5*time.Second, 100)
-	winner := ExtractWinner(cli.readLine())
-	cli.storage.RecordWin(winner)
+	fmt.Fprint(cli.out, NumPlayersPrompt)
+
+	numPlayersInput := cli.readLine()
+	numPlayers, _ := strconv.Atoi(strings.Trim(numPlayersInput, "\n"))
+
+	cli.game.Start(numPlayers)
+
+	winnerInput := cli.readLine()
+	winner := ExtractWinner(winnerInput)
+
+	cli.game.Finish(winner)
 }
 
 func ExtractWinner(line string) string {
@@ -39,6 +44,6 @@ func ExtractWinner(line string) string {
 }
 
 func (cli *CLI) readLine() string {
-	cli.scanner.Scan()
-	return cli.scanner.Text()
+	cli.in.Scan()
+	return cli.in.Text()
 }

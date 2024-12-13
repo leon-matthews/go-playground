@@ -1,6 +1,7 @@
 package poker_test
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"poker"
@@ -31,9 +32,11 @@ var dummyAlerter = &BlindAlerterMock{}
 
 func TestCLI(t *testing.T) {
 	t.Run("record Alyson winning", func(t *testing.T) {
-		in := strings.NewReader("Alyson wins\n")
+		in := strings.NewReader("5\nAlyson wins\n")
+		out := new(bytes.Buffer)
 		storage := poker.NewStorageMock(poker.League{})
-		cli := poker.NewCLI(storage, in, dummyAlerter)
+		game := poker.NewGame(dummyAlerter, storage)
+		cli := poker.NewCLI(in, out, game)
 
 		cli.PlayPoker()
 
@@ -46,9 +49,11 @@ func TestCLI(t *testing.T) {
 	})
 
 	t.Run("record Leon winning", func(t *testing.T) {
-		in := strings.NewReader("Leon wins\n")
+		in := strings.NewReader("5\nLeon wins\n")
+		out := new(bytes.Buffer)
 		storage := poker.NewStorageMock(poker.League{})
-		cli := poker.NewCLI(storage, in, dummyAlerter)
+		game := poker.NewGame(dummyAlerter, storage)
+		cli := poker.NewCLI(in, out, game)
 
 		cli.PlayPoker()
 
@@ -61,11 +66,12 @@ func TestCLI(t *testing.T) {
 	})
 
 	t.Run("schedule printing of blind values", func(t *testing.T) {
-		in := strings.NewReader("Alyson Wins\n")
+		in := strings.NewReader("5\nAlyson Wins\n")
+		out := new(bytes.Buffer)
 		storage := poker.NewStorageMock(poker.League{})
 		alerter := &BlindAlerterMock{}
-
-		cli := poker.NewCLI(storage, in, alerter)
+		game := poker.NewGame(alerter, storage)
+		cli := poker.NewCLI(in, out, game)
 		cli.PlayPoker()
 
 		cases := []scheduledAlert{
@@ -82,6 +88,35 @@ func TestCLI(t *testing.T) {
 			{100 * time.Minute, 8_000},
 		}
 
+		for i, want := range cases {
+			t.Run(fmt.Sprint(want), func(t *testing.T) {
+				if len(alerter.alerts) <= i {
+					t.Fatalf("alert %d was not scheduled %v", i, alerter.alerts)
+				}
+				got := alerter.alerts[i]
+				assertScheduledAlert(t, got, want)
+			})
+		}
+	})
+
+	t.Run("prompt user for number of players", func(t *testing.T) {
+		alerter := &BlindAlerterMock{}
+		in := strings.NewReader("7\n")
+		out := new(bytes.Buffer)
+		storage := poker.NewStorageMock(poker.League{})
+		game := poker.NewGame(alerter, storage)
+		cli := poker.NewCLI(in, out, game)
+		cli.PlayPoker()
+
+		got := out.String()
+		assert.Equal(t, poker.NumPlayersPrompt, got)
+
+		cases := []scheduledAlert{
+			{0 * time.Second, 100},
+			{12 * time.Minute, 200},
+			{24 * time.Minute, 300},
+			{36 * time.Minute, 400},
+		}
 		for i, want := range cases {
 			t.Run(fmt.Sprint(want), func(t *testing.T) {
 				if len(alerter.alerts) <= i {
