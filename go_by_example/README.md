@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Sorting by Functions
-https://gobyexample.com/sorting-by-functions
+Go by Example: Recover
+https://gobyexample.com/recover
