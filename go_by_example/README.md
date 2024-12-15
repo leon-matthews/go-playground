@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Recover
-https://gobyexample.com/recover
+Go by Example: String Functions
+https://gobyexample.com/string-functions
