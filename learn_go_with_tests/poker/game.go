@@ -3,14 +3,14 @@ package poker
 import "time"
 
 type Game struct {
-	alerter BlindAlerter
-	store   PlayerStorage
+	Alerter BlindAlerter
+	Store   PlayerStorage
 }
 
 func NewGame(alerter BlindAlerter, store PlayerStorage) *Game {
 	return &Game{
-		alerter: alerter,
-		store:   store,
+		Alerter: alerter,
+		Store:   store,
 	}
 }
 
@@ -20,11 +20,11 @@ func (p *Game) Start(numberOfPlayers int) {
 	blinds := []int{100, 200, 300, 400, 500, 600, 800, 1000, 2000, 4000, 8000}
 	blindTime := 0 * time.Second
 	for _, blind := range blinds {
-		p.alerter.ScheduleAlert(blindTime, blind)
+		p.Alerter.ScheduleAlert(blindTime, blind)
 		blindTime = blindTime + blindIncrement
 	}
 }
 
 func (p *Game) Finish(winner string) {
-	p.store.RecordWin(winner)
+	p.Store.RecordWin(winner)
 }

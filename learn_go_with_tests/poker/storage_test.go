@@ -63,7 +63,7 @@ func TestFileSystemStorage(t *testing.T) {
 		assert.Equal(t, want, got)
 	})
 
-	t.Run("store wins for existing player", func(t *testing.T) {
+	t.Run("Store wins for existing player", func(t *testing.T) {
 		database, cleanDatabase := CreateTempFile(t, `[
 			{"Name": "Leon", "Wins": 10},
 			{"Name": "Alyson", "Wins": 33}
@@ -78,7 +78,7 @@ func TestFileSystemStorage(t *testing.T) {
 		assert.Equal(t, 11, got)
 	})
 
-	t.Run("store wins for new player", func(t *testing.T) {
+	t.Run("Store wins for new player", func(t *testing.T) {
 		database, cleanDatabase := CreateTempFile(t, `[
 			{"Name": "Leon", "Wins": 10},
 			{"Name": "Alyson", "Wins": 33}

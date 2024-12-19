@@ -31,7 +31,7 @@ func NewStorageMock(league League) *StorageMock {
 	}
 }
 
-// StorageMock provides in-memory player store
+// StorageMock provides in-memory player Store
 type StorageMock struct {
 	*InMemoryStorage
 	WinCalls []string

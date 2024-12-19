@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// BlindAlerter alerts users to blind increases after some time interval
+// BlindAlerter Alerts users to blind increases after some time interval
 type BlindAlerter interface {
 	ScheduleAlert(duration time.Duration, amount int)
 }

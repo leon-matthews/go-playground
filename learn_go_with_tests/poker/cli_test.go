@@ -21,11 +21,11 @@ func (s scheduledAlert) String() string {
 
 // BlindAlerterMock fakes blind altering for testing
 type BlindAlerterMock struct {
-	alerts []scheduledAlert
+	Alerts []scheduledAlert
 }
 
 func (b *BlindAlerterMock) ScheduleAlert(at time.Duration, amount int) {
-	b.alerts = append(b.alerts, scheduledAlert{at, amount})
+	b.Alerts = append(b.Alerts, scheduledAlert{at, amount})
 }
 
 var dummyAlerter = &BlindAlerterMock{}
@@ -90,10 +90,10 @@ func TestCLI(t *testing.T) {
 
 		for i, want := range cases {
 			t.Run(fmt.Sprint(want), func(t *testing.T) {
-				if len(alerter.alerts) <= i {
-					t.Fatalf("alert %d was not scheduled %v", i, alerter.alerts)
+				if len(alerter.Alerts) <= i {
+					t.Fatalf("alert %d was not scheduled %v", i, alerter.Alerts)
 				}
-				got := alerter.alerts[i]
+				got := alerter.Alerts[i]
 				assertScheduledAlert(t, got, want)
 			})
 		}
@@ -119,10 +119,10 @@ func TestCLI(t *testing.T) {
 		}
 		for i, want := range cases {
 			t.Run(fmt.Sprint(want), func(t *testing.T) {
-				if len(alerter.alerts) <= i {
-					t.Fatalf("alert %d was not scheduled %v", i, alerter.alerts)
+				if len(alerter.Alerts) <= i {
+					t.Fatalf("alert %d was not scheduled %v", i, alerter.Alerts)
 				}
-				got := alerter.alerts[i]
+				got := alerter.Alerts[i]
 				assertScheduledAlert(t, got, want)
 			})
 		}

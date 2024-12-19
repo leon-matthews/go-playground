@@ -42,7 +42,7 @@ func NewFileSystemStorageFromFile(path string) (*FileSystemStorage, func(), erro
 	store, err := NewFileSystemStorage(db)
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("problem creating file system player store, %v ", err)
+		return nil, nil, fmt.Errorf("problem creating file system player Store, %v ", err)
 	}
 
 	return store, closeFunc, nil
