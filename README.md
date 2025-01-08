@@ -9,4 +9,9 @@ trying out new techniques or ideas for new projects.
 
 ## Next
 
-Experiment with `testify` and `nats-io` libraries, in folders with same name.
+
+## Go libaries to learn:
+
+* testify
+* nats-io
+* [moq](https://github.com/matryer/moq)
