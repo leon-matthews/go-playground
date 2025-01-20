@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: String Functions
-https://gobyexample.com/string-functions
+Go by Example: Context
+https://gobyexample.com/context
