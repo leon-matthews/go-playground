@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Context
-https://gobyexample.com/context
+Go by Example: Spawning Processes
+https://gobyexample.com/spawning-processes
