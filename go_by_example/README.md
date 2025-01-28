@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Spawning Processes
-https://gobyexample.com/spawning-processes
+Go by Example: Exec'ing Processes
+https://gobyexample.com/execing-processes
