@@ -56,6 +56,13 @@ with `gotestsum`:
     $ gotestsum -f dots-v2 -- -run JustOneTest
 
 
+### revive
+
+Go linter
+
+    $ go install github.com/mgechev/revive@latest
+
+
 ### testifylint
 
 Improve usage of testing library `github.com/stretchr/testify`
