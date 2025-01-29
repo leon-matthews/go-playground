@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Exec'ing Processes
-https://gobyexample.com/execing-processes
+Go by Example: Signals
+https://gobyexample.com/signals
