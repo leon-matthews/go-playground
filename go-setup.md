@@ -4,6 +4,12 @@
 This is my ongoing collection of shell aliases and editor snippets for the
 Go programming language.
 
+## Install manually
+
+
+	$ rm -rf /usr/local/go
+	$ tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz
+
 
 ## Bash aliases
 
@@ -23,6 +29,7 @@ Install Go stuff into a dotfolder and add its *bin* directory to `$PATH`.
 
 In your *.profile* or similar:
 
+	# Go!
     export GOPATH=$HOME/.go
     FOLDER="$GOPATH/bin"
     if [ -d "$FOLDER" ] ; then
