@@ -45,6 +45,14 @@ The `errcheck` linter checks for un-inspected error return values:
     $ go install github.com/kisielk/errcheck@latest
 
 
+### go-size-analyzer
+
+Explore which dependencies are making your binary large.
+
+	$ go install github.com/Zxilly/go-size-analyzer/cmd/gsa@latest
+	$ gsa hello-world
+
+
 ### gotestsum
 
 Reformat test output, and automatically run tests after code changes
