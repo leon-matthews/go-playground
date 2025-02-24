@@ -4,38 +4,64 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"strings"
 	"sync"
-	"time"
+	"unicode"
 )
 
-var pangrams = []string{
-	"The quick brown fox jumps over the lazy dog",
-	"Pack my box with five dozen liquor jugs",
-	"The five boxing wizards jump quickly",
-	"Sphinx of black quartz judge my vow",
+func main() {
+	phrase := "0ne 1wo thr33 4068"
+	counts := countDigitsInWords(phrase)
+	printStats(counts)
 }
 
-func main() {
-	var wg sync.WaitGroup
+// counter stores the number of digits in each word.
+type counter map[string]int
 
-	for id, pangram := range pangrams {
+// asStats converts statistics from sync.Map to a regular map.
+func asStats(m *sync.Map) counter {
+	stats := counter{}
+	m.Range(func(word, count any) bool {
+		stats[word.(string)] = count.(int)
+		return true
+	})
+	return stats
+}
+
+// printStats prints the number of digits in words.
+func printStats(stats counter) {
+	for word, count := range stats {
+		fmt.Printf("%s: %d\n", word, count)
+	}
+}
+
+// countDigitsInWords counts the number of digits in the words of a phrase.
+func countDigitsInWords(phrase string) counter {
+	var wg sync.WaitGroup
+	syncStats := new(sync.Map)
+	words := strings.Fields(phrase)
+
+	// Count the number of digits in words,
+	// using a separate goroutine for each word.
+	for _, word := range words {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			say(id+1, pangram)
+			syncStats.Store(word, countDigits(word))
 		}()
 	}
 
-	// Wait for goroutines to finish
 	wg.Wait()
+	return asStats(syncStats)
 }
 
-func say(id int, phrase string) {
-	for _, word := range strings.Fields(phrase) {
-		fmt.Printf("#%d %s\n", id, word)
-		ms := time.Duration(rand.Intn(100)) * time.Millisecond
-		time.Sleep(ms)
+// countDigits returns the number of digits in a string.
+func countDigits(str string) int {
+	count := 0
+	for _, char := range str {
+		if unicode.IsDigit(char) {
+			count++
+		}
 	}
+	return count
 }
