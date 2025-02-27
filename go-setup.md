@@ -77,6 +77,13 @@ Go linter
 
     $ go install github.com/mgechev/revive@latest
 
+### staticcheck
+
+Another Go linter
+
+    $ go install honnef.co/go/tools/cmd/staticcheck@latest
+    $ staticcheck ./...
+
 
 ### testifylint
 
