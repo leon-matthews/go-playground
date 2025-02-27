@@ -32,7 +32,7 @@ func countDigitsInWords(next func() string) counter {
 	return fillStats(counted)
 }
 
-// submitWords sends words to be counted
+// submitWords sends words to be counted, returning receive-only channel
 func submitWords(next func() string) <-chan string {
 	out := make(chan string)
 	go func() {
