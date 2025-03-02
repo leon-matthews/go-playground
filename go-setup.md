@@ -38,6 +38,14 @@ In your *.profile* or similar:
 
 ## Go tools
 
+
+### cobra-cli
+
+Cobra Generator generates the scaffolding for new CLI application.
+
+	$ go install github.com/spf13/cobra-cli@latest
+
+
 ### errcheck
 
 The `errcheck` linter checks for un-inspected error return values:
