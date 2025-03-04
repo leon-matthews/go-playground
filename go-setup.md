@@ -7,8 +7,8 @@ Go programming language.
 ## Install manually
 
 
-	$ rm -rf /usr/local/go
-	$ tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz
+    $ rm -rf /usr/local/go
+    $ tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz
 
 
 ## Bash aliases
@@ -29,7 +29,7 @@ Install Go stuff into a dotfolder and add its *bin* directory to `$PATH`.
 
 In your *.profile* or similar:
 
-	# Go!
+    # Go!
     export GOPATH=$HOME/.go
     FOLDER="$GOPATH/bin"
     if [ -d "$FOLDER" ] ; then
@@ -43,7 +43,14 @@ In your *.profile* or similar:
 
 Cobra Generator generates the scaffolding for new CLI application.
 
-	$ go install github.com/spf13/cobra-cli@latest
+    $ go install github.com/spf13/cobra-cli@latest
+
+
+### delve
+
+Delve debugger works better than GDB for Go programs.
+
+    $ go install github.com/go-delve/delve/cmd/dlv@latest
 
 
 ### errcheck
@@ -57,8 +64,8 @@ The `errcheck` linter checks for un-inspected error return values:
 
 Explore which dependencies are making your binary large.
 
-	$ go install github.com/Zxilly/go-size-analyzer/cmd/gsa@latest
-	$ gsa hello-world
+    $ go install github.com/Zxilly/go-size-analyzer/cmd/gsa@latest
+    $ gsa hello-world
 
 
 ### gotestsum
