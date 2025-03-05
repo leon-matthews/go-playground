@@ -2,23 +2,20 @@ package main
 
 import (
 	"fmt"
-	"runtime"
 	"time"
 )
 
 func main() {
-	fmt.Printf("Running %d goroutines\n", runtime.NumGoroutine())
-
 	var numJobs = 5
+
 	jobs := make(chan int, numJobs)
 	results := make(chan int, numJobs)
 
 	// Create worker pool
-	for w := 1; w <= 3; w++ {
+	var numWorkers = 3
+	for w := 1; w <= numWorkers; w++ {
 		go worker(w, jobs, results)
 	}
-
-	fmt.Printf("Running %d goroutines\n", runtime.NumGoroutine())
 
 	// Send jobs
 	for j := 0; j <= numJobs; j++ {
@@ -31,8 +28,6 @@ func main() {
 	for a := 1; a <= numJobs; a++ {
 		<-results
 	}
-
-	fmt.Printf("Running %d goroutines\n", runtime.NumGoroutine())
 }
 
 func worker(id int, jobs <-chan int, results chan<- int) {
