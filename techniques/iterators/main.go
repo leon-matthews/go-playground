@@ -11,7 +11,7 @@ func main() {
 	}
 }
 
-// HexStrings generates fixed-length, lower-case hexadecimal strings
+// HexStrings generates all hexadecimal strings of the given length, zero-padded.
 func HexStrings(length int) iter.Seq[string] {
 	limit := 0x01 << (length * 4)
 	return func(yield func(string) bool) {
