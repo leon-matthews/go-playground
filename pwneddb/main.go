@@ -7,7 +7,7 @@ import (
 	"slices"
 )
 
-const etag = `"0x8DD55EF4D1039F4"`
+const etag = `"0x8DD858BAA8EB51C"`
 const url = "https://api.pwnedpasswords.com/range/cafe5"
 
 func main() {
@@ -33,7 +33,7 @@ func main() {
 
 	fmt.Println("Response bytes:", len(body))
 	fmt.Println()
-	fmt.Println("REQUEST")
+	fmt.Printf("GET %s", url)
 	printHeaders(r.Request.Header)
 	fmt.Println()
 	fmt.Println("RESPONSE")
