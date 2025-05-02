@@ -1,57 +1,29 @@
 package main
 
 import (
-	"fmt"
-	"io"
-	"net/http"
-	"slices"
+	"context"
+	"log/slog"
+
+	"main/pwned"
 )
 
-const etag = `"0x8DD858BAA8EB51C"`
-const url = "https://api.pwnedpasswords.com/range/cafe5"
-
 func main() {
-	client := http.Client{}
+	slog.SetLogLoggerLevel(slog.LevelDebug)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		panic(err)
-	}
-	req.Header.Set("If-None-Match", etag)
+	const prefix = "cafe5"
+	url, _ := pwned.BuildURL(prefix)
 
-	r, err := client.Do(req)
-	if err != nil {
-		panic(err)
-	}
-	defer r.Body.Close()
-
-	fmt.Println("Response status:", r.Status)
-	body, err := io.ReadAll(r.Body)
+	// Fetch page of password hashes
+	r, err := pwned.GetHashes(ctx, url, "")
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Response bytes:", len(body))
-	fmt.Println()
-	fmt.Printf("GET %s", url)
-	printHeaders(r.Request.Header)
-	fmt.Println()
-	fmt.Println("RESPONSE")
-	printHeaders(r.Header)
-
-	//fmt.Println(string(body))
-}
-
-func printHeaders(header http.Header) {
-	// Sort keys alphanumerically
-	names := make([]string, 0, len(header))
-	for key := range header {
-		names = append(names, key)
-	}
-	slices.Sort(names)
-
-	// Print header
-	for _, name := range names {
-		fmt.Printf("%s: %s\n", name, header.Get(name))
+	// Refetching with eTag should return no body
+	_, err = pwned.GetHashes(ctx, url, r.Etag)
+	if err != nil {
+		panic(err)
 	}
 }

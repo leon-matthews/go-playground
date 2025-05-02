@@ -1,3 +1,3 @@
-module codeberg.org/leon_matthews/pwneddb
+module main
 
 go 1.24.2
