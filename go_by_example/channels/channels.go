@@ -6,14 +6,14 @@ import (
 )
 
 func main() {
-	// unbuffered()
-	// buffering()
-	// synchronisation()
-	// directions()
-	// selectChannel()
-	// selectTimeout()
-	// selectTimeoutTriggered()
-	// NonBlockingOperations()
+	unbuffered()
+	buffering()
+	synchronisation()
+	directions()
+	selectChannel()
+	selectTimeout()
+	selectTimeoutTriggered()
+	NonBlockingOperations()
 	ClosingChannels()
 	RangeOverChannels()
 }
@@ -51,7 +51,7 @@ func buffering() {
 
 // We can use channels to synchronize execution across goroutines.
 func synchronisation() {
-	done := make(chan bool, 1)
+	done := make(chan bool)
 	go worker(done)
 
 	// Block until we receive a notification from the worker on the channel
@@ -98,7 +98,7 @@ func selectChannel() {
 	}()
 
 	go func() {
-		time.Sleep(300 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 		c2 <- "two"
 	}()
 
@@ -205,10 +205,10 @@ func ClosingChannels() {
 	}
 	close(jobs)
 	fmt.Println("sent all jobs")
-	
+
 	// Block until we receive a notification from the worker on the channel.
-	<- done
-	
+	<-done
+
 	// Check that `jobs` is empty
 	_, more := <-jobs
 	fmt.Println("received more jobs", more)
@@ -220,11 +220,11 @@ func RangeOverChannels() {
 	queue <- "one"
 	queue <- "two"
 	queue <- "three"
-	
+
 	// Without `close()`, program panics
 	// fatal error: all goroutines are asleep - deadlock!
 	close(queue)
-	
+
 	// Values can still be received from closed channel
 	for word := range queue {
 		fmt.Println(word)
