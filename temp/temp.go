@@ -1,20 +1,18 @@
-// A concurrent prime sieve
 package main
 
-import "fmt"
-
-var (
-	a = c + b
-	b = f()
-	c = f()
-	d = 3
+import (
+    "flag"
+    "fmt"
+    "time"
 )
 
-func f() int {
-	d++
-	return d
-}
+var (
+    message = flag.String("message", "Hello!", "what to say")
+    delay   = flag.Duration("delay", 2*time.Second, "how long to wait")
+)
 
 func main() {
-	fmt.Println(a)
+    flag.Parse()
+    fmt.Println(*message)
+    time.Sleep(*delay)
 }
