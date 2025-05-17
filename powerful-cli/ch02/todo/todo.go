@@ -10,10 +10,10 @@ import (
 
 // item represents a single task to do
 type item struct {
-	Task      string
-	Done      bool
-	Created   *time.Time
-	Completed *time.Time
+	Task      string     `json:"task"`
+	Done      bool       `json:"done"`
+	Created   *time.Time `json:"created"`
+	Completed *time.Time `json:"completed"`
 }
 
 // List represents a list of work items to do
@@ -46,6 +46,7 @@ func (l *List) Complete(i int) error {
 }
 
 // Load todo list from JSON file
+// It's not an error to attempt to open a non-existant file
 func (l *List) Load(filename string) error {
 	file, err := os.ReadFile(filename)
 	if err != nil {
@@ -73,7 +74,7 @@ func (l *List) Delete(i int) error {
 
 // Save encodes the list as JSON and saves into the given filename
 func (l *List) Save(filename string) error {
-	js, err := json.Marshal(l)
+	js, err := json.MarshalIndent(l, "", "  ")
 	if err != nil {
 		return nil
 	}
