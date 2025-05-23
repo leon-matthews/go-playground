@@ -55,7 +55,7 @@ func TestCLI(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		expected := fmt.Sprintf("  %s\n", heading)
+		expected := fmt.Sprintf("  1: %s\n", heading)
 		if expected != string(out) {
 			t.Errorf("Expected %q, got %q", expected, string(out))
 		}

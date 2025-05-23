@@ -80,3 +80,15 @@ func (l *List) Save(filename string) error {
 	}
 	return os.WriteFile(filename, js, 0664)
 }
+
+func (l *List) String() string {
+	formatted := ""
+	for k, t := range *l {
+		prefix := "  "
+		if t.Done {
+			prefix = "\u2713 "
+		}
+		formatted += fmt.Sprintf("%s%d: %s\n", prefix, k+1, t.Task)
+	}
+	return formatted
+}

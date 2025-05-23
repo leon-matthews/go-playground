@@ -9,9 +9,29 @@ import (
 	"powerful-cli/ch02/todo"
 )
 
-const todoPath = "todo.json"
+// Default file name
+var todoPath = "todo.json"
+
 
 func main() {
+	// Use default file name?
+	if os.Getenv("TODO_FILENAME") != "" {
+		todoPath = os.Getenv("TODO_FILENAME")
+	}
+
+	// Change default usage
+	flag.Usage = func() {
+		out := flag.CommandLine.Output()
+		fmt.Fprintf(
+			out,
+			"%s tool. Chapter 2 of 'Powerful Command-line Applications in Go\n",
+			os.Args[0],
+		)
+		fmt.Fprintf(out, "Copyright 2025\n")
+		fmt.Fprintf(out, "Usage:\n")
+		flag.PrintDefaults()
+	}
+
 	// Parse command-line flags
 	taskFlag := flag.String("task", "", "Add task to TODO list")
 	listFlag := flag.Bool("list", false, "List all tasks")
@@ -30,13 +50,7 @@ func main() {
 
 	case *listFlag:
 		// List current TODO items
-		for _, item := range *l {
-			if item.Done {
-				fmt.Printf("\u2713 %v\n", item.Task)
-			} else {
-				fmt.Printf("  %v\n", item.Task)
-			}
-		}
+		fmt.Print(l)
 
 	case *completeFlag > 0:
 		// Mark task as done
