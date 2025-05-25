@@ -7,8 +7,9 @@ Go programming language.
 ## Install manually
 
 
-    $ rm -rf /usr/local/go
-    $ tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz
+	$ wget
+    $ sudo rm -rf /usr/local/go
+    $ sudo tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz
 
 
 ## Bash aliases
@@ -29,12 +30,18 @@ Install Go stuff into a dotfolder and add its *bin* directory to `$PATH`.
 
 In your *.profile* or similar:
 
-    # Go!
-    export GOPATH=$HOME/.go
-    FOLDER="$GOPATH/bin"
-    if [ -d "$FOLDER" ] ; then
-        PATH="$FOLDER:$PATH"
-    fi
+	# GOPATH
+	export GOPATH=$HOME/.go
+	FOLDER="$GOPATH/bin"
+	if [ -d "$FOLDER" ] ; then
+		PATH="$FOLDER:$PATH"
+	fi
+
+	# Go installation
+	if [ -d /usr/local/go/bin ] ; then
+		PATH="$PATH:/usr/local/go/bin"
+	fi
+
 
 ## Go tools
 
