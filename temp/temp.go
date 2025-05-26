@@ -1,18 +1,19 @@
 package main
 
 import (
-    "flag"
+    "image/color"
     "fmt"
-    "time"
 )
 
 var (
-    message = flag.String("message", "Hello!", "what to say")
-    delay   = flag.Duration("delay", 2*time.Second, "how long to wait")
+    red = color.RGBA{R: 0xff}
+    blue = color.RGBA{B: 0xff}
+    green = color.RGBA{G: 0xff}
+    colors = []color.RGBA{red, blue, green}
 )
 
 func main() {
-    flag.Parse()
-    fmt.Println(*message)
-    time.Sleep(*delay)
+    for i := range colors {
+        fmt.Printf("[%T]%+[1]v\n", colors[i:i+1])
+    }
 }
