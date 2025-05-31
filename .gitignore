@@ -1,12 +1,13 @@
 # Binaries for programs and plugins
+*.dll
+*.dylib
 *.elf
 *.exe
 *.exe~
-*.dll
-*.so
-*.dylib
-*.test
 *.out
+*.so
+*.test
+*.wasm
 
 # Editor
 *.geany
