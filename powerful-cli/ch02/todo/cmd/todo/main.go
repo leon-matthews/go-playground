@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"strings"
 
 	"powerful-cli/ch02/todo"
 )
@@ -33,7 +36,7 @@ func main() {
 	}
 
 	// Parse command-line flags
-	taskFlag := flag.String("task", "", "Add task to TODO list")
+	addFlag := flag.Bool("add", false, "Add task to TODO list")
 	listFlag := flag.Bool("list", false, "List all tasks")
 	completeFlag := flag.Int("complete", 0, "Item to be completed")
 	flag.Parse()
@@ -61,9 +64,14 @@ func main() {
 			log.Fatal(err)
 		}
 
-	case *taskFlag != "":
+	case *addFlag:
 		// Add task to TODO list
-		l.Add(*taskFlag)
+		t, err := getTask(os.Stdin, flag.Args()...)
+		if err != nil {
+			log.Fatal(err)
+		}
+		l.Add(t)
+
 		if err := l.Save(todoPath); err != nil {
 			log.Fatal(err)
 		}
@@ -71,4 +79,23 @@ func main() {
 	default:
 		log.Fatal("Invalid option")
 	}
+}
+
+// getTask fetches a task title from flag or stdin
+func getTask(r io.Reader, args ...string) (string, error) {
+	// Prefer args if present
+	if len(args) > 0 {
+		return strings.Join(args, " "), nil
+	}
+
+	// Try first line from stdio instead
+	s := bufio.NewScanner(r)
+	s.Scan()
+	if err := s.Err(); err != nil {
+		return "", err
+	}
+	if len(s.Text()) == 0 {
+		return "", fmt.Errorf("Task cannot be blank")
+	}
+	return s.Text(), nil
 }

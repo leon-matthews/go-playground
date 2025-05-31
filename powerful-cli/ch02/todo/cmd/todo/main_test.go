@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -32,15 +33,31 @@ func TestMain(m *testing.M) {
 }
 
 func TestCLI(t *testing.T) {
-	heading := "test task number 1"
+
 	dir, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
 	cmdPath := filepath.Join(dir, binName)
 
+	heading := "test task number 1"
 	t.Run("AddNewTask", func(t *testing.T) {
-		cmd := exec.Command(cmdPath, "--task", heading)
+		cmd := exec.Command(cmdPath, "--add", heading)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			log.Println(string(out))
+			t.Fatal(err)
+		}
+	})
+
+	heading2 := "test task number 2"
+	t.Run("AddNewTaskStdin", func(t *testing.T) {
+		cmd := exec.Command(cmdPath, "--add")
+		cmdIn, err := cmd.StdinPipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		io.WriteString(cmdIn, heading2)
+		cmdIn.Close()
 		if out, err := cmd.CombinedOutput(); err != nil {
 			log.Println(string(out))
 			t.Fatal(err)
@@ -55,7 +72,7 @@ func TestCLI(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		expected := fmt.Sprintf("  1: %s\n", heading)
+		expected := fmt.Sprintf("  1: %s\n  2: %s\n", heading, heading2)
 		if expected != string(out) {
 			t.Errorf("Expected %q, got %q", expected, string(out))
 		}
