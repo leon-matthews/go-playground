@@ -5,6 +5,7 @@ import (
 	"log"
 )
 
+// Post represents a single blog post
 type Post struct {
 	Title       string
 	Description string
