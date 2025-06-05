@@ -3,6 +3,8 @@ package blogposts_test
 import (
 	"bytes"
 	_ "embed"
+	"github.com/stretchr/testify/require"
+	"io"
 	"os"
 	"testing"
 
@@ -32,7 +34,10 @@ func TestRenderer(t *testing.T) {
 	t.Run("it converts a single post into HTML", func(t *testing.T) {
 		buf := bytes.Buffer{}
 		want := readFile(t, "post.html")
-		err := blogposts.Render(&buf, aPost)
+		renderer, err := blogposts.NewPostRenderer()
+		require.NoError(t, err)
+		err = renderer.Render(&buf, aPost)
+
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -40,4 +45,22 @@ func TestRenderer(t *testing.T) {
 		got := buf.String()
 		assert.Equal(t, want, got)
 	})
+}
+
+func BenchmarkRender(b *testing.B) {
+	var (
+		aPost = blogposts.Post{
+			Title:       "hello world",
+			Body:        "This is a post",
+			Description: "This is a description",
+			Tags:        []string{"go", "tdd"},
+		}
+	)
+
+	renderinator, err := blogposts.NewPostRenderer()
+	require.NoError(b, err)
+	b.ResetTimer()
+	for b.Loop() {
+		renderinator.Render(io.Discard, aPost)
+	}
 }
