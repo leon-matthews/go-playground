@@ -98,6 +98,7 @@ with `gotestsum`:
 Go linter
 
     $ go install github.com/mgechev/revive@latest
+    $ revive ./...
 
 ### staticcheck
 
