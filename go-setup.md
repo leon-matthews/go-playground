@@ -9,7 +9,7 @@ Go programming language.
 
 	$ wget
     $ sudo rm -rf /usr/local/go
-    $ sudo tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz
+    $ sudo tar -C /usr/local -xzf go1.24.4.linux-amd64.tar.gz
 
 
 ## Bash aliases
