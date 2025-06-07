@@ -6,9 +6,9 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
-	"text/template"
 	"os"
 	"path/filepath"
+	"text/template"
 
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday/v2"
@@ -30,8 +30,6 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-
-	fmt.Println(*filename)
 }
 
 func run(filename string) error {
@@ -47,7 +45,6 @@ func run(filename string) error {
 	outname := fmt.Sprintf("%s.html", filepath.Base(filename))
 	err = os.WriteFile(outname, html, 0666)
 	return err
-
 }
 
 // parseContent converts Markdown file into sanitized HTML
