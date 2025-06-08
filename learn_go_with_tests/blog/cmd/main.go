@@ -1,3 +1,4 @@
+// CLI interface to blogposts functionality
 package main
 
 import (

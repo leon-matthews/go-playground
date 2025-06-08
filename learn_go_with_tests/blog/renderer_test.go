@@ -59,6 +59,7 @@ func BenchmarkRender(b *testing.B) {
 
 	renderinator, err := blogposts.NewPostRenderer()
 	require.NoError(b, err)
+
 	b.ResetTimer()
 	for b.Loop() {
 		renderinator.Render(io.Discard, aPost)

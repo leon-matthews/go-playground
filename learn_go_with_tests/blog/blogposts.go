@@ -1,3 +1,4 @@
+// Package blogposts renders HTML blog posts from folder of plain-text data
 package blogposts
 
 import (
@@ -13,6 +14,7 @@ type Post struct {
 	Body        string
 }
 
+// NewPostsFromFS reads all posts from the root of the given folder
 func NewPostsFromFS(fileSystem fs.FS) ([]Post, error) {
 	dir, _ := fs.ReadDir(fileSystem, ".")
 	var posts []Post

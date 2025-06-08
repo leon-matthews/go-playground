@@ -11,10 +11,12 @@ var (
 	postTemplates embed.FS
 )
 
+// PostRenderer uses embedded templates to create HTML output
 type PostRenderer struct {
 	templ *template.Template
 }
 
+// NewPostRenderer parses embedded templates to create new renderer
 func NewPostRenderer() (*PostRenderer, error) {
 	templ, err := template.ParseFS(postTemplates, "templates/*.html")
 	if err != nil {
