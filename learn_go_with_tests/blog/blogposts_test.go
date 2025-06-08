@@ -44,7 +44,7 @@ about benchmarks`
 		Title:       "Post 1",
 		Description: "Description 1",
 		Tags:        []string{"tdd", "go"},
-		Body:        "Hello blog!",
+		Markdown:    "Hello blog!",
 	}
 	assert.Equal(t, want, posts[0])
 
@@ -53,7 +53,7 @@ about benchmarks`
 		Title:       "Post 2",
 		Description: "Description 2",
 		Tags:        []string{"python", "benchmark"},
-		Body:        "This is\na story\nabout benchmarks",
+		Markdown:    "This is\na story\nabout benchmarks",
 	}
 	assert.Equal(t, posts[1], want)
 }

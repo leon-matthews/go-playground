@@ -27,6 +27,10 @@ func NewPostRenderer() (*PostRenderer, error) {
 
 // Render writes HTML for the given post
 func (r *PostRenderer) Render(w io.Writer, p Post) error {
+	// Convert Markdown to HTML if needed
+	if p.HTML == "" {
+		p.RenderHTML()
+	}
 	if err := r.templ.ExecuteTemplate(w, "post.html", p); err != nil {
 		return err
 	}

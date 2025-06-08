@@ -37,7 +37,7 @@ func parsePost(postFile io.Reader) (Post, error) {
 	tags := strings.Split(readMetaline(tagSeparator), ", ")
 	body := readBody(scanner)
 
-	post := Post{Title: title, Description: description, Tags: tags, Body: body}
+	post := Post{Title: title, Description: description, Tags: tags, Markdown: body}
 	return post, nil
 }
 
