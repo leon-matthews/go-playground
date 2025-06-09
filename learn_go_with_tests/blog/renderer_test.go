@@ -47,7 +47,21 @@ func TestRenderer(t *testing.T) {
 	})
 }
 
-func BenchmarkRender(b *testing.B) {
+// BenchmarkMarkdownRenderer converts Markdown to HTML
+func BenchmarkMarkdownRenderer(b *testing.B) {
+	p := blogposts.Post{
+		Title:       "hello world",
+		Markdown:    "This is a post",
+		Description: "This is a description",
+		Tags:        []string{"go", "tdd"},
+	}
+	for b.Loop() {
+		p.RenderHTML()
+	}
+}
+
+// BenchmarkTemplate pre-parses template and markdown
+func BenchmarkTemplate(b *testing.B) {
 	p := blogposts.Post{
 		Title:       "hello world",
 		Markdown:    "This is a post",

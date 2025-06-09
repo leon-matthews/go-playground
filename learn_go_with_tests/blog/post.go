@@ -1,8 +1,8 @@
 package blogposts
 
 import (
+	"github.com/gomarkdown/markdown"
 	"github.com/microcosm-cc/bluemonday"
-	"github.com/russross/blackfriday/v2"
 	"html/template"
 )
 
@@ -17,7 +17,7 @@ type Post struct {
 
 // RenderHTML renders the Markdown field into HTML
 func (p *Post) RenderHTML() {
-	unsafe := blackfriday.Run([]byte(p.Markdown))
+	unsafe := markdown.ToHTML([]byte(p.Markdown), nil, nil)
 	html := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
 	p.HTML = template.HTML(html)
 }
