@@ -17,7 +17,6 @@ func TestParseContent(t *testing.T) {
 	assert.Equal(t, string(want), string(got))
 }
 
-
 // readTestFile reads string from file from `testdata` folder
 func readTestFile(t testing.TB, filename string) []byte {
 	t.Helper()

@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"text/template"
 
+	"github.com/gomarkdown/markdown"
 	"github.com/microcosm-cc/bluemonday"
-	"github.com/russross/blackfriday/v2"
 )
 
 //go:embed "template.html"
@@ -50,7 +50,7 @@ func run(filename string) error {
 // parseContent converts Markdown file into sanitized HTML
 func parseContent(input []byte) []byte {
 	// Convert to HTML using default options
-	unsafe := blackfriday.Run(input)
+	unsafe := markdown.ToHTML(input, nil, nil)
 
 	// Sanitize HTML output using 'User Generated Content' policy
 	body := bluemonday.UGCPolicy().SanitizeBytes(unsafe)

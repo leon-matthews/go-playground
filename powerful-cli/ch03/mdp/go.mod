@@ -3,8 +3,8 @@ module powerful-cli/ch03/mdp
 go 1.24.4
 
 require (
+	github.com/gomarkdown/markdown v0.0.0-20250311123330-531bef5e742b
 	github.com/microcosm-cc/bluemonday v1.0.27
-	github.com/russross/blackfriday/v2 v2.1.0
 	github.com/stretchr/testify v1.10.0
 )
 
