@@ -9,7 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"text/template"
+	"html/template"
 	"time"
 
 	"github.com/gomarkdown/markdown"
@@ -18,6 +18,11 @@ import (
 
 //go:embed "template.html"
 var htmlTemplate string
+
+type content struct {
+	Title string
+	Body template.HTML
+}
 
 func main() {
 	filename := flag.String("file", "", "Markdown file to preview")
@@ -42,7 +47,11 @@ func run(filename string, skipPreview bool) error {
 		return err
 	}
 	body := parseContent(contents)
-	html, err := buildHTML(body)
+	c := content{
+		Title: "Markdown Preview",
+		Body: template.HTML(body),
+	}
+	html, err := buildHTML(c)
 	if err != nil {
 		return err
 	}
@@ -108,11 +117,10 @@ func preview(filename string) error {
 }
 
 // buildHTML embeds given body output using HTML template
-// Uses text/template here, as we don't need to escape our generated HTML.
-func buildHTML(body []byte) ([]byte, error) {
+func buildHTML(c content) ([]byte, error) {
 	t := template.Must(template.New("name").Parse(htmlTemplate))
 	var html bytes.Buffer
-	err := t.Execute(&html, string(body))
+	err := t.Execute(&html, c)
 	if err != nil {
 		return []byte{}, err
 	}
