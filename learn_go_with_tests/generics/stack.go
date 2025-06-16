@@ -4,6 +4,9 @@ type Stack[T any] struct {
 	values []T
 }
 
+func NewStack[T any]() *Stack[T] {
+	return &Stack[T]{}
+}
 
 func (s *Stack[T]) IsEmpty() bool {
 	return len(s.values) == 0
