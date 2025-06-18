@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -34,9 +35,11 @@ func (p *PlayerServer) getScore(w http.ResponseWriter, name string) {
 		w.WriteHeader(http.StatusNotFound)
 	}
 	fmt.Fprint(w, score)
+	log.Printf("GET score for %s is %d", name, score)
 }
 
 func (p *PlayerServer) processWin(w http.ResponseWriter, name string) {
 	w.WriteHeader(http.StatusAccepted)
 	p.store.RecordWin(name)
+	log.Printf("POST score for %s incremented", name)
 }
