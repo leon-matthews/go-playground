@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 )
 
-// PlayerStore
 type PlayerStore interface {
 	Score(name string) (int, error)
 	SetScore(name string, score int) error
@@ -16,21 +14,31 @@ type PlayerStore interface {
 
 // PlayerServer returns player's score
 type PlayerServer struct {
-	store PlayerStore
+	store  PlayerStore
+	router *http.ServeMux
+}
+
+func NewPlayerServer(store PlayerStore) *PlayerServer {
+	p := &PlayerServer{
+		store:  store,
+		router: http.NewServeMux(),
+	}
+	p.router.HandleFunc("/league", p.leagueHandler)
+	p.router.HandleFunc("GET /players/{name}", p.getScore)
+	p.router.HandleFunc("POST /players/{name}", p.processWin)
+	return p
 }
 
 func (p *PlayerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	player := strings.TrimPrefix(r.URL.Path, "/players/")
-
-	switch r.Method {
-	case http.MethodGet:
-		p.getScore(w, player)
-	case http.MethodPost:
-		p.processWin(w, player)
-	}
+	p.router.ServeHTTP(w, r)
 }
 
-func (p *PlayerServer) getScore(w http.ResponseWriter, name string) {
+func (p *PlayerServer) leagueHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
+func (p *PlayerServer) getScore(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
 	score, err := p.store.Score(name)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -42,7 +50,8 @@ func (p *PlayerServer) getScore(w http.ResponseWriter, name string) {
 	log.Printf("GET score for %s is %d", name, score)
 }
 
-func (p *PlayerServer) processWin(w http.ResponseWriter, name string) {
+func (p *PlayerServer) processWin(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
 	w.WriteHeader(http.StatusAccepted)
 	err := p.store.RecordWin(name)
 	if err != nil {

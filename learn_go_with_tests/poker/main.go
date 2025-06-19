@@ -9,7 +9,7 @@ const filename = "poker.db"
 
 func main() {
 	store := NewPlayerStoreBolt(filename)
-	server := &PlayerServer{store: store}
+	server := NewPlayerServer(store)
 	address := ":8000"
 	log.Printf("Starting server on %s\n", address)
 	log.Fatal(http.ListenAndServe(address, server))

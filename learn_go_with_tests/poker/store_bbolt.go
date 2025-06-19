@@ -44,6 +44,22 @@ func (s *PlayerStoreBolt) SetScore(name string, score int) error {
 	return err
 }
 
+// RecordWin increments the score of the named player
+func (s *PlayerStoreBolt) RecordWin(name string) error {
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		// Fetch current
+		score, err := s.getScore(tx, name)
+		if err != nil {
+			return err
+		}
+
+		// Increment and save
+		score += 1
+		return s.setScore(tx, name, score)
+	})
+	return err
+}
+
 // getScore is broken out so that it can be called from within RecordWin's transaction
 func (s *PlayerStoreBolt) getScore(tx *bolt.Tx, name string) (int, error) {
 	value := tx.Bucket([]byte(bucketName)).Get([]byte(name))
@@ -65,22 +81,6 @@ func (s *PlayerStoreBolt) setScore(tx *bolt.Tx, name string, score int) error {
 		return fmt.Errorf("updating score: %v", err)
 	}
 	return nil
-}
-
-// RecordWin increments the score of the named player
-func (s *PlayerStoreBolt) RecordWin(name string) error {
-	err := s.db.Update(func(tx *bolt.Tx) error {
-		// Fetch current
-		score, err := s.getScore(tx, name)
-		if err != nil {
-			return err
-		}
-
-		// Increment and save
-		score += 1
-		return s.setScore(tx, name, score)
-	})
-	return err
 }
 
 func setupBoltDB(path string) (*bolt.DB, error) {

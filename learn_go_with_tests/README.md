@@ -5,6 +5,7 @@ Examples from the online book [Learn Go with Tests](https://quii.gitbook.io/lear
 
 ## Next
 
-Restart the final application chapter:
+Continue rebuild of poker application from:
 
-https://quii.gitbook.io/learn-go-with-tests/build-an-application/app-intro
+https://quii.gitbook.io/learn-go-with-tests/build-an-application/json#one-final-refactor
+

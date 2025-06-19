@@ -16,7 +16,7 @@ func TestRecordingWinsAndRetrievingThem(t *testing.T) {
 	defer cleanup()
 	boltdb := NewPlayerStoreBolt(path)
 
-	cases := []struct {
+	testcases := []struct {
 		name  string
 		store PlayerStore
 	}{
@@ -29,9 +29,10 @@ func TestRecordingWinsAndRetrievingThem(t *testing.T) {
 			store: boltdb,
 		},
 	}
-	for _, tt := range cases {
+
+	for _, tt := range testcases {
 		t.Run(tt.name, func(t *testing.T) {})
-		server := PlayerServer{tt.store}
+		server := NewPlayerServer(tt.store)
 		player := "leon"
 
 		// Initial score should be zero

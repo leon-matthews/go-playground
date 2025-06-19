@@ -27,11 +27,25 @@ func (s *PlayerStoreMock) RecordWin(name string) error {
 	return nil
 }
 
+func TestLeague(t *testing.T) {
+	store := NewPlayerStoreMock()
+	server := NewPlayerServer(store)
+
+	t.Run("GET /league", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodGet, "/league", nil)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assert.Equal(t, http.StatusOK, response.Code)
+	})
+}
+
 func TestPlayerServer(t *testing.T) {
 	store := NewPlayerStoreMock()
 	store.SetScore("alyson", 10)
 	store.SetScore("leon", 20)
-	server := &PlayerServer{store}
+	server := NewPlayerServer(store)
 
 	t.Run("returns Leon's score", func(t *testing.T) {
 		request := httptest.NewRequest(http.MethodGet, "/players/leon", nil)
