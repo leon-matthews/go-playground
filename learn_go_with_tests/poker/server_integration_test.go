@@ -10,10 +10,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Integration test between PlayerServer and a PlayerStore
+// Integration test between PlayerServer and implementations of PlayerStore
 func TestRecordingWinsAndRetrievingThem(t *testing.T) {
 	path, cleanup := createTempFile(t, "poker*.db")
 	defer cleanup()
+	boltdb := NewPlayerStoreBolt(path)
 
 	cases := []struct {
 		name  string
@@ -25,7 +26,7 @@ func TestRecordingWinsAndRetrievingThem(t *testing.T) {
 		},
 		{
 			name:  "boltdb",
-			store: NewPlayerStoreBolt(path),
+			store: boltdb,
 		},
 	}
 	for _, tt := range cases {

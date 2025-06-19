@@ -9,7 +9,8 @@ import (
 
 // PlayerStore
 type PlayerStore interface {
-	GetScore(name string) (int, error)
+	Score(name string) (int, error)
+	SetScore(name string, score int) error
 	RecordWin(name string) error
 }
 
@@ -30,7 +31,7 @@ func (p *PlayerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *PlayerServer) getScore(w http.ResponseWriter, name string) {
-	score, err := p.store.GetScore(name)
+	score, err := p.store.Score(name)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

@@ -17,10 +17,17 @@ func NewPlayerStoreMemory() *PlayerStoreMemory {
 	}
 }
 
-func (s *PlayerStoreMemory) GetScore(name string) (int, error) {
+func (s *PlayerStoreMemory) Score(name string) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.scores[name], nil
+}
+
+func (s *PlayerStoreMemory) SetScore(name string, score int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.scores[name] = score
+	return nil
 }
 
 func (s *PlayerStoreMemory) RecordWin(name string) error {

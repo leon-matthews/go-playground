@@ -25,8 +25,8 @@ func NewPlayerStoreBolt(path string) *PlayerStoreBolt {
 	return &PlayerStoreBolt{db}
 }
 
-// GetScore fetches the current score for the named player
-func (s *PlayerStoreBolt) GetScore(name string) (int, error) {
+// Score fetches the current score for the named player
+func (s *PlayerStoreBolt) Score(name string) (int, error) {
 	var score int
 	var err error
 	err = s.db.View(func(tx *bolt.Tx) error {
@@ -34,6 +34,14 @@ func (s *PlayerStoreBolt) GetScore(name string) (int, error) {
 		return nil
 	})
 	return score, err
+}
+
+// SetScore increments the score of the named player
+func (s *PlayerStoreBolt) SetScore(name string, score int) error {
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		return s.setScore(tx, name, score)
+	})
+	return err
 }
 
 // getScore is broken out so that it can be called from within RecordWin's transaction
@@ -49,6 +57,16 @@ func (s *PlayerStoreBolt) getScore(tx *bolt.Tx, name string) (int, error) {
 	return score, nil
 }
 
+// setScore is broken out so that it can be called from within a transaction
+func (s *PlayerStoreBolt) setScore(tx *bolt.Tx, name string, score int) error {
+	value := strconv.Itoa(score)
+	err := tx.Bucket([]byte(bucketName)).Put([]byte(name), []byte(value))
+	if err != nil {
+		return fmt.Errorf("updating score: %v", err)
+	}
+	return nil
+}
+
 // RecordWin increments the score of the named player
 func (s *PlayerStoreBolt) RecordWin(name string) error {
 	err := s.db.Update(func(tx *bolt.Tx) error {
@@ -57,15 +75,10 @@ func (s *PlayerStoreBolt) RecordWin(name string) error {
 		if err != nil {
 			return err
 		}
-		score += 1
 
 		// Increment and save
-		value := strconv.Itoa(score)
-		err = tx.Bucket([]byte(bucketName)).Put([]byte(name), []byte(value))
-		if err != nil {
-			return fmt.Errorf("updating score: %v", err)
-		}
-		return nil
+		score += 1
+		return s.setScore(tx, name, score)
 	})
 	return err
 }
