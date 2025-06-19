@@ -13,12 +13,13 @@ type PlayerStoreMock struct {
 	winCalls []string
 }
 
-func (s *PlayerStoreMock) GetScore(name string) int {
-	return s.scores[name]
+func (s *PlayerStoreMock) GetScore(name string) (int, error) {
+	return s.scores[name], nil
 }
 
-func (s *PlayerStoreMock) RecordWin(name string) {
+func (s *PlayerStoreMock) RecordWin(name string) error {
 	s.winCalls = append(s.winCalls, name)
+	return nil
 }
 
 func TestPlayerServer(t *testing.T) {

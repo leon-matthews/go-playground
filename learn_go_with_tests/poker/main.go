@@ -5,8 +5,10 @@ import (
 	"net/http"
 )
 
+const filename = "poker.db"
+
 func main() {
-	store := NewPlayerStoreMemory()
+	store := NewPlayerStoreBolt(filename)
 	server := &PlayerServer{store: store}
 	address := ":8000"
 	log.Printf("Starting server on %s\n", address)

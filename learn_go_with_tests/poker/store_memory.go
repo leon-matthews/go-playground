@@ -1,6 +1,8 @@
 package main
 
-import "sync"
+import (
+	"sync"
+)
 
 // PlayerStoreMemory is a cheap in-memory implementation of PlayerStore
 type PlayerStoreMemory struct {
@@ -15,14 +17,15 @@ func NewPlayerStoreMemory() *PlayerStoreMemory {
 	}
 }
 
-func (s *PlayerStoreMemory) GetScore(name string) int {
+func (s *PlayerStoreMemory) GetScore(name string) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.scores[name]
+	return s.scores[name], nil
 }
 
-func (s *PlayerStoreMemory) RecordWin(name string) {
+func (s *PlayerStoreMemory) RecordWin(name string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.scores[name] += 1
+	return nil
 }

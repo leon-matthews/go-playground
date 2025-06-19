@@ -9,8 +9,8 @@ import (
 
 // PlayerStore
 type PlayerStore interface {
-	GetScore(name string) int
-	RecordWin(name string)
+	GetScore(name string) (int, error)
+	RecordWin(name string) error
 }
 
 // PlayerServer returns player's score
@@ -30,7 +30,10 @@ func (p *PlayerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *PlayerServer) getScore(w http.ResponseWriter, name string) {
-	score := p.store.GetScore(name)
+	score, err := p.store.GetScore(name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 	if score == 0 {
 		w.WriteHeader(http.StatusNotFound)
 	}
@@ -40,6 +43,9 @@ func (p *PlayerServer) getScore(w http.ResponseWriter, name string) {
 
 func (p *PlayerServer) processWin(w http.ResponseWriter, name string) {
 	w.WriteHeader(http.StatusAccepted)
-	p.store.RecordWin(name)
+	err := p.store.RecordWin(name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 	log.Printf("POST score for %s incremented", name)
 }
