@@ -14,23 +14,18 @@ type PlayerStore interface {
 
 // PlayerServer returns player's score
 type PlayerServer struct {
-	store  PlayerStore
-	router *http.ServeMux
+	store PlayerStore
+	http.Handler
 }
 
 func NewPlayerServer(store PlayerStore) *PlayerServer {
-	p := &PlayerServer{
-		store:  store,
-		router: http.NewServeMux(),
-	}
-	p.router.HandleFunc("/league", p.leagueHandler)
-	p.router.HandleFunc("GET /players/{name}", p.getScore)
-	p.router.HandleFunc("POST /players/{name}", p.processWin)
+	p := &PlayerServer{store: store}
+	router := http.NewServeMux()
+	router.HandleFunc("/league", p.leagueHandler)
+	router.HandleFunc("GET /players/{name}", p.getScore)
+	router.HandleFunc("POST /players/{name}", p.processWin)
+	p.Handler = router
 	return p
-}
-
-func (p *PlayerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	p.router.ServeHTTP(w, r)
 }
 
 func (p *PlayerServer) leagueHandler(w http.ResponseWriter, r *http.Request) {
