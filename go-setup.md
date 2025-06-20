@@ -67,6 +67,12 @@ The `errcheck` linter checks for un-inspected error return values:
     $ go install github.com/kisielk/errcheck@latest
 
 
+## glow
+
+Browse and read markdown documentation under current folder:
+
+	$ go install github.com/charmbracelet/glow@latest
+
 ### go-size-analyzer
 
 Explore which dependencies are making your binary large.
