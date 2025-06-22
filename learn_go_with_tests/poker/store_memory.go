@@ -17,6 +17,10 @@ func NewPlayerStoreMemory() *PlayerStoreMemory {
 	}
 }
 
+func (s *PlayerStoreMemory) League() []Player {
+	return nil
+}
+
 func (s *PlayerStoreMemory) Score(name string) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

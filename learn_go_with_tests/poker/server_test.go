@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,13 +13,19 @@ import (
 type PlayerStoreMock struct {
 	*PlayerStoreMemory
 	winCalls []string
+	league   []Player
 }
 
 func NewPlayerStoreMock() *PlayerStoreMock {
 	return &PlayerStoreMock{
 		NewPlayerStoreMemory(),
 		make([]string, 0),
+		make([]Player, 0),
 	}
+}
+
+func (s *PlayerStoreMock) League() []Player {
+	return s.league
 }
 
 func (s *PlayerStoreMock) RecordWin(name string) error {
@@ -29,6 +36,11 @@ func (s *PlayerStoreMock) RecordWin(name string) error {
 
 func TestLeague(t *testing.T) {
 	store := NewPlayerStoreMock()
+	wantedLeague := []Player{
+		{"leon", 32},
+		{"alyson", 20},
+	}
+	store.league = wantedLeague
 	server := NewPlayerServer(store)
 
 	t.Run("GET /league", func(t *testing.T) {
@@ -36,18 +48,25 @@ func TestLeague(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
-
 		assert.Equal(t, http.StatusOK, response.Code)
+		assert.Equal(t, "application/json", response.Result().Header.Get("content-type"))
+
+		var got []Player
+		err := json.NewDecoder(response.Body).Decode(&got)
+		if err != nil {
+			t.Fatalf("Unable to parse JSON: %v", err)
+		}
+		assert.Equal(t, wantedLeague, got)
 	})
 }
 
-func TestPlayerServer(t *testing.T) {
+func TestScores(t *testing.T) {
 	store := NewPlayerStoreMock()
 	store.SetScore("alyson", 10)
 	store.SetScore("leon", 20)
 	server := NewPlayerServer(store)
 
-	t.Run("returns Leon's score", func(t *testing.T) {
+	t.Run("Get Leon's score", func(t *testing.T) {
 		request := httptest.NewRequest(http.MethodGet, "/players/leon", nil)
 		response := httptest.NewRecorder()
 
@@ -57,7 +76,7 @@ func TestPlayerServer(t *testing.T) {
 		assert.Equal(t, "20", response.Body.String())
 	})
 
-	t.Run("returns Alyson's score", func(t *testing.T) {
+	t.Run("Get Alyson's score", func(t *testing.T) {
 		request := httptest.NewRequest(http.MethodGet, "/players/alyson", nil)
 		response := httptest.NewRecorder()
 
@@ -76,7 +95,7 @@ func TestPlayerServer(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, response.Code)
 	})
 
-	t.Run("POST Eric's score", func(t *testing.T) {
+	t.Run("Update Eric's score", func(t *testing.T) {
 		request := httptest.NewRequest(http.MethodPost, "/players/eric", nil)
 		response := httptest.NewRecorder()
 

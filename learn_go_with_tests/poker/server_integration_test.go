@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -8,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Integration test between PlayerServer and implementations of PlayerStore
@@ -32,38 +34,66 @@ func TestRecordingWinsAndRetrievingThem(t *testing.T) {
 
 	for _, tt := range testcases {
 		t.Run(tt.name, func(t *testing.T) {})
+		var response *httptest.ResponseRecorder
 		server := NewPlayerServer(tt.store)
 		player := "leon"
 
 		// Initial score should be zero
-		var response *httptest.ResponseRecorder
-		response = httptest.NewRecorder()
-		server.ServeHTTP(response, newGetScoreRequest(player))
+		response = httpGetScore(t, server, player)
 		assert.Equal(t, http.StatusNotFound, response.Code)
 		assert.Equal(t, "0", response.Body.String())
 
 		// Record three wins
-		server.ServeHTTP(httptest.NewRecorder(), newPostWinRequest(t, player))
-		server.ServeHTTP(httptest.NewRecorder(), newPostWinRequest(t, player))
-		server.ServeHTTP(httptest.NewRecorder(), newPostWinRequest(t, player))
+		httpPostWin(t, server, player)
+		httpPostWin(t, server, player)
+		httpPostWin(t, server, player)
 
-		// Fetch and check updated score
-		response = httptest.NewRecorder()
-		server.ServeHTTP(response, newGetScoreRequest(player))
+		// Get score
+		response = httpGetScore(t, server, player)
 		assert.Equal(t, http.StatusOK, response.Code)
 		assert.Equal(t, "3", response.Body.String())
+
+		// Get league table
+		response = httpGetLeague(t, server)
+		assert.Equal(t, http.StatusOK, response.Code)
+		assert.Equal(t, "application/json", response.Result().Header.Get("content-type"))
+		var got []Player
+		err := json.NewDecoder(response.Body).Decode(&got)
+		require.NoError(t, err, "Could not decode JSON")
+        want := []Player{
+            {"leon", 20},
+            {"alyson", 10},
+        }
+        assert.Equal(t, want, got)
 	}
 }
 
-func newPostWinRequest(t *testing.T, name string) *http.Request {
-	t.Helper()
-	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/players/%s", name), nil)
-	return req
+// httpGetScore performs an HTTP GET to fetch the score for the given player
+func httpGetScore(t *testing.T, server *PlayerServer, name string) *httptest.ResponseRecorder {
+	request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/players/%s", name), nil)
+	require.NoError(t, err, "could not create request")
+	response := httptest.NewRecorder()
+	server.ServeHTTP(response, request)
+	return response
 }
 
-func newGetScoreRequest(name string) *http.Request {
-	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/players/%s", name), nil)
-	return req
+// httpPostWin performs an HTTP POST to record a win for the given player name
+func httpPostWin(t *testing.T, server *PlayerServer, name string) *httptest.ResponseRecorder {
+	t.Helper()
+	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/players/%s", name), nil)
+	require.NoError(t, err, "could not create request")
+	response := httptest.NewRecorder()
+	server.ServeHTTP(response, request)
+	return response
+}
+
+// httpGetLeague fetches JSON data for player league table
+func httpGetLeague(t *testing.T, server *PlayerServer) *httptest.ResponseRecorder {
+	request, err := http.NewRequest(http.MethodGet, "/league", nil)
+	require.NoError(t, err, "could not create request")
+	response := httptest.NewRecorder()
+	server.ServeHTTP(response, request)
+	return response
 }
 
 // Create empty file and return its path

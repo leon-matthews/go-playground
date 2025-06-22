@@ -25,6 +25,11 @@ func NewPlayerStoreBolt(path string) *PlayerStoreBolt {
 	return &PlayerStoreBolt{db}
 }
 
+// League fetches table of names and scores for all players
+func (s *PlayerStoreBolt) League() []Player {
+	return nil
+}
+
 // Score fetches the current score for the named player
 func (s *PlayerStoreBolt) Score(name string) (int, error) {
 	var score int
