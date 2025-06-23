@@ -26,8 +26,8 @@ func NewPlayerStoreBolt(path string) *PlayerStoreBolt {
 }
 
 // League fetches table of names and scores for all players
-func (s *PlayerStoreBolt) League() ([]Player, error) {
-	var league []Player
+func (s *PlayerStoreBolt) League() (League, error) {
+	var league League
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucketName))
 		err := b.ForEach(func(name, value []byte) error {

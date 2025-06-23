@@ -9,13 +9,27 @@ import (
 	"strings"
 )
 
+// Player keeps track of number of wins for each named player
 type Player struct {
 	Name string
 	Wins int
 }
 
+type League []Player
+
+// Sort orders players by wins, highest score first
+// If scores are equal, names are sorted alphabetically
+func (l *League) Sort() {
+	slices.SortFunc([]Player(*l), func(a, b Player) int {
+		if a.Wins == b.Wins {
+			return strings.Compare(a.Name, b.Name)
+		}
+		return b.Wins - a.Wins
+	})
+}
+
 type PlayerStore interface {
-	League() ([]Player, error)
+	League() (League, error)
 	RecordWin(name string) error
 	Score(name string) (int, error)
 	SetScore(name string, score int) error
@@ -27,7 +41,7 @@ type PlayerServer struct {
 	http.Handler
 }
 
-// NewPlayerServer
+// NewPlayerServer creates a server with the given storage engine and sets up routes
 func NewPlayerServer(store PlayerStore) *PlayerServer {
 	p := &PlayerServer{store: store}
 	router := http.NewServeMux()
@@ -38,18 +52,13 @@ func NewPlayerServer(store PlayerStore) *PlayerServer {
 	return p
 }
 
-func (p *PlayerServer) leagueHandler(w http.ResponseWriter, r *http.Request) {
+func (p *PlayerServer) leagueHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("content-type", "application/json")
 	league, err := p.store.League()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	slices.SortFunc(league, func(a, b Player) int {
-		if a.Wins == b.Wins {
-			return strings.Compare(a.Name, b.Name)
-		}
-		return b.Wins - a.Wins
-	})
+	league.Sort()
 	json.NewEncoder(w).Encode(league)
 }
 

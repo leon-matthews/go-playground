@@ -24,7 +24,7 @@ func NewPlayerStoreMock() *PlayerStoreMock {
 	}
 }
 
-func (s *PlayerStoreMock) League() ([]Player, error) {
+func (s *PlayerStoreMock) League() (League, error) {
 	return s.league, nil
 }
 

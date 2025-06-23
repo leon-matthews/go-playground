@@ -17,8 +17,8 @@ func NewPlayerStoreMemory() *PlayerStoreMemory {
 	}
 }
 
-func (s *PlayerStoreMemory) League() ([]Player, error) {
-	var league []Player
+func (s *PlayerStoreMemory) League() (League, error) {
+	var league League
 	for name, wins := range s.scores {
 		league = append(league, Player{name, wins})
 	}
@@ -41,6 +41,6 @@ func (s *PlayerStoreMemory) SetScore(name string, score int) error {
 func (s *PlayerStoreMemory) RecordWin(name string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.scores[name] += 1
+	s.scores[name]++
 	return nil
 }

@@ -1,3 +1,10 @@
+# Poker
+
+Sample app from Learn [Go with Tests](https://quii.gitbook.io/learn-go-with-tests)
+
+## TODO
+
+Continue from chapter on [Command line & package structure](https://quii.gitbook.io/learn-go-with-tests/build-an-application/command-line).
 
 ## BoltDB
 
