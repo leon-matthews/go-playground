@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"slices"
+	"strings"
 )
 
 type Player struct {
@@ -42,6 +44,12 @@ func (p *PlayerServer) leagueHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+	slices.SortFunc(league, func(a, b Player) int {
+		if a.Wins == b.Wins {
+			return strings.Compare(a.Name, b.Name)
+		}
+		return b.Wins - a.Wins
+	})
 	json.NewEncoder(w).Encode(league)
 }
 

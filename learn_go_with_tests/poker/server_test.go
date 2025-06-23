@@ -36,11 +36,12 @@ func (s *PlayerStoreMock) RecordWin(name string) error {
 
 func TestLeague(t *testing.T) {
 	store := NewPlayerStoreMock()
-	wantedLeague := []Player{
-		{"leon", 32},
-		{"alyson", 20},
+	store.league = []Player{
+		{"alyson", 30},
+		{"blake", 44},
+		{"leon", 12},
+		{"stella", 27},
 	}
-	store.league = wantedLeague
 	server := NewPlayerServer(store)
 
 	t.Run("GET /league", func(t *testing.T) {
@@ -56,7 +57,15 @@ func TestLeague(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unable to parse JSON: %v", err)
 		}
-		assert.Equal(t, wantedLeague, got)
+
+		// Same values, but sorted by number of wins
+		want := []Player{
+			{"blake", 44},
+			{"alyson", 30},
+			{"stella", 27},
+			{"leon", 12},
+		}
+		assert.Equal(t, want, got)
 	})
 }
 
