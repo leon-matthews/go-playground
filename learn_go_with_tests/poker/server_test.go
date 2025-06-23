@@ -24,8 +24,8 @@ func NewPlayerStoreMock() *PlayerStoreMock {
 	}
 }
 
-func (s *PlayerStoreMock) League() []Player {
-	return s.league
+func (s *PlayerStoreMock) League() ([]Player, error) {
+	return s.league, nil
 }
 
 func (s *PlayerStoreMock) RecordWin(name string) error {

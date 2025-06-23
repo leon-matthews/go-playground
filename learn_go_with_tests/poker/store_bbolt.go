@@ -26,8 +26,21 @@ func NewPlayerStoreBolt(path string) *PlayerStoreBolt {
 }
 
 // League fetches table of names and scores for all players
-func (s *PlayerStoreBolt) League() []Player {
-	return nil
+func (s *PlayerStoreBolt) League() ([]Player, error) {
+	var league []Player
+	err := s.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(bucketName))
+		err := b.ForEach(func(name, value []byte) error {
+			score, err := strconv.Atoi(string(value))
+			if err != nil {
+				return fmt.Errorf("converting score: %w", err)
+			}
+			league = append(league, Player{string(name), score})
+			return nil
+		})
+		return err
+	})
+	return league, err
 }
 
 // Score fetches the current score for the named player

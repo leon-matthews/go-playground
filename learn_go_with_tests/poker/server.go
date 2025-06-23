@@ -13,7 +13,7 @@ type Player struct {
 }
 
 type PlayerStore interface {
-	League() []Player
+	League() ([]Player, error)
 	RecordWin(name string) error
 	Score(name string) (int, error)
 	SetScore(name string, score int) error
@@ -38,9 +38,11 @@ func NewPlayerServer(store PlayerStore) *PlayerServer {
 
 func (p *PlayerServer) leagueHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", "application/json")
-	league := p.store.League()
+	league, err := p.store.League()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 	json.NewEncoder(w).Encode(league)
-	w.WriteHeader(http.StatusOK)
 }
 
 func (p *PlayerServer) getScore(w http.ResponseWriter, r *http.Request) {

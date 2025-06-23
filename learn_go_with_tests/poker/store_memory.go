@@ -17,8 +17,12 @@ func NewPlayerStoreMemory() *PlayerStoreMemory {
 	}
 }
 
-func (s *PlayerStoreMemory) League() []Player {
-	return nil
+func (s *PlayerStoreMemory) League() ([]Player, error) {
+	var league []Player
+	for name, wins := range s.scores {
+		league = append(league, Player{name, wins})
+	}
+	return league, nil
 }
 
 func (s *PlayerStoreMemory) Score(name string) (int, error) {

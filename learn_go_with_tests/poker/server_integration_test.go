@@ -33,38 +33,38 @@ func TestRecordingWinsAndRetrievingThem(t *testing.T) {
 	}
 
 	for _, tt := range testcases {
-		t.Run(tt.name, func(t *testing.T) {})
-		var response *httptest.ResponseRecorder
-		server := NewPlayerServer(tt.store)
-		player := "leon"
+		t.Run(tt.name, func(t *testing.T) {
+			var response *httptest.ResponseRecorder
+			server := NewPlayerServer(tt.store)
+			player := "leon"
 
-		// Initial score should be zero
-		response = httpGetScore(t, server, player)
-		assert.Equal(t, http.StatusNotFound, response.Code)
-		assert.Equal(t, "0", response.Body.String())
+			// Initial score should be zero
+			response = httpGetScore(t, server, player)
+			assert.Equal(t, http.StatusNotFound, response.Code)
+			assert.Equal(t, "0", response.Body.String())
 
-		// Record three wins
-		httpPostWin(t, server, player)
-		httpPostWin(t, server, player)
-		httpPostWin(t, server, player)
+			// Record three wins
+			httpPostWin(t, server, player)
+			httpPostWin(t, server, player)
+			httpPostWin(t, server, player)
 
-		// Get score
-		response = httpGetScore(t, server, player)
-		assert.Equal(t, http.StatusOK, response.Code)
-		assert.Equal(t, "3", response.Body.String())
+			// Get score
+			response = httpGetScore(t, server, player)
+			assert.Equal(t, http.StatusOK, response.Code)
+			assert.Equal(t, "3", response.Body.String())
 
-		// Get league table
-		response = httpGetLeague(t, server)
-		assert.Equal(t, http.StatusOK, response.Code)
-		assert.Equal(t, "application/json", response.Result().Header.Get("content-type"))
-		var got []Player
-		err := json.NewDecoder(response.Body).Decode(&got)
-		require.NoError(t, err, "Could not decode JSON")
-        want := []Player{
-            {"leon", 20},
-            {"alyson", 10},
-        }
-        assert.Equal(t, want, got)
+			// Get league table
+			response = httpGetLeague(t, server)
+			assert.Equal(t, http.StatusOK, response.Code)
+			assert.Equal(t, "application/json", response.Result().Header.Get("content-type"))
+			var got []Player
+			err := json.NewDecoder(response.Body).Decode(&got)
+			require.NoError(t, err, "Could not decode JSON")
+			want := []Player{
+				{"leon", 3},
+			}
+			assert.Equal(t, want, got)
+		})
 	}
 }
 

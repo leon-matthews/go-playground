@@ -1,8 +1,4 @@
 
-## TODO
-
-Implement PlayerStore.League() on PlayerStoreMemory & PlayerStoreBolt
-
 ## BoltDB
 
 Bolt is a pure-GO key-value store inspired by LMDB. Features:
