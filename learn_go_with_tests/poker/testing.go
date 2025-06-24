@@ -6,10 +6,27 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// AlerterMock just records calls to its Schedule() method
+type AlerterMock struct {
+	Alerts []struct {
+		At     time.Duration
+		Amount int
+	}
+}
+
+func (m *AlerterMock) Schedule(at time.Duration, amount int) {
+	alert := struct {
+		At     time.Duration
+		Amount int
+	}{at, amount}
+	m.Alerts = append(m.Alerts, alert)
+}
 
 // PlayerStoreMock records the calls to RecordWin for testing
 type PlayerStoreMock struct {

@@ -25,11 +25,22 @@ func NewCLI(store PlayerStore, in io.Reader, alerter Alerter) *CLI {
 	}
 }
 
-func (cli *CLI) PlayPoker() {
-	cli.alerter.Schedule(5*time.Second, 100)
+func (cli *CLI) PlayPoker() error {
+	// Schedule alerts for blind increases
+	blinds := []int{100, 200, 300, 400, 500, 600, 800, 1000, 2000, 4000, 8000}
+	blindTime := 0 * time.Second
+	for _, blind := range blinds {
+		cli.alerter.Schedule(blindTime, blind)
+		blindTime = blindTime + (10 * time.Minute)
+	}
+
 	line := cli.readLine()
 	name := extractName(line)
-	cli.store.RecordWin(name)
+	err := cli.store.RecordWin(name)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (cli *CLI) readLine() string {
