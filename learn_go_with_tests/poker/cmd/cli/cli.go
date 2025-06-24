@@ -2,10 +2,9 @@ package main
 
 import (
 	"fmt"
+	"learn_go_with_tests/poker"
 	"log"
 	"os"
-
-	"learn_go_with_tests/poker"
 )
 
 const filename = "poker.db"
@@ -17,6 +16,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error %v", err)
 	}
-	game := poker.NewCLI(store, os.Stdin)
+	game := poker.NewCLI(store, os.Stdin, nil)
 	game.PlayPoker()
 }

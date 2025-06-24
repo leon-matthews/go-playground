@@ -4,7 +4,7 @@ Sample app from Learn [Go with Tests](https://quii.gitbook.io/learn-go-with-test
 
 ## TODO
 
-Continue from chapter on [Command line & package structure](https://quii.gitbook.io/learn-go-with-tests/build-an-application/command-line).
+Continue from chapter on [Time](https://quii.gitbook.io/learn-go-with-tests/build-an-application/time#write-the-test-first-1)
 
 ## BoltDB
 
