@@ -7,12 +7,17 @@ import (
 	"learn_go_with_tests/poker"
 )
 
-const filename = "poker.db"
+const (
+	address  = ":8000"
+	filename = "poker.db"
+)
 
 func main() {
-	store := poker.NewPlayerStoreBolt(filename)
+	store, err := poker.NewPlayerStoreBolt(filename)
+	if err != nil {
+		log.Fatalf("Error %v", err)
+	}
 	server := poker.NewPlayerServer(store)
-	address := ":8000"
 	log.Printf("Starting server on %s\n", address)
 	log.Fatal(http.ListenAndServe(address, server))
 }

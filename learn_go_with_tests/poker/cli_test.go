@@ -1,33 +1,26 @@
-package poker
+package poker_test
 
 import (
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
+
+	"learn_go_with_tests/poker"
 )
 
 func TestCLI(t *testing.T) {
 	t.Run("Alyson wins", func(t *testing.T) {
 		in := strings.NewReader("Alyson wins\n")
-		store := NewPlayerStoreMock()
-		cli := &CLI{store, in}
+		store := poker.NewPlayerStoreMock()
+		cli := poker.NewCLI(store, in)
 		cli.PlayPoker()
-		assertPlayerWin(t, store, "Alyson")
+		poker.AssertPlayerWin(t, store, "Alyson")
 	})
 
 	t.Run("Leon wins", func(t *testing.T) {
 		in := strings.NewReader("Leon wins\n")
-		store := NewPlayerStoreMock()
-		cli := &CLI{store, in}
+		store := poker.NewPlayerStoreMock()
+		cli := poker.NewCLI(store, in)
 		cli.PlayPoker()
-		assertPlayerWin(t, store, "Leon")
+		poker.AssertPlayerWin(t, store, "Leon")
 	})
-}
-
-func assertPlayerWin(t *testing.T, store *PlayerStoreMock, name string) {
-	t.Helper()
-	if len(store.winCalls) != 1 {
-		t.Fatal("expected a win call but didn't get any")
-	}
-	assert.Equal(t, name, store.winCalls[0])
 }

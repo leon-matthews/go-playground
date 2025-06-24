@@ -9,31 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// PlayerStoreMock records the calls to RecordWin for testing
-type PlayerStoreMock struct {
-	*PlayerStoreMemory
-	winCalls []string
-	league   []Player
-}
-
-func NewPlayerStoreMock() *PlayerStoreMock {
-	return &PlayerStoreMock{
-		NewPlayerStoreMemory(),
-		make([]string, 0),
-		make([]Player, 0),
-	}
-}
-
-func (s *PlayerStoreMock) League() (League, error) {
-	return s.league, nil
-}
-
-func (s *PlayerStoreMock) RecordWin(name string) error {
-	s.winCalls = append(s.winCalls, name)
-	s.PlayerStoreMemory.RecordWin(name)
-	return nil
-}
-
 func TestLeague(t *testing.T) {
 	store := NewPlayerStoreMock()
 	store.league = []Player{

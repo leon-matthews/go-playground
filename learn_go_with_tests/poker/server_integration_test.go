@@ -2,10 +2,8 @@ package poker
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,9 +12,10 @@ import (
 
 // Integration test between PlayerServer and implementations of PlayerStore
 func TestRecordingWinsAndRetrievingThem(t *testing.T) {
-	path, cleanup := createTempFile(t, "poker*.db")
+	path, cleanup := CreateTempFile(t, "poker*.db")
 	defer cleanup()
-	boltdb := NewPlayerStoreBolt(path)
+	boltdb, err := NewPlayerStoreBolt(path)
+	require.NoError(t, err)
 
 	testcases := []struct {
 		name  string
@@ -39,22 +38,22 @@ func TestRecordingWinsAndRetrievingThem(t *testing.T) {
 			player := "leon"
 
 			// Initial score should be zero
-			response = httpGetScore(t, server, player)
+			response = HttpGetScore(t, server, player)
 			assert.Equal(t, http.StatusNotFound, response.Code)
 			assert.Equal(t, "0", response.Body.String())
 
 			// Record three wins
-			httpPostWin(t, server, player)
-			httpPostWin(t, server, player)
-			httpPostWin(t, server, player)
+			HttpPostWin(t, server, player)
+			HttpPostWin(t, server, player)
+			HttpPostWin(t, server, player)
 
 			// Get score
-			response = httpGetScore(t, server, player)
+			response = HttpGetScore(t, server, player)
 			assert.Equal(t, http.StatusOK, response.Code)
 			assert.Equal(t, "3", response.Body.String())
 
 			// Get league table
-			response = httpGetLeague(t, server)
+			response = HttpGetLeague(t, server)
 			assert.Equal(t, http.StatusOK, response.Code)
 			assert.Equal(t, "application/json", response.Result().Header.Get("content-type"))
 			var got []Player
@@ -66,49 +65,4 @@ func TestRecordingWinsAndRetrievingThem(t *testing.T) {
 			assert.Equal(t, want, got)
 		})
 	}
-}
-
-// httpGetScore performs an HTTP GET to fetch the score for the given player
-func httpGetScore(t *testing.T, server *PlayerServer, name string) *httptest.ResponseRecorder {
-	request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/players/%s", name), nil)
-	require.NoError(t, err, "could not create request")
-	response := httptest.NewRecorder()
-	server.ServeHTTP(response, request)
-	return response
-}
-
-// httpPostWin performs an HTTP POST to record a win for the given player name
-func httpPostWin(t *testing.T, server *PlayerServer, name string) *httptest.ResponseRecorder {
-	t.Helper()
-	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/players/%s", name), nil)
-	require.NoError(t, err, "could not create request")
-	response := httptest.NewRecorder()
-	server.ServeHTTP(response, request)
-	return response
-}
-
-// httpGetLeague fetches JSON data for player league table
-func httpGetLeague(t *testing.T, server *PlayerServer) *httptest.ResponseRecorder {
-	request, err := http.NewRequest(http.MethodGet, "/league", nil)
-	require.NoError(t, err, "could not create request")
-	response := httptest.NewRecorder()
-	server.ServeHTTP(response, request)
-	return response
-}
-
-// Create empty file and return its path
-// Defer a call the returned cleanup function to delete file
-func createTempFile(t *testing.T, pattern string) (string, func()) {
-	t.Helper()
-	f, err := os.CreateTemp("", pattern)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := f.Close(); err != nil {
-		t.Fatal(err)
-	}
-	cleanup := func() {
-		os.Remove(f.Name())
-	}
-	return f.Name(), cleanup
 }

@@ -16,13 +16,13 @@ type PlayerStoreBolt struct {
 	db *bolt.DB
 }
 
-func NewPlayerStoreBolt(path string) *PlayerStoreBolt {
+func NewPlayerStoreBolt(path string) (*PlayerStoreBolt, error) {
 	log.Println("Open BoltDB database file:", path)
 	db, err := setupBoltDB(path)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return &PlayerStoreBolt{db}
+	return &PlayerStoreBolt{db}, nil
 }
 
 // League fetches table of names and scores for all players
