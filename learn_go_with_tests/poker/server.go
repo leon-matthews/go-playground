@@ -1,3 +1,4 @@
+// Package poker maintain scoring for poker players
 package poker
 
 import (
@@ -15,6 +16,7 @@ type Player struct {
 	Wins int
 }
 
+// A League is a collection of players
 type League []Player
 
 // Sort orders players by wins, highest score first
@@ -28,10 +30,18 @@ func (l *League) Sort() {
 	})
 }
 
+// A PlayerStore is used to keep players' scores.
 type PlayerStore interface {
+	// League fetches table of names and scores for all players
 	League() (League, error)
+
+	// RecordWin increments the score of the named player
 	RecordWin(name string) error
+
+	// Score fetches the current score for the named player
 	Score(name string) (int, error)
+
+	// SetScore increments the score of the named player
 	SetScore(name string, score int) error
 }
 
@@ -57,6 +67,7 @@ func (p *PlayerServer) leagueHandler(w http.ResponseWriter, _ *http.Request) {
 	league, err := p.store.League()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	league.Sort()
 	json.NewEncoder(w).Encode(league)
@@ -67,6 +78,7 @@ func (p *PlayerServer) getScore(w http.ResponseWriter, r *http.Request) {
 	score, err := p.store.Score(name)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	if score == 0 {
 		w.WriteHeader(http.StatusNotFound)
@@ -81,6 +93,7 @@ func (p *PlayerServer) processWin(w http.ResponseWriter, r *http.Request) {
 	err := p.store.RecordWin(name)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	log.Printf("POST score for %s incremented", name)
 }

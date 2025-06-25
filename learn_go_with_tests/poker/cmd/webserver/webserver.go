@@ -1,3 +1,4 @@
+// Webserver providing an HTTP API for poker
 package main
 
 import (

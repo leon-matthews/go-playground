@@ -1,3 +1,4 @@
+// Command-line poker client
 package main
 
 import (

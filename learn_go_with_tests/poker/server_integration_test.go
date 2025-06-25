@@ -38,22 +38,22 @@ func TestRecordingWinsAndRetrievingThem(t *testing.T) {
 			player := "leon"
 
 			// Initial score should be zero
-			response = HttpGetScore(t, server, player)
+			response = HTTPGetScore(t, server, player)
 			assert.Equal(t, http.StatusNotFound, response.Code)
 			assert.Equal(t, "0", response.Body.String())
 
 			// Record three wins
-			HttpPostWin(t, server, player)
-			HttpPostWin(t, server, player)
-			HttpPostWin(t, server, player)
+			HTTPPostWin(t, server, player)
+			HTTPPostWin(t, server, player)
+			HTTPPostWin(t, server, player)
 
 			// Get score
-			response = HttpGetScore(t, server, player)
+			response = HTTPGetScore(t, server, player)
 			assert.Equal(t, http.StatusOK, response.Code)
 			assert.Equal(t, "3", response.Body.String())
 
 			// Get league table
-			response = HttpGetLeague(t, server)
+			response = HTTPGetLeague(t, server)
 			assert.Equal(t, http.StatusOK, response.Code)
 			assert.Equal(t, "application/json", response.Result().Header.Get("content-type"))
 			var got []Player

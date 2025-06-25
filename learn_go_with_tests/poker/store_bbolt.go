@@ -16,6 +16,7 @@ type PlayerStoreBolt struct {
 	db *bolt.DB
 }
 
+// NewPlayerStoreBolt opens, and creates if necessary, the given BoltDB file.
 func NewPlayerStoreBolt(path string) (*PlayerStoreBolt, error) {
 	log.Println("Open BoltDB database file:", path)
 	db, err := setupBoltDB(path)
@@ -25,7 +26,7 @@ func NewPlayerStoreBolt(path string) (*PlayerStoreBolt, error) {
 	return &PlayerStoreBolt{db}, nil
 }
 
-// League fetches table of names and scores for all players
+// League implements PlayerStore.League
 func (s *PlayerStoreBolt) League() (League, error) {
 	var league League
 	err := s.db.View(func(tx *bolt.Tx) error {
@@ -43,7 +44,7 @@ func (s *PlayerStoreBolt) League() (League, error) {
 	return league, err
 }
 
-// Score fetches the current score for the named player
+// Score implements PlayerStore.Score
 func (s *PlayerStoreBolt) Score(name string) (int, error) {
 	var score int
 	var err error
@@ -54,7 +55,7 @@ func (s *PlayerStoreBolt) Score(name string) (int, error) {
 	return score, err
 }
 
-// SetScore increments the score of the named player
+// SetScore implements PlayerStore.SetScore
 func (s *PlayerStoreBolt) SetScore(name string, score int) error {
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		return s.setScore(tx, name, score)
@@ -62,7 +63,7 @@ func (s *PlayerStoreBolt) SetScore(name string, score int) error {
 	return err
 }
 
-// RecordWin increments the score of the named player
+// RecordWin implements PlayerStore.RecordWin
 func (s *PlayerStoreBolt) RecordWin(name string) error {
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		// Fetch current
@@ -72,7 +73,7 @@ func (s *PlayerStoreBolt) RecordWin(name string) error {
 		}
 
 		// Increment and save
-		score += 1
+		score++
 		return s.setScore(tx, name, score)
 	})
 	return err
@@ -101,6 +102,7 @@ func (s *PlayerStoreBolt) setScore(tx *bolt.Tx, name string, score int) error {
 	return nil
 }
 
+// setupBoltDB opens database (creating if necessary) and ensures scores bucket exists
 func setupBoltDB(path string) (*bolt.DB, error) {
 	options := &bolt.Options{Timeout: 1 * time.Second}
 	db, err := bolt.Open(path, 0666, options)

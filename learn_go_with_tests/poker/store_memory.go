@@ -10,6 +10,7 @@ type PlayerStoreMemory struct {
 	mu     sync.Mutex
 }
 
+// NewPlayerStoreMemory initialises a new in-memory PlayerStore
 func NewPlayerStoreMemory() *PlayerStoreMemory {
 	return &PlayerStoreMemory{
 		scores: map[string]int{},
@@ -17,6 +18,7 @@ func NewPlayerStoreMemory() *PlayerStoreMemory {
 	}
 }
 
+// League implements PlayerStore.League
 func (s *PlayerStoreMemory) League() (League, error) {
 	var league League
 	for name, wins := range s.scores {
@@ -25,12 +27,14 @@ func (s *PlayerStoreMemory) League() (League, error) {
 	return league, nil
 }
 
+// Score implements PlayerStore.Score
 func (s *PlayerStoreMemory) Score(name string) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.scores[name], nil
 }
 
+// SetScore implements PlayerStore.SetScore
 func (s *PlayerStoreMemory) SetScore(name string, score int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -38,6 +42,7 @@ func (s *PlayerStoreMemory) SetScore(name string, score int) error {
 	return nil
 }
 
+// RecordWin implements PlayerStore.RecordWin
 func (s *PlayerStoreMemory) RecordWin(name string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

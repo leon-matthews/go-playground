@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// AlerterMock just records calls to its Schedule() method
+// AlerterMock implements Alerter by just recorded calls to its Schedule() method
 type AlerterMock struct {
 	Alerts []struct {
 		At     time.Duration
@@ -20,6 +20,7 @@ type AlerterMock struct {
 	}
 }
 
+// Schedule implements Alerter.Schedule by just recording the callers arguments
 func (m *AlerterMock) Schedule(at time.Duration, amount int) {
 	alert := struct {
 		At     time.Duration
@@ -35,6 +36,7 @@ type PlayerStoreMock struct {
 	league   []Player
 }
 
+// NewPlayerStoreMock initialises as new mock player store
 func NewPlayerStoreMock() *PlayerStoreMock {
 	return &PlayerStoreMock{
 		NewPlayerStoreMemory(),
@@ -43,10 +45,12 @@ func NewPlayerStoreMock() *PlayerStoreMock {
 	}
 }
 
+// League implements PlayerStore.League by simply returning contents of league property
 func (s *PlayerStoreMock) League() (League, error) {
 	return s.league, nil
 }
 
+// RecordWin
 func (s *PlayerStoreMock) RecordWin(name string) error {
 	s.winCalls = append(s.winCalls, name)
 	s.PlayerStoreMemory.RecordWin(name)
@@ -79,8 +83,8 @@ func CreateTempFile(t *testing.T, pattern string) (string, func()) {
 	return f.Name(), cleanup
 }
 
-// HttpGetLeague fetches JSON data for player league table
-func HttpGetLeague(t *testing.T, server *PlayerServer) *httptest.ResponseRecorder {
+// HTTPGetLeague fetches JSON data for player league table
+func HTTPGetLeague(t *testing.T, server *PlayerServer) *httptest.ResponseRecorder {
 	request, err := http.NewRequest(http.MethodGet, "/league", nil)
 	require.NoError(t, err, "could not create request")
 	response := httptest.NewRecorder()
@@ -88,8 +92,8 @@ func HttpGetLeague(t *testing.T, server *PlayerServer) *httptest.ResponseRecorde
 	return response
 }
 
-// HttpGetScore performs an HTTP GET to fetch the score for the given player
-func HttpGetScore(t *testing.T, server *PlayerServer, name string) *httptest.ResponseRecorder {
+// HTTPGetScore performs an HTTP GET to fetch the score for the given player
+func HTTPGetScore(t *testing.T, server *PlayerServer, name string) *httptest.ResponseRecorder {
 	request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/players/%s", name), nil)
 	require.NoError(t, err, "could not create request")
 	response := httptest.NewRecorder()
@@ -97,8 +101,8 @@ func HttpGetScore(t *testing.T, server *PlayerServer, name string) *httptest.Res
 	return response
 }
 
-// HttpPostWin performs an HTTP POST to record a win for the given player name
-func HttpPostWin(t *testing.T, server *PlayerServer, name string) *httptest.ResponseRecorder {
+// HTTPPostWin performs an HTTP POST to record a win for the given player name
+func HTTPPostWin(t *testing.T, server *PlayerServer, name string) *httptest.ResponseRecorder {
 	t.Helper()
 	request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/players/%s", name), nil)
 	require.NoError(t, err, "could not create request")
