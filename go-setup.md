@@ -67,11 +67,17 @@ The `errcheck` linter checks for un-inspected error return values:
     $ go install github.com/kisielk/errcheck@latest
 
 
-## glow
+### glow
 
 Browse and read markdown documentation under current folder:
 
 	$ go install github.com/charmbracelet/glow@latest
+
+### goimports
+
+Command goimports updates your Go import lines, adding missing ones and removing unreferenced ones.
+
+	$ go install golang.org/x/tools/cmd/goimports@latest
 
 ### go-size-analyzer
 
@@ -87,7 +93,6 @@ Reformat test output, and automatically run tests after code changes
 with `gotestsum`:
 
     $ go install gotest.tools/gotestsum@latest
-    $ gotestsum
     $ gotestsum
     ✓  . (cached)
     DONE 4 tests in 0.050s
