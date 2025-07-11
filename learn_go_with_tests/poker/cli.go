@@ -7,12 +7,6 @@ import (
 	"time"
 )
 
-// Alerter schedules alerts for points in the future
-type Alerter interface {
-	// Schedule an alert for the change to the blind to amount dollars
-	Schedule(at time.Duration, amount int)
-}
-
 // CLI is the top-level struct for the poker client
 type CLI struct {
 	store   PlayerStore
@@ -39,6 +33,7 @@ func (cli *CLI) PlayPoker() error {
 		blindTime = blindTime + (10 * time.Minute)
 	}
 
+	// Read input from user
 	line := cli.readLine()
 	name := extractName(line)
 	err := cli.store.RecordWin(name)

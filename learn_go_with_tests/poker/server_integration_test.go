@@ -56,10 +56,10 @@ func TestRecordingWinsAndRetrievingThem(t *testing.T) {
 			response = HTTPGetLeague(t, server)
 			assert.Equal(t, http.StatusOK, response.Code)
 			assert.Equal(t, "application/json", response.Result().Header.Get("content-type"))
-			var got []Player
+			var got League
 			err := json.NewDecoder(response.Body).Decode(&got)
 			require.NoError(t, err, "Could not decode JSON")
-			want := []Player{
+			want := League{
 				{"leon", 3},
 			}
 			assert.Equal(t, want, got)

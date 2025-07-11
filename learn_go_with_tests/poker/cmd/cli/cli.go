@@ -17,6 +17,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error %v", err)
 	}
-	game := poker.NewCLI(store, os.Stdin, nil)
-	game.PlayPoker()
+	alerter := poker.AlerterFunc(poker.StdOutAlerter)
+	game := poker.NewCLI(store, os.Stdin, alerter)
+	err = game.PlayPoker()
+	if err != nil {
+		log.Fatalf("Error %v", err)
+	}
 }

@@ -11,7 +11,7 @@ import (
 
 func TestLeague(t *testing.T) {
 	store := NewPlayerStoreMock()
-	store.league = []Player{
+	store.league = League{
 		{"alyson", 30},
 		{"blake", 44},
 		{"leon", 12},
@@ -27,14 +27,14 @@ func TestLeague(t *testing.T) {
 		assert.Equal(t, http.StatusOK, response.Code)
 		assert.Equal(t, "application/json", response.Result().Header.Get("content-type"))
 
-		var got []Player
+		var got League
 		err := json.NewDecoder(response.Body).Decode(&got)
 		if err != nil {
 			t.Fatalf("Unable to parse JSON: %v", err)
 		}
 
 		// Same values, but sorted by number of wins
-		want := []Player{
+		want := League{
 			{"blake", 44},
 			{"alyson", 30},
 			{"stella", 27},
