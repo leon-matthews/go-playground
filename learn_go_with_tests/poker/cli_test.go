@@ -64,8 +64,8 @@ func TestCLI(t *testing.T) {
 					t.Fatalf("%s for $%d at %s", name, c.expectedAmount, c.expectedTime)
 				}
 				alert := alerter.Alerts[i]
-				assert.Equal(t, c.expectedAmount, alert.amount)
-				assert.Equal(t, c.expectedTime, alert.at)
+				assert.Equal(t, c.expectedAmount, alert.Amount)
+				assert.Equal(t, c.expectedTime, alert.At)
 			})
 		}
 	})

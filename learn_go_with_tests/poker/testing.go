@@ -14,12 +14,12 @@ import (
 
 // scheduledAlert is used by [AlerterMock] to check client code
 type scheduledAlert struct {
-	at     time.Duration
-	amount int
+	At     time.Duration
+	Amount int
 }
 
 func (s scheduledAlert) String() string {
-	return fmt.Sprintf("%d chips at %v", s.amount, s.at)
+	return fmt.Sprintf("%d chips at %v", s.Amount, s.At)
 }
 
 // AlerterMock implements Alerter by just recorded calls to its Schedule() method
@@ -29,7 +29,7 @@ type AlerterMock struct {
 
 // Schedule implements Alerter.Schedule by just recording the callers arguments
 func (m *AlerterMock) Schedule(at time.Duration, amount int) {
-	alert := scheduledAlert{at: at, amount: amount}
+	alert := scheduledAlert{At: at, Amount: amount}
 	m.Alerts = append(m.Alerts, alert)
 }
 
