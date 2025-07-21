@@ -2,23 +2,28 @@ package poker
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"strings"
 	"time"
 )
 
+const NumPlayerPrompt = "How many players?"
+
 // CLI is the top-level struct for the poker client
 type CLI struct {
 	store   PlayerStore
 	in      *bufio.Scanner
+	out     io.Writer
 	alerter Alerter
 }
 
 // NewCLI returns a pointer to a new CLI
-func NewCLI(store PlayerStore, in io.Reader, alerter Alerter) *CLI {
+func NewCLI(store PlayerStore, in io.Reader, out io.Writer, alerter Alerter) *CLI {
 	return &CLI{
 		store:   store,
 		in:      bufio.NewScanner(in),
+		out:     out,
 		alerter: alerter,
 	}
 }
@@ -32,6 +37,8 @@ func (cli *CLI) PlayPoker() error {
 		cli.alerter.Schedule(blindTime, blind)
 		blindTime = blindTime + (10 * time.Minute)
 	}
+
+	fmt.Fprint(cli.out, NumPlayerPrompt)
 
 	// Read input from user
 	line := cli.readLine()

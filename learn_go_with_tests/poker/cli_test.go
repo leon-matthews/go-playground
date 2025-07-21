@@ -1,6 +1,7 @@
 package poker_test
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,8 +16,9 @@ func TestCLI(t *testing.T) {
 
 	t.Run("reads 'Alyson wins' from input", func(t *testing.T) {
 		in := strings.NewReader("Alyson wins\n")
+		out := &bytes.Buffer{}
 		store := poker.NewPlayerStoreMock()
-		cli := poker.NewCLI(store, in, mockAlerter)
+		cli := poker.NewCLI(store, in, out, mockAlerter)
 		err := cli.PlayPoker()
 		require.NoError(t, err)
 		poker.AssertPlayerWin(t, store, "Alyson")
@@ -24,19 +26,21 @@ func TestCLI(t *testing.T) {
 
 	t.Run("reads 'Leon wins' from input", func(t *testing.T) {
 		in := strings.NewReader("Leon wins\n")
+		out := &bytes.Buffer{}
 		store := poker.NewPlayerStoreMock()
-		cli := poker.NewCLI(store, in, mockAlerter)
+		cli := poker.NewCLI(store, in, out, mockAlerter)
 		err := cli.PlayPoker()
 		require.NoError(t, err)
 		poker.AssertPlayerWin(t, store, "Leon")
 	})
 
-	t.Run("it schedules printing of blind values", func(t *testing.T) {
+	t.Run("schedule printing of blind values", func(t *testing.T) {
 		in := strings.NewReader("Chris wins\n")
+		out := &bytes.Buffer{}
 		store := poker.NewPlayerStoreMock()
 		alerter := &poker.AlerterMock{}
 
-		cli := poker.NewCLI(store, in, alerter)
+		cli := poker.NewCLI(store, in, out, alerter)
 		err := cli.PlayPoker()
 		require.NoError(t, err)
 
@@ -68,5 +72,17 @@ func TestCLI(t *testing.T) {
 				assert.Equal(t, c.expectedTime, alert.At)
 			})
 		}
+	})
+
+	t.Run("prompt user for number of players", func(t *testing.T) {
+		alerter := &poker.AlerterMock{}
+		in := &bytes.Buffer{}
+		out := &bytes.Buffer{}
+		store := poker.NewPlayerStoreMock()
+		cli := poker.NewCLI(store, in, out, alerter)
+
+		cli.PlayPoker()
+
+		assert.Equal(t, poker.NumPlayerPrompt, out.String())
 	})
 }
