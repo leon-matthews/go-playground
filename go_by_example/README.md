@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Signals
-https://gobyexample.com/signals
+Go by Example: Spawning Processes
+https://gobyexample.com/spawning-processes
