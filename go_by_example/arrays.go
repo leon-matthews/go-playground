@@ -8,31 +8,31 @@ func main() {
 	fmt.Println("empty:", a)
 
 	// Set & get using index
-	a[4] = 100
+	a[3] = 100
 	fmt.Println("set:", a)
-	fmt.Println("get:", a[4])
+	fmt.Println("get:", a[3])
 	fmt.Println("len:", len(a))
 
 	// Literal declaration
 	b := [5]int{1, 2, 3, 4, 5}
-	fmt.Println("declaration:", b)
+	fmt.Println("literal:", b)
 
 	// Let the compiler calculate count
-	b = [...]int{5, 4, 3, 2, 1}
-	fmt.Println("declaration:", b)
+	c := [...]int{5, 4, 3, 2, 1}
+	fmt.Println("ellipsis", c)
 
 	// Sparse
-	b = [...]int{100, 3: 400, 500}
-	fmt.Println("sparse:", b)
+	d := [...]int{100, 9: 400, 500}
+	fmt.Println("sparse:", d)
 
 	// 2D
 	var twoD [2][3]int
 	fmt.Println("2D:", twoD)
 
-	// 2D too. Can only elide the outer length
+	// Sparse 2D. Can only elide the outer length
 	twoD = [...][3]int{
 		{1, 2, 3},
-		{1, 2, 3},
+		{4, 5, 6},
 	}
 	fmt.Println("2D:", twoD)
 }

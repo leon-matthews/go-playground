@@ -6,15 +6,16 @@ import (
 )
 
 func main() {
-	// An uninitialized slice equals to nil and has length 0
-	var s []string
-	fmt.Println("uninitialised:", s, s == nil, len(s) == 0)
+	// An uninitialized slice: equals to nil, length 0
+	var i []int
+	fmt.Println("uninitialised:", i, i == nil, len(i) == 0)
 
 	// Create an empty slice with non-zero length
-	s = make([]string, 3)
-	fmt.Println("make:", s, "len:", len(s), "cap:", cap(s))
+	i = make([]int, 3)
+	fmt.Println("make:", i, "len:", len(i), "cap:", cap(i))
 
 	// Set & get like arrays
+	s := make([]string, 3)
 	s[0] = "a"
 	s[1] = "b"
 	s[2] = "c"
@@ -23,12 +24,16 @@ func main() {
 	// Append one, then many elements
 	s = append(s, "d")
 	s = append(s, "e", "f", "g")
-	fmt.Println(s)
+	fmt.Println(s, "len:", len(s), "cap:", cap(s))
 
 	// Copy requires a non-empty destination slice
 	c := make([]string, len(s))
 	copy(c, s)
-	fmt.Println(c)
+	fmt.Println(c, "len:", len(c), "cap:", cap(c))
+
+	// Clone
+	c2 := slices.Clone(s)
+	fmt.Println(c2, "len:", len(c2), "cap:", cap(c2))
 
 	// Slice the slice!
 	l := s[2:5]

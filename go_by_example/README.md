@@ -7,5 +7,4 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Go by Example: Spawning Processes
-https://gobyexample.com/spawning-processes
+Revisit examples, using URLs from website as file names.

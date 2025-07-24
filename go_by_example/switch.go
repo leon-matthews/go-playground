@@ -55,7 +55,7 @@ func GuessType(i interface{}) {
 	// Switch on type, not value
 	switch t := i.(type) {
 	case bool:
-		fmt.Println("That's a boolean you gotthere")
+		fmt.Println("That's a boolean you got there")
 	case int:
 		fmt.Println("You gave me an integer. Thanks, I guess.")
 
