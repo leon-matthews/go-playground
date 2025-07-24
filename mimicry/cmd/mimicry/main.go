@@ -1,14 +1,13 @@
 package main
 
 import (
-	"path/filepath"
 	"fmt"
 	"log"
-
-
-	"github.com/spf13/pflag"
+	"path/filepath"
 
 	"mimicry/internal/files"
+
+	"github.com/spf13/pflag"
 )
 
 var root string
@@ -20,6 +19,7 @@ func main() {
 		log.Fatal("usage: mimicry FOLDER")
 	}
 	root, err := filepath.Abs(args[0])
+	fmt.Printf("[%T]%+[1]v\n", root)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -32,6 +32,5 @@ func main() {
 		fmt.Println()
 		count++
 	}
-
 	fmt.Println("Finished", count)
 }
