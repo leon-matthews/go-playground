@@ -1,8 +1,8 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
-	"io"
 	"log"
 	"log/slog"
 	"os/exec"
@@ -27,18 +27,38 @@ func main() {
 		slogExecError(err)
 	}
 
-	// Pipe data into stdin
-	fmt.Println("> grep hello")
-	grepCmd := exec.Command("grep", "hello")
-	grepOut, _ := grepCmd.StdoutPipe()
-	grepIn, _ := grepCmd.StdinPipe()
+	// Streaming example
+	PipeToGrep()
+}
 
-	grepCmd.Start()
-	grepIn.Write([]byte("starting grep\nhello grep\ngoodbye grep"))
-	grepIn.Close()
-	b, _ := io.ReadAll(grepOut)
-	fmt.Println(string(b))
-	grepCmd.Wait()
+// PipeToGrep interacts with running process via its stdin/stdout streams
+func PipeToGrep() {
+	cmd := exec.Command("grep", "--line-buffered", "hello")
+
+	stdout, _ := cmd.StdoutPipe()
+	stdin, _ := cmd.StdinPipe()
+
+	scanner := bufio.NewScanner(stdout)
+
+	cmd.Start()
+	fmt.Fprintln(stdin, "starting grep")
+	fmt.Fprintln(stdin, "hello grep")
+	fmt.Fprintln(stdin, "goodbye grep")
+
+	scanner.Scan()
+	fmt.Println(scanner.Text())
+
+	fmt.Fprintln(stdin, "second goodbye?")
+	fmt.Fprintln(stdin, "second hello!")
+
+	// Reading blocks forever if output is empty!
+	scanner.Scan()
+	fmt.Println(scanner.Text())
+
+	// Without this line, cmd.Wait() will wait forever
+	stdin.Close()
+
+	cmd.Wait()
 }
 
 // UnixTimestamp runs the external date command to get the current timestamp
