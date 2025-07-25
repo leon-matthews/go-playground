@@ -8,3 +8,4 @@ website. No copy-and-paste cheating!
 ## Next
 
 Revisit examples, using URLs from website as file names.
+https://gobyexample.com/struct-embedding

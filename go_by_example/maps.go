@@ -23,12 +23,15 @@ func CreateMaps() {
 	// Declare `nil` map
 	var m2 map[string]int
 	fmt.Println(m2 == nil)
+	fmt.Println(m2["two"])	// Fetching from nil map returns zero-value
+	// m2["two"] = 2			// But assigning to it will cause a panic
 
-	// Non-nill empty
+	// Non-nill empty, using literal
 	m3 := map[string]int{}
 	fmt.Println(m3 == nil)
+	m3["two"] = 2
 
-	// Declare and initialise
+	// Declare and initialise using literal
 	m4 := map[string]int{"two": 2, "three": 3}
 	fmt.Println(m4)
 }

@@ -2,13 +2,13 @@ package main
 
 import "fmt"
 
-type Person struct {
+type person struct {
 	name string
 	age  uint
 }
 
 func newPerson(name string) *Person {
-	p := Person{name: name}
+	p := person{name: name}
 	p.age = 42
 
 	// It looks so VERY wrong, but you *are* allowed to return a pointer

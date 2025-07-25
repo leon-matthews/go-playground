@@ -27,9 +27,9 @@ func main() {
     }
     fmt.Println()
 
-    // utf8.DecodeRuneInString() returns the rune and its width in bytes
-    fmt.Println("utf8.DecodeRuneInString()")
-    fmt.Println(utf8.DecodeRuneInString(s))
+    // utf8.DecodeRuneInString() returns the frist rune in the string and its width in bytes
+    r, size := utf8.DecodeRuneInString(s)
+    fmt.Printf("utf8.DecodeRuneInString(%q): %v (size %d)\n", s, r, size)
     for i, w := 0, 0; i < len(s); i += w {
 		runeValue, width := utf8.DecodeRuneInString(s[i:])
 		fmt.Printf("%#U starts at %d\n", runeValue, i)

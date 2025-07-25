@@ -62,9 +62,11 @@ func intSeq(start int) func() int {
 
 func closures() {
 	nextInt := intSeq(4)
-	fmt.Println(nextInt())
-	fmt.Println(nextInt())
-	fmt.Println(nextInt())
+	fmt.Print("Closure: ")
+	fmt.Print(nextInt())
+	fmt.Print(nextInt())
+	fmt.Print(nextInt())
+	fmt.Println()
 }
 
 func factorial(n uint) uint {
@@ -75,7 +77,7 @@ func factorial(n uint) uint {
 }
 
 func recursion() {
-	fmt.Println(factorial(50))
+	fmt.Println("factorial(50):", factorial(50))
 
 	var fib func(n int) int
 
@@ -86,5 +88,6 @@ func recursion() {
 		return fib(n-1) + fib(n-2)
 	}
 
-	fmt.Println(fib(40))
+
+	fmt.Println("fibonacci(40)", fib(40))
 }
