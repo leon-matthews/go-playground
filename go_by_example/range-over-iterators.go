@@ -9,19 +9,19 @@ import (
 )
 
 func main() {
-    // Range over List.All()
+	// Range over List.All()
 	list := List[int]{}
 	list.Push(21)
 	list.Push(42)
 	list.Push(63)
 	list.Push(84)
 	for e := range list.All() {
-        fmt.Println(e)
-    }
+		fmt.Println(e)
+	}
 
-    // Build slice from iterator
-    s := slices.Collect(list.All())
-    fmt.Println(s)
+	// Build slice from iterator
+	s := slices.Collect(list.All())
+	fmt.Println(s)
 
 	// Fibonacci iterator
 	for n := range iFibonacci() {
@@ -35,7 +35,7 @@ func main() {
 
 // Fibonacci iterator
 func iFibonacci() iter.Seq[uint64] {
-    return func(yield func(uint64) bool) {
+	return func(yield func(uint64) bool) {
 		var a, b uint64
 
 		a, b = 1, 1

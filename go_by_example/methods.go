@@ -16,7 +16,6 @@ func (r *rect) perimeter() int {
 	return (2 * r.width) + (2 * r.height)
 }
 
-
 func main() {
 	r := rect{20, 30}
 	fmt.Println(r, "has area", r.area(), "and perimeter", r.perimeter())

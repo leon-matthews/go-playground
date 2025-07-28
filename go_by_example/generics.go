@@ -3,7 +3,7 @@ package main
 import "fmt"
 
 func main() {
-    genericLinkedList()
+	genericLinkedList()
 }
 
 func genericLinkedList() {
@@ -22,7 +22,7 @@ type List[T any] struct {
 
 type element[T any] struct {
 	next *element[T]
-	val T
+	val  T
 }
 
 // AllElements builds and returns a new slice of list elements

@@ -23,7 +23,7 @@ func CreateMaps() {
 	// Declare `nil` map
 	var m2 map[string]int
 	fmt.Println(m2 == nil)
-	fmt.Println(m2["two"])	// Fetching from nil map returns zero-value
+	fmt.Println(m2["two"]) // Fetching from nil map returns zero-value
 	// m2["two"] = 2			// But assigning to it will cause a panic
 
 	// Non-nill empty, using literal

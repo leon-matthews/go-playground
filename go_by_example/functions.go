@@ -54,7 +54,7 @@ func sums(nums ...int) int {
 // Function returns a closure that itself returns an int
 func intSeq(start int) func() int {
 	i := start
-	return func() int {					// Anonymous function
+	return func() int { // Anonymous function
 		i++
 		return i
 	}
@@ -87,7 +87,6 @@ func recursion() {
 		}
 		return fib(n-1) + fib(n-2)
 	}
-
 
 	fmt.Println("fibonacci(40)", fib(40))
 }

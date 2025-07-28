@@ -23,18 +23,18 @@ func main() {
 
 	// Range iterates over runes, note effect combining characters
 	for idx, runeValue := range s {
-        fmt.Printf("%#U starts at %d\n", runeValue, idx)
-    }
-    fmt.Println()
+		fmt.Printf("%#U starts at %d\n", runeValue, idx)
+	}
+	fmt.Println()
 
-    // utf8.DecodeRuneInString() returns the frist rune in the string and its width in bytes
-    r, size := utf8.DecodeRuneInString(s)
-    fmt.Printf("utf8.DecodeRuneInString(%q): %v (size %d)\n", s, r, size)
-    for i, w := 0, 0; i < len(s); i += w {
+	// utf8.DecodeRuneInString() returns the frist rune in the string and its width in bytes
+	r, size := utf8.DecodeRuneInString(s)
+	fmt.Printf("utf8.DecodeRuneInString(%q): %v (size %d)\n", s, r, size)
+	for i, w := 0, 0; i < len(s); i += w {
 		runeValue, width := utf8.DecodeRuneInString(s[i:])
 		fmt.Printf("%#U starts at %d\n", runeValue, i)
 		examineRune(runeValue)
-        w = width
+		w = width
 	}
 }
 

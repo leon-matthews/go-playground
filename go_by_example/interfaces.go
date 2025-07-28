@@ -56,5 +56,5 @@ func detectCircle(g geometry) {
 }
 
 func measure(g geometry) {
-    fmt.Printf("%T%[1]v area=%.1f perimeter=%.1f\n", g, g.area(), g.perimeter())
+	fmt.Printf("%T%[1]v area=%.1f perimeter=%.1f\n", g, g.area(), g.perimeter())
 }

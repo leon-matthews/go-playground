@@ -43,8 +43,8 @@ func bursty() {
 
 	// Fill up channel to simulate quiescent server
 	for range 3 {
-        burstyLimiter <- time.Now()
-    }
+		burstyLimiter <- time.Now()
+	}
 
 	// Add a new value to limiter every 200 milliseconds
 	go func() {
@@ -55,13 +55,13 @@ func bursty() {
 
 	// Simulate 5 more incoming requests
 	burstyRequests := make(chan int, 6)
-    for i := range 6 {
-        burstyRequests <- i
-    }
-    close(burstyRequests)
+	for i := range 6 {
+		burstyRequests <- i
+	}
+	close(burstyRequests)
 
-    for req := range burstyRequests {
-        <-burstyLimiter
-        fmt.Println("request", req, time.Now())
-    }
+	for req := range burstyRequests {
+		<-burstyLimiter
+		fmt.Println("request", req, time.Now())
+	}
 }

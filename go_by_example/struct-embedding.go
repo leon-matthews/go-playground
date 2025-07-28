@@ -30,7 +30,7 @@ func main() {
 	// Long 'key: value' syntax
 	c2 := container{
 		base: base{num: 42},
-		str: "Hello",
+		str:  "Hello",
 	}
 
 	// Access embedded fields directly...
