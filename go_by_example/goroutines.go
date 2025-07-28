@@ -30,7 +30,7 @@ func waitSleep() {
 	fmt.Println("finished")
 }
 
-// Use [sync.WaitGroup] to ensure all goroutines have finished
+// Use [sync.WaitGroup] to ensure that all goroutines have finished
 func waitWaitGroup() {
 	var wg sync.WaitGroup
 

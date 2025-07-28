@@ -8,16 +8,15 @@ import (
 func main() {
 	timerExample()
 	waitForWholeSecond()
-	tickerExample()
 }
 
 // Set timer which expires when the current time has a whole number of seconds
 func waitForWholeSecond() {
 	now := time.Now()
-	ns := int64(1e9 - now.Nanosecond())
-	timer := time.NewTimer(time.Duration(ns))
+	whole := time.Duration(int(time.Second) - now.Nanosecond())
+	timer := time.NewTimer(whole)
 	fired := <-timer.C
-	fmt.Printf("Waited for %dns and fired at %v\n", ns, fired)
+	fmt.Printf("Waited for %v and fired at %v\n", whole, fired)
 }
 
 // When the Timer expires, the current time will be sent on channel 'C'
@@ -41,26 +40,4 @@ func timerExample() {
 	}
 
 	fmt.Println("Finished")
-}
-
-// Will send the current time on the channel after each tick
-func tickerExample() {
-	ticker := time.NewTicker(100 * time.Millisecond)
-	done := make(chan bool)
-
-	go func() {
-		for {
-			select {
-			case <-done:
-				return
-			case t := <-ticker.C:
-				fmt.Println("Tick at:", t)
-			}
-		}
-	}()
-
-	time.Sleep(1600 * time.Millisecond)
-	ticker.Stop()
-	done <- true
-	fmt.Println("ticker stopped")
 }

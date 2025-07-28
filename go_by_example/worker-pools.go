@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// Not-very satisfiying worker pool, where we have to:
 // Submit ALL jobs ahead of time using a large buffered channel
 // Collect finished work into another large buffered channel
 func main() {

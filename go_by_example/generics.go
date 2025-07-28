@@ -3,6 +3,10 @@ package main
 import "fmt"
 
 func main() {
+    genericLinkedList()
+}
+
+func genericLinkedList() {
 	l := List[int]{}
 	l.Push(21)
 	l.Push(42)
@@ -21,6 +25,7 @@ type element[T any] struct {
 	val T
 }
 
+// AllElements builds and returns a new slice of list elements
 func (l *List[T]) AllElements() []T {
 	var elems []T
 	for e := l.head; e != nil; e = e.next {
@@ -29,6 +34,7 @@ func (l *List[T]) AllElements() []T {
 	return elems
 }
 
+// Push adds a new element to the end of the list
 func (l *List[T]) Push(v T) {
 	if l.tail == nil {
 		l.head = &element[T]{val: v}

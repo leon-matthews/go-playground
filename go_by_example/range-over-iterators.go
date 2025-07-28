@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"iter"
 	"math"
+	"slices"
 )
 
 func main() {
-	// Linked list example
+    // Range over List.All()
 	list := List[int]{}
 	list.Push(21)
 	list.Push(42)
@@ -17,6 +18,10 @@ func main() {
 	for e := range list.All() {
         fmt.Println(e)
     }
+
+    // Build slice from iterator
+    s := slices.Collect(list.All())
+    fmt.Println(s)
 
 	// Fibonacci iterator
 	for n := range iFibonacci() {

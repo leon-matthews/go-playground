@@ -43,7 +43,7 @@ func main() {
 //	}
 //
 // The function [errors.New()] builds an error of type [errors.errorString], a
-// structure containing just a single string value.
+// struct containing just a single string value.
 func f(num int) (int, error) {
 	if num == 42 {
 		return -1, errors.New("can't work with 42")
@@ -54,9 +54,8 @@ func f(num int) (int, error) {
 
 // A sentinel error is a predeclared variable that is used to
 // signify a specific error condition.
-// [fmt.Errorf] Builds instance of [errors.errorString]
-var ErrOutOfTea = fmt.Errorf("no more tea available")
-var ErrPower = fmt.Errorf("can't boil water")
+var ErrOutOfTea = errors.New("no more tea available")
+var ErrPower = errors.New("can't boil water")
 
 func makeTea(arg int) error {
 	if arg == 2 {
