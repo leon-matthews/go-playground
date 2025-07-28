@@ -44,7 +44,7 @@ func (c *counter) decrement() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	current := c.count
-	time.Sleep(time.Duration(rand.N(10)) * time.Millisecond)
+	time.Sleep(rand.N(10 * time.Millisecond))
 	c.count = current - 1
 }
 
@@ -53,20 +53,20 @@ func (c *counter) increment() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	current := c.count
-	time.Sleep(time.Duration(rand.N(10)) * time.Millisecond)
+	time.Sleep(rand.N(10 * time.Millisecond))
 	c.count = current + 1
 }
 
 // decrement2 removes use of Mutex
 func (c *counter) decrement2() {
 	current := c.count
-	time.Sleep(time.Duration(rand.N(10)) * time.Millisecond)
+	time.Sleep(rand.N(10 * time.Millisecond))
 	c.count = current - 1
 }
 
 // increment2 removes use of Mutex
 func (c *counter) increment2() {
 	current := c.count
-	time.Sleep(time.Duration(rand.N(10)) * time.Millisecond)
+	time.Sleep(rand.N(10 * time.Millisecond))
 	c.count = current + 1
 }
