@@ -30,6 +30,6 @@ func main() {
 
 func worker(id int) {
 	fmt.Printf("Worker %d starting...\n", id)
-	time.Sleep(time.Duration(rand.N(1000)) * time.Millisecond)
+	time.Sleep(rand.N(1000 * time.Millisecond))
 	fmt.Printf("...worker %d done\n", id)
 }
