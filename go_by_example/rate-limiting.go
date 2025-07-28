@@ -7,7 +7,17 @@ import (
 )
 
 func main() {
-	// Create buffered requests channel and fill it
+	fmt.Println("Blocking")
+	blocking()
+	fmt.Println()
+
+	fmt.Println("Bursty (note timestamps)")
+	bursty()
+}
+
+// Limits rate by blocking on reads from ticker
+func blocking() {
+	// Simulate queue of incoming requests
 	requests := make(chan int, 5)
 	for i := 1; i <= 5; i++ {
 		requests <- i
@@ -24,19 +34,34 @@ func main() {
 		now := <-limiter
 		fmt.Println(req, now)
 	}
+}
 
+func bursty() {
 	// New limiter allows bursts of up to three events
+	// Every requests takes a value out of the limiter channel
 	burstyLimiter := make(chan time.Time, 3)
 
+	// Fill up channel to simulate quiescent server
+	for range 3 {
+        burstyLimiter <- time.Now()
+    }
+
+	// Add a new value to limiter every 200 milliseconds
 	go func() {
 		for t := range time.Tick(200 * time.Millisecond) {
 			burstyLimiter <- t
-			fmt.Println("burstyLimiter", <-burstyLimiter)
 		}
 	}()
 
-	burstyRequests := make(chan int, 5)
-	for i := 1; i <= 5; i++ {
-		burstyRequests <- i
-	}
+	// Simulate 5 more incoming requests
+	burstyRequests := make(chan int, 6)
+    for i := range 6 {
+        burstyRequests <- i
+    }
+    close(burstyRequests)
+
+    for req := range burstyRequests {
+        <-burstyLimiter
+        fmt.Println("request", req, time.Now())
+    }
 }
