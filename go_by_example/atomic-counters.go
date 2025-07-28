@@ -10,13 +10,14 @@ func main() {
 	// Our counter
 	var numOps atomic.Uint64
 
-	// 50 goroutines that each increment the counter exactly 1000 times.
+	// Creat 50 goroutines that each...
 	var wg sync.WaitGroup
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		wg.Add(1)
 
 		go func() {
-			for c := 0; c < 1_000; c++ {
+			// ...increment the counter 1,000 times
+			for range 1_000 {
 				numOps.Add(1)
 			}
 			wg.Done()
@@ -25,5 +26,5 @@ func main() {
 
 	fmt.Println("Gotta wait. Only", numOps.Load(), "operations so far")
 	wg.Wait()
-	fmt.Println("Finished! Completed", numOps.Load(), "operations")
+	fmt.Println("Finished! Completed", numOps.Load(), "add operations")
 }
