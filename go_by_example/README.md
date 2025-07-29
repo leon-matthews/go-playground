@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Revisit examples, using URLs from website as file names.
-https://gobyexample.com/rate-limiting
+Experiment with the regexp replace functions, esp. how expand() works
+https://gobyexample.com/regular-expressions
