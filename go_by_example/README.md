@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Experiment with the regexp replace functions, esp. how expand() works
-https://gobyexample.com/regular-expressions
+Carry on from Time
+https://gobyexample.com/time
