@@ -27,7 +27,7 @@ func adHocConfinement() {
 	// Data consumer
 	consumer := make(chan int)
 	go loopData(consumer)
-	for num := range(consumer) {
+	for num := range consumer {
 		fmt.Println(num)
 	}
 }
@@ -42,16 +42,17 @@ func lexicalConfinement() {
 func loopData() <-chan int {
 	data := make([]int, 5)
 	results := make(chan int)
-	go func () {
+	go func() {
 		defer close(results)
 		defer fmt.Println("Sending goroutine finished")
 		for _, n := range data {
-			results <-n
+			results <- n
 		}
 	}()
 	return results
 }
 
+// consumer cannot modify data, enforced by compiler
 func consumer(results <-chan int) {
 	for r := range results {
 		fmt.Println(r)
