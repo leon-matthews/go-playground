@@ -1,17 +1,17 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"os"
+	"time"
 )
 
 func main() {
-	scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		fmt.Println(scanner.Text()) // Println will add back the final '\n'
-	}
-	if err := scanner.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+	var c1, c2 <-chan int // Nil channels always block on read
+	start := time.Now()
+	select {
+	case <-c1:
+	case <-c2:
+	default:
+		fmt.Println("default selected after", time.Since(start))
 	}
 }
