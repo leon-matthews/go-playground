@@ -10,7 +10,7 @@ func main() {
 	// Set and get
 	os.Setenv("STAGING", "1")
 	fmt.Println("STAGING:", os.Getenv("STAGING"))
-	fmt.Println("PRODUCTION:", os.Getenv("PRODUCTION"))	// empty string
+	fmt.Println("PRODUCTION:", os.Getenv("PRODUCTION")) // empty string
 
 	// Print just the keys from current environment
 	fmt.Println()
