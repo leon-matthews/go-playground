@@ -19,5 +19,5 @@ func main() {
 		fmt.Println("Deleted:", t.Name())
 	}()
 
-	// Temporary folder example in `directories.go`
+	// See also temporary folder example in `directories.go`
 }

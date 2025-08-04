@@ -7,5 +7,5 @@ website. No copy-and-paste cheating!
 
 ## Next
 
-Carry on from file paths
-https://gobyexample.com/file-paths
+Carry on from logging:
+https://gobyexample.com/logging

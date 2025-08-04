@@ -8,16 +8,16 @@ import (
 )
 
 func check(e error) {
-    if e != nil {
-        panic(e)
-    }
+	if e != nil {
+		panic(e)
+	}
 }
 
 func main() {
 	// Create a folder in $TMP, then schedule its deletion
 	dir, err := os.MkdirTemp("", "go-by-example-directories-*")
 	check(err)
-	defer os.RemoveAll(dir)	// rm -fr !!!
+	defer os.RemoveAll(dir) // rm -fr !!!
 
 	// Utility closures
 	j := func(relpath string) string {
@@ -36,29 +36,29 @@ func main() {
 	err = os.MkdirAll(j("subdir/parent/child"), 0777)
 	check(err)
 	createEmptyFile("subdir/parent/file2.pdf")
-    createEmptyFile("subdir/parent/file3.json")
-    createEmptyFile("subdir/parent/child/file4.py")
+	createEmptyFile("subdir/parent/file3.json")
+	createEmptyFile("subdir/parent/child/file4.py")
 
-    // os.ReadDir() returns a slice of os.DirEntry objects
-    ls, err := os.ReadDir(dir)
-    check(err)
+	// os.ReadDir() returns a slice of os.DirEntry objects
+	ls, err := os.ReadDir(dir)
+	check(err)
 	for _, entry := range ls {
-        fmt.Println(" ", entry.Name(), entry.IsDir())
-    }
+		fmt.Println(" ", entry.Name(), entry.IsDir())
+	}
 
-    // os.Chdir()
-    err = os.Chdir(j("subdir/parent"))
-    check(err)
-    ls, err = os.ReadDir(".")
-    check(err)
-    for _, entry := range ls {
-        fmt.Println(" ", entry.Name(), entry.IsDir())
-    }
+	// os.Chdir()
+	err = os.Chdir(j("subdir/parent"))
+	check(err)
+	ls, err = os.ReadDir(".")
+	check(err)
+	for _, entry := range ls {
+		fmt.Println(" ", entry.Name(), entry.IsDir())
+	}
 
-    // filepath.WalkDir() visits file system tree recursively
-    fmt.Println("Visiting", dir)
-    err = filepath.WalkDir(dir, visit)
-    check(err)
+	// filepath.WalkDir() visits file system tree recursively
+	fmt.Println("Visiting", dir)
+	err = filepath.WalkDir(dir, visit)
+	check(err)
 }
 
 // visit is called for every file and folder by [filepath.Walkdir]

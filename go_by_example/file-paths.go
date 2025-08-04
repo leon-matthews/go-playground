@@ -45,16 +45,16 @@ func main() {
 	// Rel()
 	// Find a relative path between base (first argument) and target (second)
 	rel, err := filepath.Rel("a/b", "a/b/t/file")
-    if err != nil {
-        panic(err)
-    }
-    fmt.Println(rel)
-    // t/file
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(rel)
+	// t/file
 
-    rel, err = filepath.Rel("a/b", "a/c/t/file")
-    if err != nil {
-        panic(err)
-    }
-    fmt.Println(rel)
-    // ../c/t/file
+	rel, err = filepath.Rel("a/b", "a/c/t/file")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(rel)
+	// ../c/t/file
 }
