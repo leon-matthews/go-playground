@@ -8,7 +8,7 @@ import (
 
 // Mutexes should not be copied, so be sure to pass by pointer
 type Counter struct {
-	mu       sync.Mutex
+	mu     sync.Mutex
 	counts map[string]int
 }
 

@@ -9,10 +9,13 @@ import (
 func main() {
 	s := "postgres://user:pass@host.com:5432/path?k=v#f"
 	fmt.Println(s)
+
+	// Parse!
 	u, err := url.Parse(s)
 	if err != nil {
 		panic(err)
 	}
+
 	// Scheme
 	fmt.Println(u.Scheme)
 

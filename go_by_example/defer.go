@@ -21,14 +21,14 @@ func createFile(path string) *os.File {
 }
 
 func closeFile(f *os.File) {
-    fmt.Println("closing")
-    err := f.Close()
-    if err != nil {
-        panic(err)
-    }
+	fmt.Println("closing")
+	err := f.Close()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func writeFile(f *os.File) {
 	fmt.Println("writing")
-    fmt.Fprintln(f, "data")
+	fmt.Fprintln(f, "data")
 }
