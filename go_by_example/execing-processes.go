@@ -15,7 +15,7 @@ func main() {
 	}
 
 	// First arg is command's name
-	args := []string{"ls", "-a", "-l", "-h"}
+	args := []string{"ls", "-a", "-s", "-h"}
 	env := os.Environ()
 
 	err = syscall.Exec(path, args, env)

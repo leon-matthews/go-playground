@@ -24,7 +24,7 @@ func main() {
 // hello is run once per incoming request
 func hello(w http.ResponseWriter, req *http.Request) {
 	fmt.Println("server: hello handler started")
-    defer fmt.Println("server: hello handler ended")
+	defer fmt.Println("server: hello handler ended")
 
 	// Every request has a context created for it
 	ctx := req.Context()
