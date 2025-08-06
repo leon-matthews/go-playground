@@ -1,4 +1,4 @@
-// Generator with goroutines.
+// Reader and worker.
 package main
 
 import (
@@ -23,29 +23,42 @@ type pair struct {
 	count int
 }
 
-// countDigitsInWords counts the number of digits in words,
-// fetching the next word with next().
+// countDigitsInWords counts the number of digits in words
+// ┌───────────────┐               ┌───────────────┐
+// │ sends words   │               │ counts digits │               ┌────────────────┐
+// │ to be counted │ → (pending) → │ in words      │ → (counted) → │ fills stats    │
+// │               │               │               │               └────────────────┘
+// └───────────────┘               └───────────────┘
+//     reader          channel         worker           channel        collector
 func countDigitsInWords(next func() string) counter {
+	pending := make(chan string)
 	counted := make(chan pair)
 
+	// Fetch words from the generator and send them to the pending channel.
 	go func() {
 		for {
 			word := next()
-			count := countDigits(word)
-			counted <- pair{word, count}
 			if word == "" {
+				close(pending)
 				break
 			}
+			pending <- word
 		}
+	}()
+
+	// counts digits in words
+	go func() {
+		for word := range pending {
+			count := countDigits(word)
+			p := pair{word, count}
+			counted <- p
+		}
+		close(counted)
 	}()
 
 	// Read values from the counted channel and fill stats.
 	stats := counter{}
-	for {
-		p := <-counted
-		if p.word == "" {
-			break
-		}
+	for p := range counted {
 		stats[p.word] = p.count
 	}
 	return stats
