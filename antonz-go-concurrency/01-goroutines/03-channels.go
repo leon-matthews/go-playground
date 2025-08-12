@@ -4,8 +4,6 @@ import (
 	"fmt"
 )
 
-type counter map[string]int
-
 func main() {
 	messages := make(chan string)
 
