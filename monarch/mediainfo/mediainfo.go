@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
+	log "log/slog"
 	"os/exec"
 	"strings"
 	"time"
@@ -18,7 +18,7 @@ func Version() (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, Binary, "--version")
-	slog.Debug(cmd.String())
+	log.Debug(cmd.String())
 	out, err := cmd.Output()
 	if err != nil {
 		if errors.Is(err, exec.ErrNotFound) {

@@ -1,15 +1,20 @@
 package main
 
 import (
-	"log"
+	"fmt"
+	"log/slog"
+	"os"
 
 	"go-playground/monarch/mediainfo"
 )
 
 func main() {
+	slog.SetLogLoggerLevel(slog.LevelDebug)
+
 	version, err := mediainfo.Version()
 	if err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
-	log.Printf("Using %s %s", mediainfo.Binary, version)
+	slog.Info(fmt.Sprintf("Using %s %s", mediainfo.Binary, version))
 }
