@@ -5,9 +5,9 @@ import (
 	"log"
 	"path/filepath"
 
-	"mimicry/internal/files"
-
 	"github.com/spf13/pflag"
+
+	"mimicry/files"
 )
 
 var root string
