@@ -11,7 +11,7 @@ func main() {
 	// }
 
 	// This works as expected
-	err := run(17)           // concrete type *myError
+	err := run(17) // concrete type *myError
 	if err == nil {
 		fmt.Println("err is nil")
 	} else {
