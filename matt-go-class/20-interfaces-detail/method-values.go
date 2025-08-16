@@ -21,8 +21,8 @@ func main() {
 
 	// Changing p doesn't change closed-over value
 	p = Point{2, 2}
-	fmt.Println(distanceP(q))	// 5.0
-	fmt.Println(p.Distance(q))	// 4.4721
+	fmt.Println(distanceP(q))  // 5.0
+	fmt.Println(p.Distance(q)) // 4.4721
 
 	// BUT not for a pointer receiver, as then the closed-over value is the
 	// pointer to the actual value.
