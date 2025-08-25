@@ -1,17 +1,22 @@
 package main
 
 import (
-	"fmt"
-	"time"
+    "fmt"
+    "time"
 )
 
 func main() {
-	var c1, c2 <-chan int // Nil channels always block on read
-	start := time.Now()
-	select {
-	case <-c1:
-	case <-c2:
-	default:
-		fmt.Println("default selected after", time.Since(start))
-	}
+    go spinner()
+    time.Sleep(2 * time.Second)
+    fmt.Println("\rFinished!")
+}
+
+func spinner() {
+    var parts = "/-\\|"
+    for {
+        for _, p := range parts {
+            fmt.Printf("\r%c", p)
+            time.Sleep(100 * time.Millisecond)
+        }
+    }
 }
