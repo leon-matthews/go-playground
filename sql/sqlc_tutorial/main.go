@@ -8,7 +8,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"sqlc_tutorial/app/tutorial"
+	"sqlc_tutorial/app/authors"
 )
 
 //go:embed schema.sql
@@ -32,17 +32,17 @@ func run() error {
 		return err
 	}
 
-	queries := tutorial.New(db)
+	queries := authors.New(db)
 
 	// List authors
-	authors, err := queries.ListAuthors(ctx)
+	rows, err := queries.ListAuthors(ctx)
 	if err != nil {
 		return err
 	}
-	log.Println(authors)
+	log.Println(rows)
 
 	// Create an author
-	insertedAuthor, err := queries.CreateAuthor(ctx, tutorial.CreateAuthorParams{
+	insertedAuthor, err := queries.CreateAuthor(ctx, authors.CreateAuthorParams{
 		Name: "Brian Kernighan",
 		Bio:  sql.NullString{String: "Co-author of The C Programming Language and The Go Programming Language", Valid: true},
 	})
