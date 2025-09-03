@@ -1,3 +1,4 @@
+// List video files having specified parameters
 package main
 
 import (
@@ -10,7 +11,7 @@ import (
 
 func main() {
 	// Logger
-	slog.SetLogLoggerLevel(slog.LevelInfo)
+	slog.SetLogLoggerLevel(slog.LevelDebug)
 
 	// Check tool installation
 	version, err := mediainfo.Version()
@@ -22,12 +23,11 @@ func main() {
 
 	// Cute cow!
 	name := "mediainfo/testdata/cow.mp4"
-	tracks, err := mediainfo.Info(name)
-    if err != nil {
-        slog.Error(err.Error())
-        os.Exit(1)
-    }
-    for _, track := range tracks {
-        fmt.Printf("[%T]%+[1]v\n", track)
-    }
+	info, err := mediainfo.Info(name)
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+
+	fmt.Printf("[%T]%+[1]v\n", info)
 }

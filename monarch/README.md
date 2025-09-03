@@ -12,7 +12,7 @@ CLI helper for file conversion tasks
       "creatingLibrary": {
         "name": "MediaInfoLib",
         "version": "24.12",
-        "url": "https://mediaarea.net/MediaInfo"
+        "url": "https://mediaarea.net/mediaInfo"
       },
       "media": {
         "@ref": "testdata/cow.mp4",
