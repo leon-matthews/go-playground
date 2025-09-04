@@ -1,6 +1,7 @@
 package mediainfo
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
@@ -72,5 +73,64 @@ func TestExtractVersion(t *testing.T) {
 		have := []byte("Banana Splits")
 		_, err := extractVersion(have)
 		assert.ErrorContains(t, err, "version not found: \"Banana Splits\"")
+	})
+}
+
+func TestJsonInt(t *testing.T) {
+	t.Run("marshal", func(t *testing.T) {
+		i := jsonInt(10)
+		b, err := json.Marshal(i)
+		require.NoError(t, err)
+		assert.Equal(t, []byte(`10`), b)
+	})
+
+	t.Run("unmarshal", func(t *testing.T) {
+		var i jsonInt
+		err := json.Unmarshal([]byte(`10`), &i)
+		require.NoError(t, err)
+		assert.Equal(t, jsonInt(10), i)
+	})
+
+	t.Run("unmarshal quoted", func(t *testing.T) {
+		var i jsonInt
+		err := json.Unmarshal([]byte(`"10"`), &i)
+		require.NoError(t, err)
+		assert.Equal(t, jsonInt(10), i)
+	})
+
+	t.Run("unmarshal error", func(t *testing.T) {
+		var i jsonInt
+		err := json.Unmarshal([]byte(`""`), &i)
+		assert.ErrorContains(t, err, `strconv.Atoi: parsing "": invalid syntax`)
+	})
+}
+
+func TestJsonFloat(t *testing.T) {
+	t.Run("marshal", func(t *testing.T) {
+		f := jsonFloat(1.2)
+		b, err := json.Marshal(f)
+		require.NoError(t, err)
+		fmt.Printf("[%T]%+[1]v\n", string(b))
+		assert.Equal(t, []byte(`1.2`), b)
+	})
+
+	t.Run("unmarshal", func(t *testing.T) {
+		var f jsonFloat
+		err := json.Unmarshal([]byte(`1.2`), &f)
+		require.NoError(t, err)
+		assert.Equal(t, jsonFloat(1.2), f)
+	})
+
+	t.Run("unmarshal quoted", func(t *testing.T) {
+		var f jsonFloat
+		err := json.Unmarshal([]byte(`"1.2"`), &f)
+		require.NoError(t, err)
+		assert.Equal(t, jsonFloat(1.2), f)
+	})
+
+	t.Run("unmarshal error", func(t *testing.T) {
+		var f jsonFloat
+		err := json.Unmarshal([]byte(`""`), &f)
+		assert.ErrorContains(t, err, `strconv.ParseFloat: parsing "": invalid syntax`)
 	})
 }

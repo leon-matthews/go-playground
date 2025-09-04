@@ -86,7 +86,7 @@ type output struct {
 type jsonFloat float64
 
 func (f jsonFloat) MarshalJSON() ([]byte, error) {
-	return json.Marshal(int(f))
+	return json.Marshal(float64(f))
 }
 
 func (f *jsonFloat) UnmarshalJSON(raw []byte) error {
@@ -140,6 +140,7 @@ func extractInfo(name string, raw []byte) (*Media, error) {
 		return nil, fmt.Errorf("failed to unmarshal JSON: %w", err)
 	}
 
+	// Start output struct
 	info := Media{
 		Name: name,
 	}
