@@ -1,22 +1,22 @@
 package main
 
 import (
-    "fmt"
-    "time"
+	"fmt"
+	"time"
 )
 
 func main() {
-    go spinner()
-    time.Sleep(2 * time.Second)
-    fmt.Println("\rFinished!")
+	go spinner()
+	time.Sleep(2 * time.Second)
+	fmt.Println("\rFinished!")
 }
 
 func spinner() {
-    var parts = "/-\\|"
-    for {
-        for _, p := range parts {
-            fmt.Printf("\r%c", p)
-            time.Sleep(100 * time.Millisecond)
-        }
-    }
+	parts := "/-\\|"
+	for {
+		for _, p := range parts {
+			fmt.Printf("\r%c", p)
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
 }
