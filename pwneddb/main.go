@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"log/slog"
-
-	"main/pwned"
+	"pwneddb/etag"
+	"pwneddb/pwned"
 )
 
 func main() {
@@ -20,6 +20,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// Save ETag
+	etagger := etag.NewETagStore()
+	etagger[prefix] = r.Etag
+	etagger.Save("etags.txt")
 
 	// Refetching with eTag should return no body
 	_, err = pwned.GetHashes(ctx, url, r.Etag)
