@@ -2,21 +2,21 @@ package main
 
 import (
 	"fmt"
-	"time"
+	"math/rand/v2"
 )
 
 func main() {
-	go spinner()
-	time.Sleep(2 * time.Second)
-	fmt.Println("\rFinished!")
-}
+	var seed = [32]byte{0x01}
+	source := rand.NewChaCha8(seed)
 
-func spinner() {
-	parts := "/-\\|"
-	for {
-		for _, p := range parts {
-			fmt.Printf("\r%c", p)
-			time.Sleep(100 * time.Millisecond)
-		}
-	}
+	// Create 1KiB of random bytes
+	b := make([]byte, 1_024)
+	source.Read(b)
+	fmt.Println(b)
+
+	// Create the exact same bytes
+	source.Seed(seed)
+	b2 := make([]byte, 1_024)
+	source.Read(b2)
+	fmt.Println(b2)
 }
