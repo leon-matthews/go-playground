@@ -2,21 +2,16 @@ package main
 
 import (
 	"fmt"
-	"time"
+	"sync"
 )
 
 func main() {
-	go spinner()
-	time.Sleep(2 * time.Second)
-	fmt.Println("\rFinished!")
-}
-
-func spinner() {
-	parts := "/-\\|"
-	for {
-		for _, p := range parts {
-			fmt.Printf("\r%c", p)
-			time.Sleep(100 * time.Millisecond)
-		}
-	}
+    // Data race! Run with:
+    // go run --race temp.go
+    var total int
+    var wg sync.WaitGroup
+    wg.Go(func() { total++ })
+    wg.Go(func() { total++ })
+    wg.Wait()
+    fmt.Println("total:", total)
 }
