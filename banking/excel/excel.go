@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const dateFormat = "1 Jan 2006"
+
 func NewTransaction(row []string) (*Transaction, error) {
 	amount, err := parseAmount(row[4])
 	date, err := parseDate(row[0])
@@ -34,7 +36,7 @@ type Transaction struct {
 }
 
 func (t *Transaction) String() string {
-	return fmt.Sprintf("Date: %s\nProcessed: %s\nCard: %s\nDetails: %q\nAmount: %.2f\n", t.Date, t.Processed, t.Card, t.Details, t.Amount)
+	return fmt.Sprintf("Date: %s\nProcessed: %s\nCard: %s\nDetails: %q\nAmount: %.2f\n", t.Date.Format(dateFormat), t.Processed.Format(dateFormat), t.Card, t.Details, t.Amount)
 }
 
 var amountRegex = regexp.MustCompile(`[^0-9.\-]+`)
