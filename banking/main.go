@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	f, err := excelize.OpenFile("/home/leon/Downloads/4055-xxxx-xxxx-6191_Statement_2025-07-15.xlsx")
+	f, err := excelize.OpenFile("/home/leon/Documents/visa/4055-xxxx-xxxx-6191_Statement_2025-07-15.xlsx")
 	if err != nil {
 		log.Fatal(err)
 	}
