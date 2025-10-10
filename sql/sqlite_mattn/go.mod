@@ -1,4 +1,4 @@
-module sqlite_basic
+module sqlite_mattn
 
 go 1.24.2
 

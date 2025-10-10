@@ -1,19 +1,20 @@
-// Basic SQL example
+// Basic SQLite example using mattn's driver
 package main
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
-	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"time"
+
+	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
 func main() {
 	// Connect to DB
 	ctx := context.Background()
-	db, err := openDB(ctx)
+	db, err := openDB(ctx, "db.sqlite3")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -30,10 +31,16 @@ func main() {
 		"00000", "00001", "00002", "00003", "00004", "00005", "00006", "00007",
 		"00008", "00009", "0000a", "0000b", "0000c", "0000d", "0000e", "0000f",
 	}
+	if err != nil {
+		log.Fatal(err)
+	}
 	for _, prefix := range prefixes {
 		if err := insertPrefix(ctx, db, prefix); err != nil {
 			log.Fatal(err)
 		}
+	}
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	// Select rows
@@ -45,6 +52,19 @@ func main() {
 		fmt.Printf("%s ", p.prefix)
 	}
 	fmt.Println()
+
+	// Backup database
+	backup, err := openDB(ctx, "db.backup.sqlite3")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer backup.Close()
+
+	// TODO This is broken. No error occurs but we get two empty databases!
+	err = backupDB(ctx, db, backup)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 type Prefix struct {
@@ -84,8 +104,9 @@ func insertPrefix(ctx context.Context, db *sql.DB, prefix string) error {
 }
 
 // openDB opens SQLite3 file, creating it as necessary
-func openDB(ctx context.Context) (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", "db.sqlite3")
+// source can be a filename or the SQLite-specific :memory:
+func openDB(ctx context.Context, source string) (*sql.DB, error) {
+	db, err := sql.Open("sqlite3", source)
 	if err != nil {
 		return nil, fmt.Errorf("open db: %w", err)
 	}
@@ -117,4 +138,59 @@ func selectPrefixes(ctx context.Context, db *sql.DB) ([]Prefix, error) {
 		return nil, fmt.Errorf("select prefixes: %w", err)
 	}
 	return prefixes, nil
+}
+
+// backupDB using the SQLite backup API to safely create a copy of fromDB.
+// The destination database (toDB) must be completely empty. Either can be in-memory.
+// Order of arguments matches io.Copy, following 'to = from' assignment mnemonic
+func backupDB(ctx context.Context, destination, source *sql.DB) error {
+	// Start direct connections
+	toConn, err := destination.Conn(ctx)
+	if err != nil {
+		return err
+	}
+
+	fromConn, err := source.Conn(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Run backup calls inside nested Raw() calls
+	err = toConn.Raw(func(toConn any) error {
+		return fromConn.Raw(func(fromConn any) error {
+			// Convert for SQLite-specific functionality
+			toConnSQLite, ok := toConn.(*sqlite3.SQLiteConn)
+			if !ok {
+				return fmt.Errorf("convert destination connection to SQLiteConn")
+			}
+
+			fromConnSQLite, ok := fromConn.(*sqlite3.SQLiteConn)
+			if !ok {
+				return fmt.Errorf("convert source connection to SQLiteConn")
+			}
+
+			// Actually run the backup command
+			b, err := toConnSQLite.Backup("main", fromConnSQLite, "main")
+			if err != nil {
+				return fmt.Errorf("starting SQLite backup: %w", err)
+			}
+
+			// Copy the whole DB in one step
+			done, err := b.Step(-1)
+			if !done {
+				return fmt.Errorf("backup step not done")
+			}
+			if err != nil {
+				return fmt.Errorf("stepping backup: %w", err)
+			}
+
+			err = b.Finish()
+			if err != nil {
+				return fmt.Errorf("finishing backup: %w", err)
+			}
+			return err
+		})
+	})
+
+	return err
 }
