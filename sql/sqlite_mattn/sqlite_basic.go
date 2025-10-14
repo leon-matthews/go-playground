@@ -11,6 +11,47 @@ import (
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
+/*
+https://www.reddit.com/r/golang/comments/16xswxd/comment/k34ppfo/
+
+Here are my general tips regarding mattn's driver, which my team has used to
+build SQLite-backed microservices:
+
+1. Set the journal mode to WAL and synchronous to Normal.
+2. Use two connections, one read-only with max open connections set to some
+   large number, and one read-write set to a maximum of 1 open connection.
+3. Set the transaction locking mode to IMMEDIATE and use transactions for
+   any multi-query methods.
+4. Set the busy timeout to some large value, like 5000. I'm not sure why
+   this is necessary, since I figured the pool size of 1 would obviate the
+   need for this, but it seems necessary (otherwise you can get database is
+   locked errors).
+
+With these few settings, we get good performance for our use case
+(>2K mid-size writes/sec, 30K reads per second on 2 vCPU and an SSD). I'd
+also recommend using Litestream to perform WAL shipping to S3.
+*/
+
+/*
+https://github.com/mattn/go-sqlite3/issues/1022#issuecomment-1067353980
+
+Note that you need to prefix your connection string with file: for the
+various options to be interpreted properly. Also, you should not call
+sql.Open once per worker, as sql.DB itself represents a pool, not an
+individual connection.
+
+My general recommendation is to make two pools (as in two sql.DBs), one
+with mode=ro and one with mode=rw. Use wal mode (_journal_mode=wal),
+which will allow reads to happen concurrently with writes. Do not use
+shared cache mode. Throttle the read/write pool to a single connection
+using SetMaxOpenConns, as SQLite doesn't support multiple concurrent
+writers anyway. The read-only pool should be throttled as per your
+application requirements and system constraints. The read/write pool
+should also use BEGIN IMMEDITATE when starting transactions
+(_txlock=immediate), to avoid certain issues that can result in "database
+is locked" errors.
+*/
+
 func main() {
 	// Connect to DB
 	ctx := context.Background()
