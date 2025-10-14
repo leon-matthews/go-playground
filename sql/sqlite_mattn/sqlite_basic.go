@@ -127,6 +127,8 @@ type Prefix struct {
 
 // createTables creates tables, but only if necessary
 func createTables(ctx context.Context, db *sql.DB) error {
+	// Strict tables (from v3.37, Nov 2021)
+	// https://www.sqlite.org/stricttables.html
 	s := `
 CREATE TABLE IF NOT EXISTS prefixes (
     id      INTEGER PRIMARY KEY,
