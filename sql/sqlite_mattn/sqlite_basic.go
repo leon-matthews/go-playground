@@ -12,6 +12,17 @@ import (
 )
 
 /*
+https://phiresky.github.io/blog/2020/sqlite-performance-tuning/
+
+Good article, key points are:
+
+pragma journal_mode = WAL;
+pragma synchronous = normal;
+pragma temp_store = memory;
+pragma mmap_size = 30000000000; // tO tHE mOON!
+*/
+
+/*
 https://www.reddit.com/r/golang/comments/16xswxd/comment/k34ppfo/
 
 Here are my general tips regarding mattn's driver, which my team has used to
