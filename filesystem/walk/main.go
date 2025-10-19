@@ -21,26 +21,24 @@ func main() {
 		log.Fatal(err)
 	}
 
-	/*
-		// filepath.Walk()
-		start := time.Now()
-		err = filepath.Walk(root, walkVisitor)
-		if err != nil {
-			log.Fatal("filepath.Walk()", err)
-		}
-		log.Println("filepath.Walk took", time.Since(start))
+	// filepath.Walk()
+	start := time.Now()
+	err = filepath.Walk(root, walkVisitor)
+	if err != nil {
+		log.Fatal("filepath.Walk()", err)
+	}
+	log.Println("filepath.Walk took", time.Since(start))
 
-		// filepath.WalkDir()
-		start = time.Now()
-		err = filepath.WalkDir(root, walkDirVisitor)
-		if err != nil {
-			log.Fatal("filepath.WalkDir()", err)
-		}
-		log.Println("filepath.WalkDir took", time.Since(start))
-	*/
+	// filepath.WalkDir()
+	start = time.Now()
+	err = filepath.WalkDir(root, walkDirVisitor)
+	if err != nil {
+		log.Fatal("filepath.WalkDir()", err)
+	}
+	log.Println("filepath.WalkDir took", time.Since(start))
 
 	// GitFolders
-	start := time.Now()
+	start = time.Now()
 	for p := range GitFolders(root) {
 		log.Println(p)
 	}
