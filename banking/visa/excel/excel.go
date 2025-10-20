@@ -5,14 +5,21 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
 const dateFormat = "1 Jan 2006"
 
+var (
+	amountRegexp  = regexp.MustCompile(`[^0-9.\-]+`)
+	detailsRegexp = regexp.MustCompile(`\s+`)
+)
+
 func NewTransaction(row []string) (*Transaction, error) {
 	amount, err := parseAmount(row[4])
 	date, err := parseDate(row[0])
+	details := cleanString(row[3])
 	processed, err := parseDate(row[1])
 	if err != nil {
 		return nil, fmt.Errorf("creating transaction: %w", err)
@@ -21,7 +28,7 @@ func NewTransaction(row []string) (*Transaction, error) {
 		Date:      date,
 		Processed: processed,
 		Card:      row[2],
-		Details:   row[3],
+		Details:   details,
 		Amount:    amount,
 	}
 	return &t, nil
@@ -39,11 +46,15 @@ func (t *Transaction) String() string {
 	return fmt.Sprintf("Date: %s\nProcessed: %s\nCard: %s\nDetails: %q\nAmount: %.2f\n", t.Date.Format(dateFormat), t.Processed.Format(dateFormat), t.Card, t.Details, t.Amount)
 }
 
-var amountRegex = regexp.MustCompile(`[^0-9.\-]+`)
+// cleanString removes repeated spaces and trims ends from given string
+func cleanString(s string) string {
+	clean := detailsRegexp.ReplaceAllString(s, " ")
+	return strings.TrimSpace(clean)
+}
 
 // parseAmount reads a floating point value from the format "$-166.99"
 func parseAmount(amount string) (float64, error) {
-	cleaned := amountRegex.ReplaceAllString(amount, "")
+	cleaned := amountRegexp.ReplaceAllString(amount, "")
 	f, err := strconv.ParseFloat(cleaned, 64)
 	if err != nil {
 		return 0, fmt.Errorf("parse amount: %q", amount)
