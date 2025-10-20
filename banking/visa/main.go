@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"text/tabwriter"
 
 	"github.com/xuri/excelize/v2"
 
@@ -21,9 +22,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Print in columns
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
 	for _, t := range transactions {
-		fmt.Printf("%v\n", t)
+		fmt.Fprintln(w, t.Tabbed())
 	}
+	w.Flush()
 }
 
 const sheetName = "Transactions"

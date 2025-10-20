@@ -46,6 +46,11 @@ func (t *Transaction) String() string {
 	return fmt.Sprintf("Date: %s\nProcessed: %s\nCard: %s\nDetails: %q\nAmount: %.2f\n", t.Date.Format(dateFormat), t.Processed.Format(dateFormat), t.Card, t.Details, t.Amount)
 }
 
+// Tabbed builds tab-separated strings ready for printing by [text/tabwriter]
+func (t *Transaction) Tabbed() string {
+	return fmt.Sprintf("%s\t%s\t%s\t$%.2f\t", t.Date.Format(dateFormat), t.Card, t.Details, t.Amount)
+}
+
 // cleanString removes repeated spaces and trims ends from given string
 func cleanString(s string) string {
 	clean := detailsRegexp.ReplaceAllString(s, " ")
