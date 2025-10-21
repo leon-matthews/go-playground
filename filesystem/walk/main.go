@@ -8,11 +8,13 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/dustin/go-humanize"
 )
 
 func main() {
 	if len(os.Args) != 2 {
-		fmt.Printf("Usage: %v PATH", os.Args[0])
+		fmt.Printf("Usage: %v PATH\n", os.Args[0])
 		os.Exit(1)
 	}
 
@@ -21,36 +23,81 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// filepath.Walk()
-	start := time.Now()
-	err = filepath.Walk(root, walkVisitor)
+	err = filepathWalk(root)
 	if err != nil {
 		log.Fatal("filepath.Walk()", err)
 	}
-	log.Println("filepath.Walk took", time.Since(start))
 
-	// filepath.WalkDir()
-	start = time.Now()
-	err = filepath.WalkDir(root, walkDirVisitor)
+	err = filepathWalkDir(root)
 	if err != nil {
 		log.Fatal("filepath.WalkDir()", err)
 	}
-	log.Println("filepath.WalkDir took", time.Since(start))
 
 	// GitFolders
-	start = time.Now()
+	start := time.Now()
 	for p := range GitFolders(root) {
 		log.Println(p)
 	}
 	log.Println("GitFolders took", time.Since(start))
 }
 
+// filepathWalk demonstrates the stdlib [filepath.Walk] function
+func filepathWalk(root string) error {
+	var numFiles, numFolders int64
+
+	// visitor is of type [filepath.WalkFunc], as required by [filepath.Walk]
+	// Returning [filepath.SkipDir] causes walk to skip the rest of the current folder,
+	// while returning [filepath.SkipAll] causes all remaining files and folders to be skipped.
+	visitor := func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			log.Printf("walkVisitor given a non-nil err for path: %q :%v\n", path, err)
+			return err
+		}
+		if info.IsDir() {
+			numFolders++
+		} else {
+			numFiles++
+
+		}
+		return nil
+	}
+
+	start := time.Now()
+	err := filepath.Walk(root, visitor)
+	log.Printf("filepath.Walk found %s files and %s folders in %v\n", humanize.Comma(numFiles), humanize.Comma(numFolders), time.Since(start))
+	return err
+}
+
+// filepathWalkDir demonstrates the stdlib [filepath.WalkDir] function
+func filepathWalkDir(root string) error {
+	var numFiles, numFolders int64
+
+	// visitor is of type [fs.WalkDirFunc], as used by [filepath.WalkDir]
+	// Returning [io/fs.SkipDir] causes walk to skip the rest of the current folder,
+	// while returning [io/fs.SkipAll] causes all remaining files and folders to be skipped.
+	visitor := func(path string, info fs.DirEntry, err error) error {
+		if err != nil {
+			log.Printf("walkDirVisitor given a non-nil err for path: %q :%v\n", path, err)
+			return err
+		}
+		if info.IsDir() {
+			numFolders++
+		} else {
+			numFiles++
+		}
+		return nil
+	}
+
+	start := time.Now()
+	err := filepath.WalkDir(root, visitor)
+	log.Printf("filepath.WalkDir found %s files and %s folders in %v\n", humanize.Comma(numFiles), humanize.Comma(numFolders), time.Since(start))
+	return err
+}
+
 // GitFolders iterates over all the git folders under the given root
 func GitFolders(root string) iter.Seq[string] {
 	return func(yield func(string) bool) {
 		visitor := func(path string, info fs.DirEntry, err error) error {
-			fmt.Println(path)
-
 			if info.IsDir() {
 				// Yield (the parent) of git folders
 				if info.Name() == ".git" {
@@ -71,36 +118,4 @@ func GitFolders(root string) iter.Seq[string] {
 		}
 		_ = filepath.WalkDir(root, visitor)
 	}
-}
-
-// walkVisitor is of type [filepath.WalkFunc], as required by [filepath.Walk]
-// Returning [filepath.SkipDir] causes walk to skip the rest of the current folder,
-// while returning [filepath.SkipAll] causes all remaining files and folders to be skipped.
-func walkVisitor(path string, info fs.FileInfo, err error) error {
-	if err != nil {
-		log.Printf("walkVisitor given a non-nil err for path: %q :%v", path, err)
-		return err
-	}
-	if info.IsDir() {
-		fmt.Println("visited folder:", info.Name())
-	} else {
-		fmt.Println("visited file:  ", info.Name())
-	}
-	return nil
-}
-
-// walkDirVisitor is of type [fs.WalkDirFunc], as used by [filepath.WalkDir]
-// Returning [io/fs.SkipDir] causes walk to skip the rest of the current folder,
-// while returning [io/fs.SkipAll] causes all remaining files and folders to be skipped.
-func walkDirVisitor(path string, info fs.DirEntry, err error) error {
-	if err != nil {
-		log.Printf("walkDirVisitor given a non-nil err for path: %q :%v", path, err)
-		return err
-	}
-	if info.IsDir() {
-		fmt.Println("visited folder:", info.Name())
-	} else {
-		fmt.Println("visited file:  ", info.Name())
-	}
-	return nil
 }
