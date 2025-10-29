@@ -5,4 +5,4 @@ by John Arundel
 
 ## Next
 
-Carry on from page 97, sorting the slice of books.
+Carry on from chapter 9, "Wrapper's Delight"
