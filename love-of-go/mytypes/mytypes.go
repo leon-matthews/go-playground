@@ -1,5 +1,7 @@
 package mytypes
 
-import "strings"
+type MyInt int
 
-type MyBuilder strings.Builder
+func (x MyInt) Double() {
+	x *= MyInt(2)
+}

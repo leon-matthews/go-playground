@@ -30,17 +30,17 @@ Install Go stuff into a dotfolder and add its *bin* directory to `$PATH`.
 
 In your *.profile* or similar:
 
-	# GOPATH
-	export GOPATH=$HOME/.go
-	FOLDER="$GOPATH/bin"
-	if [ -d "$FOLDER" ] ; then
-		PATH="$FOLDER:$PATH"
-	fi
+# GOPATH
+export GOPATH="$HOME/.go"
+FOLDER="$GOPATH/bin"
+if [ -d "$FOLDER" ] ; then
+    PATH="$FOLDER:$PATH"
+fi
 
-	# Go installation
-	if [ -d /usr/local/go/bin ] ; then
-		PATH="$PATH:/usr/local/go/bin"
-	fi
+# Go installation
+if [ -d /usr/local/go/bin ] ; then
+    PATH="$PATH:/usr/local/go/bin"
+fi
 
 
 ## Go tools
