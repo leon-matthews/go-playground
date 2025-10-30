@@ -133,7 +133,7 @@ func chunkStream(reader io.Reader) (<-chan chunk, error) {
 		for {
 			c, err := chunker.Next()
 			if err != nil && err != io.EOF {
-				panic(fmt.Sprintf("Fatal error calling chunker.Next():  %s"))
+				panic(fmt.Sprintf("Fatal error calling chunker.Next(): %s", err))
 			}
 			// Preserve slice even if (when!) underlying array changes
 			c = slices.Clone(c)
