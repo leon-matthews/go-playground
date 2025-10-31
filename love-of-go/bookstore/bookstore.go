@@ -5,8 +5,19 @@ import (
 	"fmt"
 )
 
-var NoCopiesLeftError = errors.New("no copies left")
-var NotFoundError = errors.New("no book found")
+type Category int
+
+const (
+	CategoryAutobiography Category = iota
+	CategoryLargePrintRomance
+	CategoryParticlePhysics
+)
+
+var validCategory = map[Category]bool{
+	CategoryAutobiography:     true,
+	CategoryLargePrintRomance: true,
+	CategoryParticlePhysics:   true,
+}
 
 type Book struct {
 	Title           string
@@ -15,13 +26,15 @@ type Book struct {
 	ID              int
 	PriceCents      int
 	DiscountPercent int
+
+	category Category
 }
 
 type Catalogue map[int]Book
 
 func Buy(b Book) (Book, error) {
 	if b.Copies == 0 {
-		return Book{}, NoCopiesLeftError
+		return Book{}, errors.New("no copies left")
 	}
 	b.Copies--
 	return b, nil
@@ -35,15 +48,35 @@ func (c Catalogue) GetAllBooks() []Book {
 	return books
 }
 
-func GetBook(catalogue map[int]Book, id int) (Book, error) {
-	b, ok := catalogue[id]
+func (c Catalogue) GetBook(id int) (Book, error) {
+	b, ok := c[id]
 	if !ok {
-		return b, fmt.Errorf("with id=%d: %w", id, NotFoundError)
+		return b, fmt.Errorf("no book found with id=%d", id)
 	}
 	return b, nil
 }
 
-func (b Book) NetPriceCents() int {
+func (b *Book) Category() Category {
+	return b.category
+}
+
+func (b *Book) NetPriceCents() int {
 	saving := b.PriceCents * b.DiscountPercent / 100
 	return b.PriceCents - saving
+}
+
+func (b *Book) SetCategory(category Category) error {
+	if !validCategory[category] {
+		return fmt.Errorf("unknown category: %v", category)
+	}
+	b.category = category
+	return nil
+}
+
+func (b *Book) SetPriceCents(cents int) error {
+	if cents < 0 {
+		return errors.New("negative price cents")
+	}
+	b.PriceCents = cents
+	return nil
 }
