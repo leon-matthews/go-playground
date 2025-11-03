@@ -14,15 +14,16 @@ type counter struct {
 	output io.Writer
 }
 
-// NewCreate returns a new counter with zero or more options, using the 'functional options' pattern
+// NewCreate returns a new counter with zero or more options, using the 'functional options' pattern.
+// Use options to customise built object, eg. NewCounter(WithInput(r))
 func NewCounter(opts ...option) (*counter, error) {
-	// Use defaults
+	// Defaults
 	c := &counter{
 		input:  os.Stdin,
 		output: os.Stdout,
 	}
 
-	// Override defaults with option constructors
+	// Use option constructors to override defaults
 	for _, opt := range opts {
 		err := opt(c)
 		if err != nil {
@@ -41,6 +42,17 @@ func WithInput(input io.Reader) option {
 			return errors.New("nil input reader")
 		}
 		c.input = input
+		return nil
+	}
+}
+
+func WithArgs(args []string) option {
+	return func(c *counter) error {
+		f, err := os.Open(args[0])
+		if err != nil {
+			return err
+		}
+		c.input = f
 		return nil
 	}
 }
