@@ -3,6 +3,7 @@ package count
 import (
 	"bufio"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -93,7 +94,6 @@ func (c *counter) Words() int {
 	s.Split(bufio.ScanWords)
 	words := 0
 	for s.Scan() {
-		fmt.Printf("[%T]%+[1]v\n", s.Text())
 		words++
 	}
 	c.close()
@@ -109,28 +109,22 @@ func (c *counter) close() {
 	}
 }
 
-func MainLines() {
-	counter, err := NewCounter(
-		WithInputFromArgs(os.Args[1:]),
-	)
+func Main() {
+	lineMode := flag.Bool("lines", false, "count count only")
+	flag.Parse()
 
+	counter, err := NewCounter(
+		WithInputFromArgs(flag.Args()),
+	)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	fmt.Println(counter.Lines())
-}
-
-func MainWords() {
-	counter, err := NewCounter(
-		WithInputFromArgs(os.Args[1:]),
-	)
-
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+	if *lineMode {
+		fmt.Println(counter.Lines())
+	} else {
+		fmt.Println(counter.Words())
 	}
 
-	fmt.Println(counter.Words())
 }

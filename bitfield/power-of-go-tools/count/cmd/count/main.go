@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	count.MainLines()
+	count.Main()
 }

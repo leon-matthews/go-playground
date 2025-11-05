@@ -1,0 +1,15 @@
+# Count words by default
+stdin three_lines.txt
+exec count
+stdout '^8\n$'
+
+# Count lines
+stdin three_lines.txt
+exec count --lines
+stdout '^4\n$'
+
+-- three_lines.txt --
+this input
+contains
+four lines
+but eight words
