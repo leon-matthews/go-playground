@@ -1,7 +1,10 @@
 package main
 
-import "count"
+import (
+	"count"
+	"os"
+)
 
 func main() {
-	count.Main()
+	os.Exit(count.Main())
 }

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 )
 
@@ -46,9 +45,15 @@ func WithInput(input io.Reader) option {
 	}
 }
 
-func WithArgs(args []string) option {
+// WithInputFromArgs opens the given paths, setting the counter's input to them.
+func WithInputFromArgs(paths []string) option {
 	return func(c *counter) error {
-		f, err := os.Open(args[0])
+		if len(paths) == 0 {
+			return nil
+		}
+
+		// TODO Just the first file, for now...
+		f, err := os.Open(paths[0])
 		if err != nil {
 			return err
 		}
@@ -77,10 +82,14 @@ func (c *counter) Lines() int {
 	return lines
 }
 
-func Main() {
-	counter, err := NewCounter()
+func Main() int {
+	counter, err := NewCounter(
+		WithInputFromArgs(os.Args[1:]),
+	)
 	if err != nil {
-		log.Fatalf("error creating counter: %v", err)
+		fmt.Fprintln(os.Stderr, err)
+		return 1
 	}
 	fmt.Println(counter.Lines())
+	return 0
 }

@@ -24,11 +24,11 @@ func TestLinesCountsLinesInInput(t *testing.T) {
 	}
 }
 
-func TestWithArgs(t *testing.T) {
+func TestWithInputFromFiles(t *testing.T) {
 	t.Run("one file argument", func(t *testing.T) {
 		args := []string{"testdata/three_lines.txt"}
 		c, err := count.NewCounter(
-			count.WithArgs(args),
+			count.WithInputFromArgs(args),
 		)
 		if err != nil {
 			t.Fatal(err)
@@ -40,9 +40,11 @@ func TestWithArgs(t *testing.T) {
 		}
 	})
 
-	t.Run("zero files", func(t *testing.T) {
+	t.Run("zero files ignored", func(t *testing.T) {
+		buf := bytes.NewBufferString("1\n2\n3")
 		c, err := count.NewCounter(
-			count.WithArgs([]string{}),
+			count.WithInput(buf),
+			count.WithInputFromArgs([]string{}),
 		)
 		if err != nil {
 			t.Fatal(err)
