@@ -1,0 +1,12 @@
+exec count one_line.txt two_lines.txt three_lines.txt
+stdout '6'
+
+-- three_lines.txt --
+this input
+contains
+three lines
+-- two_lines.txt --
+this input
+contains
+-- one_line.txt --
+this input

@@ -11,6 +11,7 @@ import (
 type counter struct {
 	input  io.Reader
 	output io.Writer
+	files  []io.Reader
 }
 
 // NewCreate returns a new counter with zero or more options, using the 'functional options' pattern.
@@ -48,16 +49,20 @@ func WithInput(input io.Reader) option {
 // WithInputFromArgs opens the given paths, setting the counter's input to them.
 func WithInputFromArgs(paths []string) option {
 	return func(c *counter) error {
-		if len(paths) == 0 {
+		if len(paths) < 1 {
 			return nil
 		}
 
-		// TODO Just the first file, for now...
-		f, err := os.Open(paths[0])
-		if err != nil {
-			return err
+		c.files = make([]io.Reader, len(paths))
+		for i, path := range paths {
+			f, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			c.files[i] = f
 		}
-		c.input = f
+		
+		c.input = io.MultiReader(c.files...)
 		return nil
 	}
 }
@@ -82,14 +87,15 @@ func (c *counter) Lines() int {
 	return lines
 }
 
-func Main() int {
+func Main() {
 	counter, err := NewCounter(
 		WithInputFromArgs(os.Args[1:]),
 	)
+
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return 1
+		os.Exit(1)
 	}
+
 	fmt.Println(counter.Lines())
-	return 0
 }
