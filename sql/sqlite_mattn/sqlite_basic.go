@@ -197,6 +197,10 @@ func selectPrefixes(ctx context.Context, db *sql.DB) ([]Prefix, error) {
 // backupDB using the SQLite backup API to safely create a copy of fromDB.
 // The destination database (toDB) must be completely empty. Either can be in-memory.
 // Order of arguments matches io.Copy, following 'to = from' assignment mnemonic
+//
+// For comparison (and maybe debugging) I found an implementation for the
+// same feature in another library here:
+// https://pkg.go.dev/github.com/ncruces/go-sqlite3/driver#Conn
 func backupDB(ctx context.Context, destination, source *sql.DB) error {
 	// Start direct connections
 	toConn, err := destination.Conn(ctx)
