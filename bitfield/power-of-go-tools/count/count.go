@@ -84,9 +84,7 @@ func (c *counter) Lines() int {
 	for input.Scan() {
 		lines++
 	}
-	for _, f := range c.files {
-		f.(io.Closer).Close()
-	}
+	c.close()
 	return lines
 }
 
@@ -98,10 +96,17 @@ func (c *counter) Words() int {
 		fmt.Printf("[%T]%+[1]v\n", s.Text())
 		words++
 	}
-	for _, f := range c.files {
-		f.(io.Closer).Close()
-	}
+	c.close()
 	return words
+}
+
+// close files that are closable
+func (c *counter) close() {
+	for _, f := range c.files {
+		if closer, ok := f.(io.Closer); ok {
+			closer.Close()
+		}
+	}
 }
 
 func MainLines() {
