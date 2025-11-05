@@ -1,0 +1,9 @@
+stdin three_lines.txt
+exec words
+stdout '^8\n$'
+
+-- three_lines.txt --
+this input
+contains
+four lines
+but eight words
