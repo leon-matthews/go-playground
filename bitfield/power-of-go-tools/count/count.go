@@ -61,7 +61,7 @@ func WithInputFromArgs(paths []string) option {
 			}
 			c.files[i] = f
 		}
-		
+
 		c.input = io.MultiReader(c.files...)
 		return nil
 	}
@@ -84,10 +84,27 @@ func (c *counter) Lines() int {
 	for input.Scan() {
 		lines++
 	}
+	for _, f := range c.files {
+		f.(io.Closer).Close()
+	}
 	return lines
 }
 
-func Main() {
+func (c *counter) Words() int {
+	s := bufio.NewScanner(c.input)
+	s.Split(bufio.ScanWords)
+	words := 0
+	for s.Scan() {
+		fmt.Printf("[%T]%+[1]v\n", s.Text())
+		words++
+	}
+	for _, f := range c.files {
+		f.(io.Closer).Close()
+	}
+	return words
+}
+
+func MainLines() {
 	counter, err := NewCounter(
 		WithInputFromArgs(os.Args[1:]),
 	)
@@ -98,4 +115,17 @@ func Main() {
 	}
 
 	fmt.Println(counter.Lines())
+}
+
+func MainWords() {
+	counter, err := NewCounter(
+		WithInputFromArgs(os.Args[1:]),
+	)
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	fmt.Println(counter.Words())
 }

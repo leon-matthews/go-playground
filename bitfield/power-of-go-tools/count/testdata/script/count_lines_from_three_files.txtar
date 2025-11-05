@@ -1,4 +1,4 @@
-exec count one_line.txt two_lines.txt three_lines.txt
+exec lines one_line.txt two_lines.txt three_lines.txt
 stdout '6'
 
 -- three_lines.txt --

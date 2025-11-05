@@ -1,5 +1,5 @@
 stdin three_lines.txt
-exec count
+exec lines
 stdout '^3\n$'
 
 -- three_lines.txt --
