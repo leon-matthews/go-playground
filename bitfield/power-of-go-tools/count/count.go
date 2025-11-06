@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 )
 
 type counter struct {
@@ -125,7 +126,7 @@ func Main() {
 	lineMode := flag.Bool("lines", false, "count lines, not words")
 	byteMode := flag.Bool("bytes", false, "count bytes, not words")
 	flag.Usage = func() {
-		fmt.Printf("Usage: %s [-lines | -bytes] [files...]\n", os.Args[0])
+		fmt.Printf("Usage: %s [-lines | -bytes] [files...]\n", filepath.Base(os.Args[0]))
 		fmt.Println("Counts words (or lines or bytes) in named files or standard input.\nFlags:")
 		flag.PrintDefaults()
 	}
