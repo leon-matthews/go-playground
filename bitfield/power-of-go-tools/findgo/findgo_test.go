@@ -47,3 +47,24 @@ func TestFilesCorrectlyListsFilesInMapFS(t *testing.T) {
 		t.Error(cmp.Diff(want, got))
 	}
 }
+
+func BenchmarkFilesOnDisk(b *testing.B) {
+	fsys := os.DirFS("testdata/tree")
+	b.ResetTimer()
+	for b.Loop() {
+		_ = findgo.GoFiles(fsys)
+	}
+}
+
+func BenchmarkFilesInMemory(b *testing.B) {
+	fsys := fstest.MapFS{
+		"file.go":                {},
+		"subfolder/subfolder.go": {},
+		"subfolder2/another.go":  {},
+		"subfolder2/file.go":     {},
+	}
+	b.ResetTimer()
+	for b.Loop() {
+		_ = findgo.GoFiles(fsys)
+	}
+}
