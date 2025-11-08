@@ -5,4 +5,4 @@ by John Arundel
 
 ## Next
 
-Start in on Chapter 5
+Start in on Chapter 7: Commands

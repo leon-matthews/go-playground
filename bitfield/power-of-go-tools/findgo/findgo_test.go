@@ -1,6 +1,7 @@
 package findgo_test
 
 import (
+	"archive/zip"
 	"os"
 	"testing"
 	"testing/fstest"
@@ -48,6 +49,24 @@ func TestFilesCorrectlyListsFilesInMapFS(t *testing.T) {
 	}
 }
 
+func TestFilesCorrectlyListsFilesInZIPArchive(t *testing.T) {
+	t.Parallel()
+	fsys, err := zip.OpenReader("testdata/tree.zip")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{
+		"tree/file.go",
+		"tree/subfolder/subfolder.go",
+		"tree/subfolder2/another.go",
+		"tree/subfolder2/file.go",
+	}
+	got := findgo.GoFiles(fsys)
+	if !cmp.Equal(want, got) {
+		t.Error(cmp.Diff(want, got))
+	}
+}
+
 func BenchmarkFilesOnDisk(b *testing.B) {
 	fsys := os.DirFS("testdata/tree")
 	b.ResetTimer()
@@ -62,6 +81,17 @@ func BenchmarkFilesInMemory(b *testing.B) {
 		"subfolder/subfolder.go": {},
 		"subfolder2/another.go":  {},
 		"subfolder2/file.go":     {},
+	}
+	b.ResetTimer()
+	for b.Loop() {
+		_ = findgo.GoFiles(fsys)
+	}
+}
+
+func BenchmarkFilesInZip(b *testing.B) {
+	fsys, err := zip.OpenReader("testdata/tree.zip")
+	if err != nil {
+		b.Fatal(err)
 	}
 	b.ResetTimer()
 	for b.Loop() {
