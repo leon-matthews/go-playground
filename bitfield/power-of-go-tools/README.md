@@ -5,4 +5,4 @@ by John Arundel
 
 ## Next
 
-Start in on Chapter 7: Commands
+Start in on Chapter 8: Shells
