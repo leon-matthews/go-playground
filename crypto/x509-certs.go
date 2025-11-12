@@ -52,7 +52,7 @@ func main() {
 	log.Println("PEM encode private key\n", caPrivKeyPEM)
 }
 
-// CreateCertificateAuthority creates self-signed CA
+// CreateCertificateAuthority creates certificate to use as root of our trust chain
 func CreateCertificateAuthority() *x509.Certificate {
 	ca := &x509.Certificate{
 		SerialNumber: CreateSerialNumber(),
@@ -76,9 +76,11 @@ func CreateCertificateAuthority() *x509.Certificate {
 }
 
 // CreateSerialNumber creates a cryptographically-secure 128-bit random number
-// Will panic if the crypto/rand.Reader
 func CreateSerialNumber() *big.Int {
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128) // 2^128
+
+	// According to the docs for Reader() and Int() from crypto/rand an error
+	// is only possible on 'legacy' versions of Linux (entropy exhaustion).
 	s, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
 		panic(fmt.Sprint("Random number generation failed: %v", err))
