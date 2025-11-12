@@ -14,8 +14,10 @@ import (
 )
 
 func main() {
-	// Script based on published code from the Go stdlib:
-	// https://go.dev/src/crypto/tls/generate_cert.go
+	// Script based on published code[1] from the Go stdlib, and an
+	// article on Medium[2].
+	// [1] https://go.dev/src/crypto/tls/generate_cert.go
+	// [2] https://medium.com/@shaneutt/create-sign-x509-certificates-in-golang-8ac4ae49f903
 
 	// Create self-signed Certificate Authority (CA)
 	ca := CreateCertificateAuthority()
@@ -26,7 +28,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Combine to create self-signed certificate
+	// Combine to create self-signed, X.509 v3, certificate
 	caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, caPrivKey.Public(), caPrivKey)
 	if err != nil {
 		log.Fatal(err)
@@ -69,8 +71,7 @@ func CreateCertificateAuthority() *x509.Certificate {
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
 	}
-	log.Println("Create self-signed certificate", ca)
-	fmt.Printf("[%T]%+[1]v\n", CreateSerialNumber())
+	log.Println("Create self-signed certificate, serial number:", ca.SerialNumber)
 	return ca
 }
 
