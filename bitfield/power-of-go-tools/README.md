@@ -5,4 +5,4 @@ by John Arundel
 
 ## Next
 
-Start in on Chapter 8: Shells
+Continue Chapter 8: Shells from page 146 on.
