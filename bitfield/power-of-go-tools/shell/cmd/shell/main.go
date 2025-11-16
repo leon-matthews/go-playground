@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+	fmt.Print("> ")
 	input := bufio.NewScanner(os.Stdin)
 	for input.Scan() {
 		line := input.Text()
@@ -23,5 +24,7 @@ func main() {
 			fmt.Println("error:", err)
 		}
 		fmt.Printf("%s", out)
+		fmt.Print("\n> ")
 	}
+	fmt.Println("\nSmell you later!")
 }
