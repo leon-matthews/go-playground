@@ -5,4 +5,4 @@ by John Arundel
 
 ## Next
 
-Continue Chapter 8: Shells from page 146 on.
+Start Chapter 9: Pipelines
