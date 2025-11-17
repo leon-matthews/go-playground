@@ -5,4 +5,4 @@ by John Arundel
 
 ## Next
 
-Start Chapter 9: Pipelines
+Continue Chapter 9: Pipelines from Page 172
