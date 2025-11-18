@@ -9,16 +9,17 @@ import (
 
 // Pipeline is the sole function parameter and return type for chained operations
 type Pipeline struct {
-	Input  io.Reader
-	Output io.Writer
+	Reader io.Reader
+	Writer io.Writer
 	Error  error
 }
 
 // New returns a pointer to a new, default Pipeline using stdin & stdout
 func New() *Pipeline {
+	// Reader does not default to os.Stdin by design: forgetting to set it
+	// during development would cause pipelines to stall waiting for user input.
 	p := &Pipeline{
-		Input:  os.Stdin,
-		Output: os.Stdout,
+		Writer: os.Stdout,
 	}
 	return p
 }
@@ -26,7 +27,18 @@ func New() *Pipeline {
 // FromString creates a new Pipeline using the given string as its input
 func FromString(s string) *Pipeline {
 	p := New()
-	p.Input = strings.NewReader(s)
+	p.Reader = strings.NewReader(s)
+	return p
+}
+
+// FromFile creates a new Pipeline reading from file
+func FromFile(file string) *Pipeline {
+	f, err := os.Open(file)
+	if err != nil {
+		return &Pipeline{Error: err}
+	}
+	p := New()
+	p.Reader = f
 	return p
 }
 
@@ -36,5 +48,5 @@ func (p *Pipeline) Stdout() {
 	if p.Error != nil {
 		return
 	}
-	io.Copy(p.Output, p.Input)
+	io.Copy(p.Writer, p.Reader)
 }
