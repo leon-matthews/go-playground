@@ -50,3 +50,16 @@ func (p *Pipeline) Stdout() {
 	}
 	io.Copy(p.Writer, p.Reader)
 }
+
+// String is a pipeline endpoint that builds string from input
+func (p *Pipeline) String() (string, error) {
+	if p.Error != nil {
+		return "", p.Error
+	}
+
+	data, err := io.ReadAll(p.Reader)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}

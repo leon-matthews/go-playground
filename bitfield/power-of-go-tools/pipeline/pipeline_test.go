@@ -52,3 +52,20 @@ func TestFromFile_SetsErrorGivenNonexistentFile(t *testing.T) {
 	p := pipeline.FromFile("no-such-file.txt")
 	assert.Error(t, p.Error, "error expected but was nil")
 }
+
+func TestStringReturnsPipeContents(t *testing.T) {
+	t.Parallel()
+	want := "Hello, world\n"
+	p := pipeline.FromString(want)
+	got, err := p.String()
+	require.NoError(t, err)
+	assert.Equal(t, want, got)
+}
+
+func TestStringReturnsErrorWhenPipeErrorSet(t *testing.T) {
+	t.Parallel()
+	p := pipeline.FromString("Hello, world\n")
+	p.Error = errors.New("oh no")
+	_, err := p.String()
+	assert.EqualError(t, err, "oh no")
+}
