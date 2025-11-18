@@ -23,6 +23,7 @@ func TestStdoutPrintsMessageToOutput(t *testing.T) {
 }
 
 func TestStdoutPrintsNothingOnError(t *testing.T) {
+	// By design, pipeline stages don't do anything at all if in error
 	t.Parallel()
 	p := pipeline.FromString("Hello, world\n")
 	p.Error = errors.New("oh no")
