@@ -2,6 +2,10 @@
 package pipeline
 
 import (
+	"bufio"
+	"bytes"
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -39,6 +43,34 @@ func FromFile(file string) *Pipeline {
 	}
 	p := New()
 	p.Reader = f
+	return p
+}
+
+// Column extracts just the n-th field from each line
+func (p *Pipeline) Column(n int) *Pipeline {
+	if n < 0 {
+		p.Error = errors.New("column number must be greater than zero")
+	}
+
+	if p.Error != nil {
+		p.Reader = strings.NewReader("")
+		return p
+	}
+
+	result := new(bytes.Buffer)
+	input := bufio.NewScanner(p.Reader)
+	for input.Scan() {
+		fields := strings.Fields(input.Text())
+		if len(fields) < n {
+			continue
+		}
+		fmt.Fprintln(result, fields[n-1])
+	}
+
+	return &Pipeline{
+		Reader: result,
+	}
+
 	return p
 }
 
