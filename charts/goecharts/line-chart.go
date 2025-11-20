@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 
@@ -37,7 +39,10 @@ func httpserver(w http.ResponseWriter, _ *http.Request) {
 	line.Render(w)
 }
 
+const addr = "localhost:8080"
+
 func main() {
+	fmt.Printf("Listening on http://%s\n", addr)
 	http.HandleFunc("/", httpserver)
-	http.ListenAndServe(":8081", nil)
+	log.Fatal(http.ListenAndServe(addr, nil))
 }
