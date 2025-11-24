@@ -1,0 +1,46 @@
+{
+  "coord": {
+    "lon": 174.7079,
+    "lat": -36.8701
+  },
+  "weather": [
+    {
+      "id": 803,
+      "main": "Clouds",
+      "description": "broken clouds",
+      "icon": "04d"
+    }
+  ],
+  "base": "stations",
+  "main": {
+    "temp": 21.74,
+    "feels_like": 21.64,
+    "temp_min": 21.19,
+    "temp_max": 23.02,
+    "pressure": 1012,
+    "humidity": 64,
+    "sea_level": 1012,
+    "grnd_level": 1008
+  },
+  "visibility": 10000,
+  "wind": {
+    "speed": 4.47,
+    "deg": 207,
+    "gust": 7.6
+  },
+  "clouds": {
+    "all": 62
+  },
+  "dt": 1763952600,
+  "sys": {
+    "type": 2,
+    "id": 2012285,
+    "country": "NZ",
+    "sunrise": 1763917093,
+    "sunset": 1763968658
+  },
+  "timezone": 46800,
+  "id": 6232255,
+  "name": "MOUNT ALBERT",
+  "cod": 200
+}

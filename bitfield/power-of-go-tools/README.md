@@ -5,4 +5,4 @@ by John Arundel
 
 ## Next
 
-Continue Chapter 10, from page 200
+Continue Chapter 11, from page 218
