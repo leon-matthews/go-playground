@@ -1,0 +1,12 @@
+[
+  {
+    "LinesAdded": 1,
+    "LinesRemoved": 2,
+    "FileName": "bitfield/power-of-go-tools/forgotten/forgotten.go"
+  },
+  {
+    "LinesAdded": 3,
+    "LinesRemoved": 4,
+    "FileName": "bitfield/power-of-go-tools/forgotten/forgotten_test.go"
+  }
+]

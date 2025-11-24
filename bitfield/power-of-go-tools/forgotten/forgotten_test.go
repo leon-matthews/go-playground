@@ -1,4 +1,4 @@
-package forgotten_test
+package forgotten
 
 import (
 	"os"
@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"forgotten"
 )
 
 func readTestFile(t *testing.T, filename string) string {
@@ -25,19 +23,34 @@ func TestParseDiffNumStat(t *testing.T) {
 
 	t.Run("one line", func(t *testing.T) {
 		text := readTestFile(t, "one-line.txt")
-		want := forgotten.Status{
-			NumFiles: 1,
+		want := NumStat{
+			{1, 2, "bitfield/power-of-go-tools/forgotten/forgotten.go"},
 		}
-		got, err := forgotten.ParseDiffNumStat(text)
+		got, err := ParseDiffNumStat(text)
 		assert.NoError(t, err)
 		assert.Equal(t, want, got)
 	})
 
 	t.Run("empty", func(t *testing.T) {
 		text := readTestFile(t, "empty.txt")
-		got, err := forgotten.ParseDiffNumStat(text)
+		got, err := ParseDiffNumStat(text)
 		assert.NoError(t, err)
-		want := forgotten.Status{}
+		want := NumStat{}
 		assert.Equal(t, want, got)
 	})
+}
+
+func TestStatusToJSON(t *testing.T) {
+	t.Parallel()
+	f := NumStat{
+		{1, 2, "bitfield/power-of-go-tools/forgotten/forgotten.go"},
+		{3, 4, "bitfield/power-of-go-tools/forgotten/forgotten_test.go"},
+	}
+	wantBytes, err := os.ReadFile("testdata/numstat.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := string(wantBytes)
+	got := f.ToJSON()
+	assert.Equal(t, want, got)
 }
