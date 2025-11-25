@@ -12,7 +12,7 @@ type Current struct {
 	Summary string
 }
 
-// CurrentResponse captures the data we're interested in from API response
+// CurrentResponse captures just the data we're interested in from API response
 type CurrentResponse struct {
 	Weather []struct {
 		Main string
@@ -26,6 +26,7 @@ func ParseResponse(data []byte) (Current, error) {
 	if err != nil {
 		return Current{}, fmt.Errorf("invalid API response %s: %w", data, err)
 	}
+	fmt.Printf("[%T]%+[1]v\n", resp)
 
 	if len(resp.Weather) < 1 {
 		return Current{}, fmt.Errorf("invalid API response %s: want at least one Weather element", data)

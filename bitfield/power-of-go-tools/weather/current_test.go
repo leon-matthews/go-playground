@@ -1,6 +1,9 @@
 package weather_test
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 	"weather"
@@ -8,6 +11,23 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestHTTPGet_SuccessfullyGetsFromLocalServer(t *testing.T) {
+	t.Parallel()
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "testdata/current.json")
+	}))
+	defer ts.Close()
+
+	fmt.Printf("[%T]%+[1]v\n", ts.URL)
+	client := ts.Client()
+	resp, err := client.Get(ts.URL)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+}
 
 func TestParseResponse_CorrectlyParsesJSONData(t *testing.T) {
 	t.Parallel()
