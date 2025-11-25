@@ -9,7 +9,8 @@ import (
 
 // Current contains details about conditions outside right now
 type Current struct {
-	Summary string
+	Summary     string
+	Temperature float64
 }
 
 // CurrentResponse captures just the data we're interested in from API response
@@ -17,23 +18,29 @@ type CurrentResponse struct {
 	Weather []struct {
 		Main string
 	}
+	Main struct {
+		Temp float64
+	}
 }
 
 // ParseResponse unmarshals JSON bytes and extracts data to create CurrentWeather
+// The first 'weather' object from the response is used.
 func ParseResponse(data []byte) (Current, error) {
+	// Unmarshal into CurrentResponse
 	var resp CurrentResponse
 	err := json.Unmarshal(data, &resp)
 	if err != nil {
 		return Current{}, fmt.Errorf("invalid API response %s: %w", data, err)
 	}
 	fmt.Printf("[%T]%+[1]v\n", resp)
-
 	if len(resp.Weather) < 1 {
 		return Current{}, fmt.Errorf("invalid API response %s: want at least one Weather element", data)
 	}
 
+	// Convert CurrentResponse to Current
 	conditions := Current{
-		Summary: resp.Weather[0].Main,
+		Summary:     resp.Weather[0].Main,
+		Temperature: resp.Main.Temp,
 	}
 	return conditions, nil
 }

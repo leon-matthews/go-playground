@@ -36,7 +36,8 @@ func TestParseResponse_CorrectlyParsesJSONData(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := weather.Current{
-		Summary: "Clouds",
+		Summary:     "Clouds",
+		Temperature: 21.74,
 	}
 	got, err := weather.ParseResponse(data)
 	require.NoError(t, err)
