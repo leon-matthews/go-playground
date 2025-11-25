@@ -5,4 +5,4 @@ by John Arundel
 
 ## Next
 
-Continue Chapter 11, from page 223
+Continue Chapter 11, and implement Client struct.
