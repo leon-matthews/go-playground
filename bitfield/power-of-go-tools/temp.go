@@ -1,12 +1,12 @@
 package main
 
 import (
-    "os"
-    "os/exec"
+	"os"
+	"os/exec"
 )
 
 func main() {
 	cmd := exec.Command("/bin/ls")
-    cmd.Stdout = os.Stdout
+	cmd.Stdout = os.Stdout
 	cmd.Run()
 }
