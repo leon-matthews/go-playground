@@ -3,6 +3,7 @@ package weather
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -10,13 +11,6 @@ import (
 	"strings"
 	"time"
 )
-
-// errorResponse captures an error response from the OpenWeatherMap API
-type errorResponse struct {
-	Code       int `json:"cod"`
-	Message    string
-	Parameters []string
-}
 
 type Client struct {
 	APIKey     string
@@ -63,15 +57,33 @@ func (c *Client) Get(url string) (json.RawMessage, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		// Try and build error message from OpenWeatherMap API error response
-		var e errorResponse
-		if err := json.Unmarshal(data, &e); err == nil {
-			return nil, fmt.Errorf("server error %d: %s %s", e.Code, e.Message, strings.Join(e.Parameters, ", "))
-		}
-
-		// Generic error
-		return nil, fmt.Errorf("unknown error %d: %s", resp.StatusCode, string(data))
+		return nil, NewResponseError(resp.StatusCode, data)
 	}
 
 	return data, nil
+}
+
+// NewResponseError creates an error, using the API error response if possible
+func NewResponseError(statusCode int, data []byte) error {
+	var errResp errorResponse
+	err := json.Unmarshal(data, &errResp)
+	if err != nil {
+		return fmt.Errorf("API unknown error %d: %s", statusCode, string(data))
+	}
+	return errors.New(errResp.String())
+}
+
+// errorResponse captures an error response from the OpenWeatherMap API
+type errorResponse struct {
+	Code       int `json:"cod"`
+	Message    string
+	Parameters []string
+}
+
+func (e *errorResponse) String() string {
+	message := fmt.Sprintf("API error %d: %s", e.Code, e.Message)
+	if len(e.Parameters) > 0 {
+		message += fmt.Sprintf(" (in %s)", strings.Join(e.Parameters, ", "))
+	}
+	return message
 }

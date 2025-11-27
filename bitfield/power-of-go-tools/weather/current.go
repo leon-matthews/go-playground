@@ -45,8 +45,6 @@ func ParseResponse(data []byte) (*Current, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid API response %s: %w", data, err)
 	}
-	fmt.Printf("[%T]%#[1]v\n", resp)
-	fmt.Printf("[%T]%[1]v\n", resp.Time)
 	if len(resp.Weather) < 1 {
 		return nil, fmt.Errorf("invalid API response %s: want at least one Weather element", data)
 	}

@@ -27,5 +27,4 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Println(conditions)
-
 }

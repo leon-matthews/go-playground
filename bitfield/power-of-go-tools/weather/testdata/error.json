@@ -2,6 +2,7 @@
   "cod":400,
   "message":"Invalid date format",
   "parameters": [
-    "date"
+    "sunrise",
+    "sunset"
   ]
 }

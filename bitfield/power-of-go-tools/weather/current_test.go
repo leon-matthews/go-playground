@@ -1,7 +1,6 @@
 package weather_test
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -19,14 +18,12 @@ func TestHTTPGet_SuccessfullyGetsFromLocalServer(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	fmt.Printf("[%T]%+[1]v\n", ts.URL)
 	client := ts.Client()
 	resp, err := client.Get(ts.URL)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
-
 }
 
 func TestParseResponse_CorrectlyParsesJSONData(t *testing.T) {
@@ -35,7 +32,7 @@ func TestParseResponse_CorrectlyParsesJSONData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := weather.Current{
+	want := &weather.Current{
 		Summary:     "Clouds",
 		Temperature: 21.74,
 	}

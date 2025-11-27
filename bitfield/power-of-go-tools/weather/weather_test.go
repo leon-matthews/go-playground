@@ -2,6 +2,7 @@ package weather_test
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 	"weather"
 
@@ -9,18 +10,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestParseError(t *testing.T) {
+func TestErrorResponse_BuildsCustomMessage(t *testing.T) {
 	t.Parallel()
-	data, err := os.ReadFile("testdata/error.json")
-	require.NoError(t, err)
+	data := loadData(t, "error.json")
+	err := weather.NewResponseError(400, data)
+	want := "API error 400: Invalid date format (in sunrise, sunset)"
+	assert.ErrorContains(t, err, want)
+}
 
-	want := weather.ErrorResponse{
-		Code:       404,
-		Message:    "Invalid date format",
-		Parameters: []string{"date"},
-	}
+func TestErrorResponse_UseGenericMessage(t *testing.T) {
+	err := weather.NewResponseError(402, []byte("give me money, sucker"))
+	want := "API unknown error 402: give me money, sucker"
+	assert.ErrorContains(t, err, want)
+}
 
-	got, err := weather.ParseResponse(data)
+// loadData returns bytes from file under testdata folder
+func loadData(t *testing.T, name string) []byte {
+	t.Helper()
+	path := filepath.Join("testdata", name)
+	data, err := os.ReadFile(path)
 	require.NoError(t, err)
-	assert.Equal(t, want, got)
+	return data
 }
