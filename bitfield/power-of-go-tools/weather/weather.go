@@ -8,29 +8,37 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
 
+const baseURL = "https://api.openweathermap.org"
+
 type Client struct {
-	APIKey     string
-	BaseURL    string
-	HTTPClient *http.Client
+	key        string
+	baseURL    *url.URL
+	httpClient *http.Client
 }
 
 func NewClient(apiKey string) *Client {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		panic(err) // Error in constant
+	}
+
 	return &Client{
-		APIKey:  apiKey,
-		BaseURL: "https://api.openweathermap.org",
-		HTTPClient: &http.Client{
+		key:     apiKey,
+		baseURL: u,
+		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
 	}
 }
 
 func (c *Client) CurrentConditions(latitude, longitude float64) (*Current, error) {
-	u := CurrentWeatherURL(c.APIKey, latitude, longitude)
-	data, err := c.Get(u)
+	u := CurrentWeatherURL(c.key, latitude, longitude)
+	data, err := c.get(u)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,8 +52,23 @@ func (c *Client) CurrentConditions(latitude, longitude float64) (*Current, error
 	return conditions, nil
 }
 
-func (c *Client) Get(url string) (json.RawMessage, error) {
-	resp, err := c.HTTPClient.Get(url)
+func (c *Client) buildURL(path string, params map[string]string) (string, error) {
+	// Add path
+	u := c.baseURL.JoinPath(path)
+
+	// Extend query
+	values := u.Query()
+	values.Add("appid", c.key)
+	values.Add("units", "metric")
+	for k, v := range params {
+		values.Set(k, v)
+	}
+	u.RawQuery = values.Encode()
+	return u.String(), nil
+}
+
+func (c *Client) get(url string) (json.RawMessage, error) {
+	resp, err := c.httpClient.Get(url)
 	if err != nil {
 		return nil, err
 	}
