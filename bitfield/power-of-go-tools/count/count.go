@@ -16,7 +16,7 @@ type counter struct {
 	files  []io.Reader
 }
 
-// NewCreate returns a new counter with zero or more options, using the 'functional options' pattern.
+// NewCounter returns a new counter with zero or more options, using the 'functional options' pattern.
 // Use options to customise built object, eg. NewCounter(WithInput(r))
 func NewCounter(opts ...option) (*counter, error) {
 	// Defaults
