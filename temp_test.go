@@ -1,21 +1,63 @@
 package main
 
 import (
-	"fmt"
+	"strings"
 	"testing"
 )
 
-func TestParent(t *testing.T) {
-	t.Parallel()
-	defer fmt.Println("Parent exits")
-
-	t.Run("Sub1", func(t *testing.T) {
-		defer fmt.Println("Sub1 exits")
-	})
-
-	t.Run("Sub2", func(t *testing.T) {
-		defer fmt.Println("Sub1 exits")
-	})
+var expected = "Sphinx of black quartz, judge my vow!"
+var parts = []string{
+	"Sphinx",
+	"of",
+	"black",
+	"quartz,",
+	"judge",
+	"my",
+	"vow!",
 }
 
-func main() {}
+func BenchmarkAppend(b *testing.B) {
+	var got string
+	for b.Loop() {
+		got = ""
+		for _, part := range parts {
+			got += part
+			got += " "
+		}
+		got = strings.TrimSpace(got)
+	}
+
+	if expected != got {
+		b.Errorf("Unexpected output: %q", got)
+	}
+}
+
+func BenchmarkStringBuilder(b *testing.B) {
+	var got string
+	var sb strings.Builder
+
+	for b.Loop() {
+		for _, part := range parts {
+			sb.WriteString(part)
+			sb.WriteString(" ")
+
+		}
+		got = strings.TrimSpace(sb.String())
+		sb.Reset()
+	}
+
+	if expected != got {
+		b.Errorf("Unexpected output: %q", got)
+	}
+}
+
+func BenchmarkStringsJoin(b *testing.B) {
+	var got string
+	for b.Loop() {
+		got = strings.Join(parts, " ")
+	}
+
+	if expected != got {
+		b.Errorf("Unexpected output: %q", got)
+	}
+}
