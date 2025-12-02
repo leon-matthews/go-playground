@@ -4,23 +4,23 @@
 package main
 
 import (
-    "fmt"
+	"fmt"
 )
 
 func main() {
-    greetings := make(chan string)
+	greetings := make(chan string)
 
-    // Send one value then close channel
-    go func() {
-        defer close(greetings)
-        greetings <- "Hello"
-    }()
+	// Send one value then close channel
+	go func() {
+		defer close(greetings)
+		greetings <- "Hello"
+	}()
 
-    // Read, printing if 'real' or not
-    greeting, ok := <- greetings
-    fmt.Printf("(%v): %s\n", ok, greeting)
+	// Read, printing if 'real' or not
+	greeting, ok := <-greetings
+	fmt.Printf("(%v): %s\n", ok, greeting)
 
-    // Reading from closed channel - not 'real'
-    greeting, ok = <- greetings
-    fmt.Printf("(%v): %s\n", ok, greeting)
+	// Reading from closed channel - not 'real'
+	greeting, ok = <-greetings
+	fmt.Printf("(%v): %s\n", ok, greeting)
 }

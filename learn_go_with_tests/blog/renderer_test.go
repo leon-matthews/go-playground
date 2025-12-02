@@ -3,10 +3,11 @@ package blogposts_test
 import (
 	"bytes"
 	_ "embed"
-	"github.com/stretchr/testify/require"
 	"io"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
 

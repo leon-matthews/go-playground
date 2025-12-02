@@ -6,7 +6,7 @@ import (
 
 // Using a struct makes the zero value ready-to-use (and encapsulates implementation)
 type StringStack struct {
-	data []string	// Not exported
+	data []string // Not exported
 }
 
 func (s *StringStack) Push(x string) {

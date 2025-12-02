@@ -47,5 +47,5 @@ func (s *Session) Run() {
 		fmt.Fprintf(s.Stdout, "%s> ", out)
 	}
 
-	fmt.Fprintln(s.Stdout,"\nSmell you later!")
+	fmt.Fprintln(s.Stdout, "\nSmell you later!")
 }

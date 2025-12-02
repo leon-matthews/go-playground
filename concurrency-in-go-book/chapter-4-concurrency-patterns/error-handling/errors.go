@@ -27,9 +27,9 @@ func main() {
 
 // Bundle error with result so that upper layer can handle it intelligently
 type Result struct {
-	URL string
+	URL      string
 	Response *http.Response
-	Error error
+	Error    error
 }
 
 // checkStatus attempts to fetch, via HTTP, all of the given URLs

@@ -16,7 +16,7 @@ type config struct {
 }
 
 func (c *config) load() {
-    c.tick = time.Second * 10
+	c.tick = time.Second * 10
 }
 
 func main() {
@@ -41,7 +41,7 @@ func main() {
 					log.Println("SIGHUP received, reloading configuration")
 					cfg.load()
 				case os.Interrupt:
-				    log.Println("Interrupt signal received")
+					log.Println("Interrupt signal received")
 					cancel()
 					os.Exit(1)
 				}

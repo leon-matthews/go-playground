@@ -45,7 +45,7 @@ func main() {
 	}
 	wg.Wait()
 
-    // Fetch and print a buffer to see its state. Probably messy by now!
+	// Fetch and print a buffer to see its state. Probably messy by now!
 	mem := pool.Get().(*[]byte)
 	fmt.Println(*mem)
 

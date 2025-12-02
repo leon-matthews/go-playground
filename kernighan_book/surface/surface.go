@@ -20,7 +20,7 @@ var sin30, cos30 = math.Sin(angle), math.Cos(angle)
 func main() {
 	fmt.Printf(
 		"<svg xmlns='http://www.w3.org/2000/svg' \n"+
-			"\tstyle='stroke: grey; fill: white; stroke-width: 0.7' \n" +
+			"\tstyle='stroke: grey; fill: white; stroke-width: 0.7' \n"+
 			"\twidth='%d' height='%d'>\n", width, height,
 	)
 
@@ -59,6 +59,6 @@ func corner(i, j int) (float64, float64) {
 }
 
 func f(x, y float64) float64 {
-	r := math.Hypot(x, y) 				// Distance from (0, 0)
+	r := math.Hypot(x, y) // Distance from (0, 0)
 	return math.Sin(r) / r
 }

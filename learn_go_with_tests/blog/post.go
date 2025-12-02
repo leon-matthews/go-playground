@@ -1,9 +1,10 @@
 package blogposts
 
 import (
+	"html/template"
+
 	"github.com/gomarkdown/markdown"
 	"github.com/microcosm-cc/bluemonday"
-	"html/template"
 )
 
 // Post represents a single blog post

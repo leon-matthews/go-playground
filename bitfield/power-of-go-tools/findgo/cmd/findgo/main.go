@@ -19,7 +19,7 @@ func main() {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
-	
+
 	paths := findgo.GoFiles(root.FS())
 	for _, path := range paths {
 		fmt.Println(path)

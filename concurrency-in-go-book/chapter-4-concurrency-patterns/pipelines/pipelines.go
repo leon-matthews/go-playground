@@ -6,7 +6,7 @@ import (
 
 // Batch processing, no concurrency
 func main() {
-	nums := []int{1, 2, 3, 4, 5, 6,7 , 8 , 9, 10}
+	nums := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 	fmt.Println(nums)
 
 	nums = multiply(nums, 2)

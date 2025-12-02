@@ -2,9 +2,9 @@
 // https://gorm.io/docs/
 package main
 
-import "fmt"
-
 import (
+	"fmt"
+
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )

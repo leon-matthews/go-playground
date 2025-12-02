@@ -31,7 +31,7 @@ func TestRacer(t *testing.T) {
 		defer serverA.Close()
 		defer serverB.Close()
 
-		_, err := ConfigurableRacer(serverA.URL, serverB.URL, 10 * time.Millisecond)
+		_, err := ConfigurableRacer(serverA.URL, serverB.URL, 10*time.Millisecond)
 
 		if err == nil {
 			t.Error("expected an error but did not get one")

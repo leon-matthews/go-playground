@@ -41,9 +41,9 @@ func jsonMarshal() []byte {
 // Take JSON and populate given struct
 func jsonUnmarshal(data []byte) {
 	// Anonymous struct holding fields of interest
-	var titles []struct{
+	var titles []struct {
 		Title string
-		Year int `json:"released"`
+		Year  int `json:"released"`
 	}
 
 	if err := json.Unmarshal(data, &titles); err != nil {

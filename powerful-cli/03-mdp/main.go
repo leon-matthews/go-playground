@@ -6,10 +6,10 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
+	"html/template"
 	"os"
 	"os/exec"
 	"runtime"
-	"html/template"
 	"time"
 
 	"github.com/gomarkdown/markdown"
@@ -21,7 +21,7 @@ var htmlTemplate string
 
 type content struct {
 	Title string
-	Body template.HTML
+	Body  template.HTML
 }
 
 func main() {
@@ -49,7 +49,7 @@ func run(filename string, skipPreview bool) error {
 	body := parseContent(contents)
 	c := content{
 		Title: "Markdown Preview",
-		Body: template.HTML(body),
+		Body:  template.HTML(body),
 	}
 	html, err := buildHTML(c)
 	if err != nil {

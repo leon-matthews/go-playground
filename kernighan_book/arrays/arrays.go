@@ -76,8 +76,8 @@ func cryptoHash() {
 	hash1 := sha256.Sum256([]byte("l"))
 	hash2 := sha256.Sum256([]byte("I"))
 	fmt.Printf("%x\n%x\n", hash1, hash2)
-	fmt.Printf("%T %T\n", hash1, hash2)		// [32]uint8 [32]uint8
-	fmt.Println(hash1 == hash2)				// false
+	fmt.Printf("%T %T\n", hash1, hash2) // [32]uint8 [32]uint8
+	fmt.Println(hash1 == hash2)         // false
 }
 
 // Arrays are copied by default

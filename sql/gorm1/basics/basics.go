@@ -2,9 +2,9 @@
 // https://v1.gorm.io/docs/
 package main
 
-import "fmt"
-
 import (
+	"fmt"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )

@@ -27,7 +27,7 @@ func randomStream(done <-chan any) <-chan int {
 		for {
 			select {
 			case ints <- rand.Int():
-			case <- done:
+			case <-done:
 				return
 			}
 		}

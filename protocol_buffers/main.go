@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"protocol_buffers/addresses"
+
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
-	"log"
-	"protocol_buffers/addresses"
 )
 
 func main() {

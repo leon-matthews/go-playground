@@ -8,7 +8,7 @@ import (
 func assertAlmostEqual(t *testing.T, shape Shape, got, want float64) {
 	t.Helper()
 	epsilon := 1.0e-6
-	if math.Abs(got - want) > epsilon {
+	if math.Abs(got-want) > epsilon {
 		t.Errorf("%#v got %.6f want %.6f", shape, got, want)
 	}
 }
@@ -37,10 +37,10 @@ func TestArea(t *testing.T) {
 func TestAreaTableDriven(t *testing.T) {
 	// Anonymous struct, slice of structs with two fields
 	areaTests := []struct {
-		name string
+		name  string
 		shape Shape
-		want float64
-	} {
+		want  float64
+	}{
 		{name: "Circle", shape: Circle{Radius: 10}, want: 314.259265},
 		{name: "Rectangle", shape: Rectangle{Width: 12, Height: 6}, want: 72.0},
 		{name: "Triangle", shape: Triangle{Base: 12, Height: 6}, want: 36.0},

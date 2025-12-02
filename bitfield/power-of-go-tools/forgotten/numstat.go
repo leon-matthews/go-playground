@@ -55,4 +55,3 @@ func parse(line string) (Change, error) {
 
 	return Change{linesAdded, linesRemoved, f[2]}, nil
 }
-

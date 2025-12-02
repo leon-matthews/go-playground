@@ -1,18 +1,18 @@
 package main
 
 import (
-    "flag"
-    "fmt"
-    "time"
+	"flag"
+	"fmt"
+	"time"
 )
 
 var (
-    message = flag.String("message", "Hello!", "what to say")
-    delay   = flag.Duration("delay", 2*time.Second, "how long to wait")
+	message = flag.String("message", "Hello!", "what to say")
+	delay   = flag.Duration("delay", 2*time.Second, "how long to wait")
 )
 
 func main() {
-    flag.Parse()
-    fmt.Println(*message)
-    time.Sleep(*delay)
+	flag.Parse()
+	fmt.Println(*message)
+	time.Sleep(*delay)
 }

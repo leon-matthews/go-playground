@@ -11,7 +11,7 @@ import (
 // Slowest, but still suprisingly fast.
 func ConcatOperator(args ...string) string {
 	var s, sep string
-	for _, arg := range(args) {
+	for _, arg := range args {
 		s += sep + arg
 		sep = " "
 	}
@@ -22,7 +22,7 @@ func ConcatOperator(args ...string) string {
 func ConcatBuilder(args ...string) string {
 	var sb strings.Builder
 	var sep string
-	for _, arg := range(args) {
+	for _, arg := range args {
 		sb.WriteString(sep)
 		sb.WriteString(arg)
 		sep = " "

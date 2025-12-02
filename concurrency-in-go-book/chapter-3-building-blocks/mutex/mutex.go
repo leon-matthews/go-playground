@@ -12,7 +12,7 @@ func main() {
 	c := counter{}
 	c2 := counter{}
 
-	for _ = range(100) {
+	for _ = range 100 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -21,7 +21,7 @@ func main() {
 		}()
 	}
 
-	for _ = range(100) {
+	for _ = range 100 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -36,7 +36,7 @@ func main() {
 
 type counter struct {
 	count int
-	lock sync.Mutex
+	lock  sync.Mutex
 }
 
 // decrement count with terrible race-condition

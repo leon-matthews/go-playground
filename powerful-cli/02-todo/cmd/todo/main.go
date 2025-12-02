@@ -15,7 +15,6 @@ import (
 // Default file name
 var todoPath = "todo.json"
 
-
 func main() {
 	// Use default file name?
 	if os.Getenv("TODO_FILENAME") != "" {

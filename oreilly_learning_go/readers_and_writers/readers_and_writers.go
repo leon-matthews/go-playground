@@ -26,11 +26,11 @@ func main() {
 func readerWriter() error {
 	pangrams :=
 		"The quick brown fox jumped over the lazy dog\n" +
-		"Pack my box with five dozen liquor jugs\n" +
-		"Jackdaws love my big sphinx of quartz\n" +
-		"The five boxing wizards jump quickly\n" +
-		"Sphinx of black quartz, judge my vow\n" +
-		"Blowzy night-frumps vex'd Jack Q"
+			"Pack my box with five dozen liquor jugs\n" +
+			"Jackdaws love my big sphinx of quartz\n" +
+			"The five boxing wizards jump quickly\n" +
+			"Sphinx of black quartz, judge my vow\n" +
+			"Blowzy night-frumps vex'd Jack Q"
 
 	reader := strings.NewReader(pangrams)
 	counts, err := countLetters(reader)

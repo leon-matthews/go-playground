@@ -16,7 +16,7 @@ func main() {
 	out = multiply(done, out, 2)
 	out = add(done, out, 100)
 
-	for i := range out	 {
+	for i := range out {
 		fmt.Println(i)
 	}
 }
@@ -30,9 +30,9 @@ func generator(done <-chan any, in ...int) <-chan int {
 		defer fmt.Println("generator()'s goroutine finished")
 		for _, i := range in {
 			select {
-				case out <-i:
-				case <-done:
-					return
+			case out <- i:
+			case <-done:
+				return
 			}
 		}
 	}()
@@ -48,9 +48,9 @@ func add(done <-chan any, in <-chan int, additive int) <-chan int {
 		defer fmt.Println("add()'s goroutine finished")
 		for i := range in {
 			select {
-				case out <-i + additive:
-				case <-done:
-					return
+			case out <- i + additive:
+			case <-done:
+				return
 			}
 		}
 	}()
@@ -66,9 +66,9 @@ func multiply(done <-chan any, in <-chan int, multiplier int) <-chan int {
 		defer fmt.Println("multiply()'s goroutine finished")
 		for i := range in {
 			select {
-				case out <-i * multiplier:
-				case <-done:
-					return
+			case out <- i * multiplier:
+			case <-done:
+				return
 			}
 		}
 	}()

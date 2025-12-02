@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func main () {
+func main() {
 	// Pflag replaces for Go's flag package, implementing GNU-style --flags.
 	pflag.StringP("name", "n", "Leon", "Name parameter")
 	pflag.StringP("password", "p", "hardToGuess", "Password")
@@ -23,7 +23,7 @@ func aliasNormalise(f *pflag.FlagSet, n string) pflag.NormalizedName {
 	case "pass":
 		n = "password"
 	case "ps":
-		n  = "password"
+		n = "password"
 	}
 	return pflag.NormalizedName(n)
 }

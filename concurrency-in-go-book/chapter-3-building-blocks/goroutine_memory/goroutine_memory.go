@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-    "math"
+	"math"
 	"runtime"
 	"sync"
 )
@@ -25,7 +25,7 @@ func main() {
 	after := memConsumed()
 
 	fmt.Printf("Before: %.3fMib\n", float64(before)/MB)
-    fmt.Printf("After: %.3fMib\n", float64(after)/MB)
+	fmt.Printf("After: %.3fMib\n", float64(after)/MB)
 	fmt.Printf("Difference: %.3fkiB", float64(after-before)/numGoroutines/kB)
 }
 

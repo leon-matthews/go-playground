@@ -12,7 +12,6 @@ func main() {
 	helloRunner2(3)
 }
 
-
 // simple is a nice easy [sync.WaitGroup] example
 func simple() {
 	wg := sync.WaitGroup{}
@@ -50,7 +49,6 @@ func hello(id int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	fmt.Printf("hello(%d)\n", id)
 }
-
 
 // helloRunner2 is an improvement: hello2() doesn't know its concurrent
 func helloRunner2(numGreeters int) {

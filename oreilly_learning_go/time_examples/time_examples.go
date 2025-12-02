@@ -15,6 +15,6 @@ func main() {
 		n++
 		sum += n
 	}
-	elapsed := time.Since(start)	// same as `time.Now().Sub(start)`
+	elapsed := time.Since(start) // same as `time.Now().Sub(start)`
 	fmt.Printf("Calculated sum of 1 to %d = %d in %v", limit, sum, elapsed)
 }

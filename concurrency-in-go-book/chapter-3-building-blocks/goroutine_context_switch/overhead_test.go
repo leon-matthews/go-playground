@@ -9,7 +9,6 @@ func main() {
 
 }
 
-
 func BenchmarkContextSwitch(b *testing.B) {
 	var wg sync.WaitGroup
 	begin := make(chan struct{})

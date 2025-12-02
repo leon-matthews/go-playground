@@ -11,9 +11,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/nats-io/nats.go"
 	"log"
 	"time"
+
+	"github.com/nats-io/nats.go"
 )
 
 func main() {

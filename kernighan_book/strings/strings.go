@@ -84,7 +84,7 @@ func byteBuffers() {
 	buf.WriteByte('[')
 	buf.WriteString("Leon")
 	buf.WriteByte(']')
-	fmt.Println(buf.String())	// "[Leon]"
+	fmt.Println(buf.String()) // "[Leon]"
 }
 
 // Basics of the `strconv` package
@@ -92,7 +92,7 @@ func strconvExamples() {
 	// Integer-to-ASCII
 	x := 123
 	y := fmt.Sprintf("%d", x)
-	fmt.Println(y, strconv.Itoa(x))	// 123 123
+	fmt.Println(y, strconv.Itoa(x)) // 123 123
 
 	// Change base
 	for i := 2; i <= 16; i++ {
@@ -102,9 +102,9 @@ func strconvExamples() {
 
 	// ASCII to integer
 	x, err := strconv.Atoi("12345")
-	fmt.Println(x, err)		// 12345 <nil>
+	fmt.Println(x, err) // 12345 <nil>
 
 	// Base-10, up to 64-bits
 	x2, err := strconv.ParseInt("54321", 10, 64)
-	fmt.Println(x2, err)	// 54321 <nil>
+	fmt.Println(x2, err) // 54321 <nil>
 }

@@ -6,7 +6,7 @@ import (
 )
 
 // FindRecursive sends paths to files under root to the returned channel
-func FindRecursive(root string) <-chan string  {
+func FindRecursive(root string) <-chan string {
 	paths := make(chan string)
 
 	go func() {
@@ -19,5 +19,5 @@ func FindRecursive(root string) <-chan string  {
 		})
 	}()
 
-    return paths
+	return paths
 }

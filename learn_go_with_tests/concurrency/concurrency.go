@@ -29,7 +29,7 @@ func CheckWebsites(wc WebsiteChecker, urls []string) map[string]bool {
 
 	// Receive results from `ch`
 	for range len(urls) {
-		r := <- ch
+		r := <-ch
 		results[r.string] = r.bool
 	}
 

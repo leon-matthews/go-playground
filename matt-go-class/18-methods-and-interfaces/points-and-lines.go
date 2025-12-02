@@ -18,8 +18,8 @@ func (l Line) Distance() float64 {
 }
 
 func (l *Line) ScaleBy(f float64) {
-	l.End.X += (f-1)*(l.End.X - l.Begin.X)
-	l.End.Y += (f-1)*(l.End.Y - l.Begin.Y)
+	l.End.X += (f - 1) * (l.End.X - l.Begin.X)
+	l.End.Y += (f - 1) * (l.End.Y - l.Begin.Y)
 }
 
 type Path []Point

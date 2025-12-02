@@ -109,7 +109,7 @@ var template = &x509.Certificate{
 	},
 	NotBefore:             time.Now(),
 	NotAfter:              time.Now().AddDate(10, 0, 0),
-	IPAddresses:  []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
+	IPAddresses:           []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
 	IsCA:                  true,
 	ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 	KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
