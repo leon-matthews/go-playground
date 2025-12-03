@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const address = "127.0.0.1:8090"
+const address = ":8090"
 
 func main() {
 	// Start TCP server
@@ -39,7 +39,7 @@ func handleConnection(conn net.Conn) {
 		log.Printf("%s Disconnect", remote)
 		conn.Close()
 	}()
-	conn.SetDeadline(time.Now().Add(time.Second))
+	conn.SetDeadline(time.Now().Add(10 * time.Second))
 	log.Printf("%s Connected", remote)
 
 	// Read line from client
