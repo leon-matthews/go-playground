@@ -12,10 +12,10 @@ import (
 )
 
 type config struct {
-	root string // Path to start searching
-	ext  string // extension to filter out
-	size int64  // minimum file size
-	list bool   // just list files
+	root    string // Path to start searching
+	ext     string // extension to filter out
+	minSize int64  // minimum file minSize
+	list    bool   // just list files
 }
 
 func parseArgs() config {
@@ -23,7 +23,7 @@ func parseArgs() config {
 	flag.StringVarP(&options.root, "root", "r", ".", "Directory to start scanning")
 	flag.BoolVarP(&options.list, "list", "l", false, "List files only")
 	flag.StringVarP(&options.ext, "ext", "e", "", "File extension to filter out")
-	flag.Int64VarP(&options.size, "size", "s", 0, "Minimum file size")
+	flag.Int64VarP(&options.minSize, "size", "s", 0, "Minimum file size")
 	help := flag.BoolP("help", "h", false, "show this help")
 
 	flag.Usage = func() {
@@ -58,7 +58,7 @@ func run(out io.Writer, options config) error {
 			return err
 		}
 
-		if filterOut(path, options.ext, options.size, info) {
+		if shouldSkip(path, options.ext, options.minSize, info) {
 			return nil
 		}
 
