@@ -1,6 +1,7 @@
 package main
 
 import (
+    _ "expvar"
 	"fmt"
 	"maps"
 	"net/http"
@@ -17,6 +18,10 @@ func main() {
 	// ...which can be achieved via a helper
 	http.HandleFunc("/headers", headers)
 
+	// Importing "expvar" creates the endpoint: /debug/vars
+	// Can monitor memory use live with, eg. 'expvarmon'
+
+    // Run server!
 	fmt.Printf("Running server on port %s\n", port)
 	err := http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 	if err != nil {
