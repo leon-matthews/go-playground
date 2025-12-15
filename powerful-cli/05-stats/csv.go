@@ -23,14 +23,16 @@ func sum(data []float64) float64 {
 }
 
 // csv2float reads and converts floats from one column from the given CSV file
-// The first row is skipped. columnIndex starts at zero.
+// The first row is skipped. columnIndex starts at one.
 func csv2float(input io.Reader, columnIndex int) ([]float64, error) {
-	r := csv.NewReader(input)
+	// Adjust from one-based to zero-based
+	columnIndex--
 
 	// Read in all CSV data
+	r := csv.NewReader(input)
 	data, err := r.ReadAll()
 	if err != nil {
-		return nil, fmt.Errorf("Cannot read data from file: %w", err)
+		return nil, fmt.Errorf("reading csv data: %w", err)
 	}
 
 	var column []float64
@@ -41,7 +43,7 @@ func csv2float(input io.Reader, columnIndex int) ([]float64, error) {
 		}
 
 		// Checking number of columns in CSV file
-		if len(row) < columnIndex {
+		if len(row) <= columnIndex {
 			// File does not have that many columns
 			return nil, fmt.Errorf("%w: file has only %d columns", ErrInvalidColumn, len(row))
 		}
@@ -49,7 +51,7 @@ func csv2float(input io.Reader, columnIndex int) ([]float64, error) {
 		// Try to convert data read into a float number
 		v, err := strconv.ParseFloat(row[columnIndex], 64)
 		if err != nil {
-			return nil, fmt.Errorf("%w: %s", ErrNotNumber, err)
+			return nil, fmt.Errorf("row: %v: %w: %s", rowIndex, ErrNotNumber, err)
 		}
 		column = append(column, v)
 

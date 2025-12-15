@@ -7,7 +7,7 @@ Published by The Pragmatic Programmers.
 
 ## Next
 
-Carry on with Chapter 5: colStats, from page 123
+Carry on with Chapter 5: colStats, from page 127
 
 
 ## Errata
