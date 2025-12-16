@@ -2,12 +2,25 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func BenchmarkRun(b *testing.B) {
+	filenames, err := filepath.Glob("./testdata/benchmark/*.csv")
+	require.NoError(b, err)
+
+	for b.Loop() {
+		if err := run(filenames, "mean", 2, io.Discard); err != nil {
+			b.Error(err)
+		}
+	}
+}
 
 func TestRun(t *testing.T) {
 	type testCase struct {
