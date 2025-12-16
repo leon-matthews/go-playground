@@ -22,11 +22,15 @@ func sum(data []float64) float64 {
 	return sum
 }
 
-// csv2float reads and converts floats from one column from the given CSV file
+// csv2Float reads and converts floats from one column from the given CSV file
 // The first row is skipped. columnIndex starts at one.
-func csv2float(input io.Reader, columnIndex int) ([]float64, error) {
+func csv2Float(input io.Reader, columnIndex int) ([]float64, error) {
 	// Adjust from one-based to zero-based
 	columnIndex--
+
+	if columnIndex < 0 {
+		return nil, fmt.Errorf("%w: must be positive: %d", ErrInvalidColumn, columnIndex+1)
+	}
 
 	// Read in all CSV data
 	r := csv.NewReader(input)

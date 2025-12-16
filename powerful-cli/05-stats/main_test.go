@@ -33,12 +33,26 @@ func TestRun(t *testing.T) {
 			want:      "233.84\n",
 			wantErr:   nil,
 		},
-		"error missing file": {
-			column: 2,
+		"error invalid path": {
+			column:    2,
 			operation: "mean",
-			files: []string{"testdata/example.csv", "testdata/no-such-file.csv"},
-			want: "",
-			wantErr: os.ErrNotExist,
+			files:     []string{"testdata/example.csv", "testdata/no-such-file.csv"},
+			want:      "",
+			wantErr:   os.ErrNotExist,
+		},
+		"error no files": {
+			column:    0,
+			operation: "sum",
+			files:     []string{},
+			want:      "",
+			wantErr:   ErrNoFiles,
+		},
+		"error invalid operation": {
+			column:    2,
+			operation: "magic",
+			files:     []string{"testdata/example.csv"},
+			want:      "",
+			wantErr:   ErrInvalidOperation,
 		},
 	}
 

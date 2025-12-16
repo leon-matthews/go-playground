@@ -60,7 +60,7 @@ func TestCSV2Float(t *testing.T) {
 
 	for name, tt := range testCases {
 		t.Run(name, func(t *testing.T) {
-			result, err := csv2float(tt.reader, tt.column)
+			result, err := csv2Float(tt.reader, tt.column)
 			if tt.wantErr != nil {
 				assert.ErrorIs(t, err, tt.wantErr)
 				return
