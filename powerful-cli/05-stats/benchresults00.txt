@@ -1,7 +1,0 @@
-goos: linux
-goarch: amd64
-pkg: stats
-cpu: AMD Ryzen 9 7950X3D 16-Core Processor          
-BenchmarkRun-32    	       4	 293655947 ns/op	534495544 B/op	 5041055 allocs/op
-PASS
-ok  	stats	1.181s
