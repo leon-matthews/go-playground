@@ -38,7 +38,7 @@ func iFibonacci() iter.Seq[uint64] {
 	return func(yield func(uint64) bool) {
 		var a, b uint64
 
-		a, b = 1, 1
+		a, b = 0, 1
 		for {
 			if !yield(a) {
 				return
