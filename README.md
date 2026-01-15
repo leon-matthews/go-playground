@@ -9,9 +9,4 @@ trying out new techniques or ideas for new projects.
 
 ## Next
 
-
-## Go libaries to learn:
-
-* testify
-* nats-io
-* [moq](https://github.com/matryer/moq)
+Write example for techniques/time-afterfunc/
