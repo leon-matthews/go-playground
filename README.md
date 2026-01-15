@@ -9,4 +9,5 @@ trying out new techniques or ideas for new projects.
 
 ## Next
 
-Write example for techniques/time-afterfunc/
+* Write example for folder: techniques/time-afterfunc/
+* Start Go Kata practice: https://github.com/medunes/go-kata
