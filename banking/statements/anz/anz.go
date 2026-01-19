@@ -69,7 +69,6 @@ func parseRow(row []string) (*Transaction, error) {
 		rowErr = errors.Join(rowErr, err)
 	}
 
-	fmt.Printf("[%T]%+[1]v\n", rowErr)
 	if rowErr != nil {
 		return nil, fmt.Errorf("parse row: %w", rowErr)
 	}
