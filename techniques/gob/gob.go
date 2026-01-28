@@ -2,30 +2,49 @@ package main
 
 import (
 	"bytes"
+	"encoding/gob"
 	"fmt"
+	"log"
 )
 
 type staffID int
 
 type staff struct {
-	id   staffID
-	name string
-	age  int
+	ID   staffID
+	Name string
 }
 
 type manager struct {
 	staff
-	reports []staffID
+	Reports []staffID
 }
 
 func main() {
-	leon := staff{staffID(3), "Leon", 28}
-	eric := staff{2, "Eric", 26}
+	// Create data
+	leon := staff{staffID(7), "Leon"}
+	eric := staff{6, "Eric"}
+	yang := staff{5, "Yang"}
 	alex := manager{
-		staff:   staff{1, "Alex", 27},
-		reports: []staffID{leon.id, eric.id}}
-	fmt.Println("Have:", alex, eric, leon)
+		staff:   staff{1, "Alex"},
+		Reports: []staffID{leon.ID, eric.ID, yang.ID},
+	}
+	fmt.Println("Have:", alex)
 
-	out := bytes.NewBuffer()
+	// Encode to GOB
+	out := &bytes.Buffer{}
+	enc := gob.NewEncoder(out)
+	err := enc.Encode(alex)
+	if err != nil {
+		log.Fatal("Encoding GOB:", err)
+	}
+	fmt.Println("Encoded:", out.Bytes())
 
+	// Decode from GOB
+	dec := gob.NewDecoder(out)
+	var alex2 staff
+	err = dec.Decode(&alex2)
+	if err != nil {
+		log.Fatal("Decoding GOB:", err)
+	}
+	fmt.Println("Decoded:", alex2)
 }
