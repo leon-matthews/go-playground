@@ -1,12 +1,14 @@
-package anz
+package common
 
 import (
 	"fmt"
 	"time"
 )
 
+const dateFormat = "2 Jan 2006"
+
 // Transaction holds basic details on a single financial event
-// A negative Amount indicates a outgoing funds, eg. a purchase.
+// A negative Amount indicates outgoing funds, eg. a purchase.
 // The Date and Processed fields have no time information
 type Transaction struct {
 	Date      time.Time

@@ -1,4 +1,4 @@
-package anz
+package common_test
 
 import (
 	"fmt"
@@ -6,10 +6,12 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"statements/common"
 )
 
 func TestTransaction(t *testing.T) {
-	transaction := Transaction{
+	one := common.Transaction{
 		Date:      time.Date(2025, time.October, 21, 0, 0, 0, 0, time.UTC),
 		Processed: time.Date(2025, time.October, 21, 0, 0, 0, 0, time.UTC),
 		Account:   "4055-xxxx-1234",
@@ -24,14 +26,14 @@ Account: 4055-xxxx-1234
 Details: "Bob's Burgers"
 Amount: -75.80
 `
-		got := transaction.String()
-		fmt.Printf("[%T]%+[1]v\n", transaction)
+		got := one.String()
+		fmt.Printf("[%T]%+[1]v\n", t)
 		assert.Equal(t, want, got)
 	})
 
 	t.Run("tabbed", func(t *testing.T) {
 		want := "21 Oct 2025\t4055-xxxx-1234\tBob's Burgers\t$-75.80\t"
-		got := transaction.Tabbed()
+		got := one.Tabbed()
 		assert.Equal(t, want, got)
 	})
 }
