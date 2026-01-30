@@ -2,10 +2,16 @@ package common
 
 import (
 	"fmt"
+	"io"
 	"time"
 )
 
 const dateFormat = "2 Jan 2006"
+
+// A statement contains zero or more Transaction
+type Statement interface {
+	Read(r io.Reader) ([]*Transaction, error)
+}
 
 // Transaction holds basic details on a single financial event
 // A negative Amount indicates outgoing funds, eg. a purchase.

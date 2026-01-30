@@ -1,11 +1,12 @@
 package common_test
 
 import (
-	"statements/common"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"statements/common"
 )
 
 func TestCleanString(t *testing.T) {
