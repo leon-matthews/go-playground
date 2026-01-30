@@ -1,4 +1,4 @@
-package etag
+package pwned
 
 import (
 	"encoding/csv"
@@ -9,13 +9,14 @@ import (
 
 const separator = ':'
 
-type ETagStore map[string]string
+// ETagStore is an in-memory store that can saved to a file
+type ETagStore map[Prefix]string
 
 func NewETagStore() ETagStore {
-	return make(map[string]string)
+	return make(map[Prefix]string)
 }
 
-func (es ETagStore) Load(name string) error {
+func (s ETagStore) Load(name string) error {
 	fp, err := os.Open(name)
 	if err != nil {
 		return fmt.Errorf("loading etags: %w", err)
@@ -26,7 +27,6 @@ func (es ETagStore) Load(name string) error {
 	i := 0
 	for {
 		row, err := r.Read()
-		fmt.Printf("[%T]%+[1]v\n", row)
 		i++
 		if err == io.EOF {
 			break
@@ -34,21 +34,26 @@ func (es ETagStore) Load(name string) error {
 		if err != nil {
 			return fmt.Errorf("loading etags, row %d: %w", i, err)
 		}
-		es[row[0]] = row[1]
+		prefix, err := NewPrefix(row[0])
+		if err != nil {
+			return fmt.Errorf("loading etags, row %d: %w", i, err)
+		}
+		s[prefix] = row[1]
 	}
+
 	return nil
 }
 
 // Save writes map out to colon-separated file
-func (es ETagStore) Save(name string) error {
+func (s ETagStore) Save(name string) error {
 	fp, err := os.Create(name)
 	if err != nil {
 		return fmt.Errorf("saving etags: %w", err)
 	}
 	w := csv.NewWriter(fp)
 	w.Comma = separator
-	for k, v := range es {
-		if err := w.Write([]string{k, v}); err != nil {
+	for k, v := range s {
+		if err := w.Write([]string{string(k), v}); err != nil {
 			return fmt.Errorf("writing etag field (%v:%v): %w", k, v, err)
 		}
 	}

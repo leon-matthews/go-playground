@@ -1,83 +1,43 @@
+// Package pwned downloads and maintains a local copy of the Have I Been Pwned password database.
+// https://haveibeenpwned.com/Passwords
+//
+// Downloading the entire database is free, and does not require an access key,
+// so please use good manners. Over a million HTTP requests are required!
+//
+// The database does not contain actual users' passwords. Instead, it stores
+// the SHA1 cryptographic hash of each password, plus the count of times that
+// password has appeared in a security breach. These hash lists are grouped by
+// a 5-character hexadecimal prefix - which is why a million requests are
+// needed, as 16^5 = 1,048,576.
+//
+// A mapping between prefixes and HTTP ETags is maintained so that a local
+// database can be efficiently updated, downloading only hash lists that have
+// been changed since the last update.
 package pwned
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"io"
 	"iter"
-	"log/slog"
-	"net/http"
-	"time"
 )
 
-// buildURL produces absolute URL from password hash prefix
-func BuildURL(prefix string) (string, error) {
-	if len(prefix) != 5 {
-		return "", errors.New("prefix wrong length")
+// Prefixes are currently 5 hexadecimal characters long
+const prefixLength = 5
+
+// A Prefix is a hexadecimal string used to reference a [HashList], eg. "cafe5"
+type Prefix string
+
+// NewPrefix casts a string to a Prefix, checking its validity
+func NewPrefix(prefix string) (Prefix, error) {
+	if len(prefix) != prefixLength {
+		return "", fmt.Errorf("prefix must contain %d characters: %q", prefixLength, prefix)
 	}
-	url := fmt.Sprintf("https://api.pwnedpasswords.com/range/%s", prefix)
-	return url, nil
+	return Prefix(prefix), nil
 }
 
-type basicResponse struct {
-	Text       string
-	Etag       string
-	StatusCode int
-}
-
-// GetHashes fetches passwords hashes from the pwned passwords API
-func GetHashes(ctx context.Context, url, etag string) (*basicResponse, error) {
-	//~ client := http.Client{}
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("building request: %w", err)
-	}
-
-	req = req.WithContext(ctx)
-	req.Header.Set("If-None-Match", etag)
-	//~ req.Header.Add("Accept-Encoding", "gzip")
-
-	start := time.Now()
-	//~ r, err := client.Do(req)
-	r, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("do request: %w", err)
-	}
-	defer r.Body.Close()
-
-	// Content not modified?
-	if r.StatusCode == 304 {
-		elapsed := time.Since(start)
-		slog.Debug("get response", "status", r.StatusCode, "elapsed", elapsed)
-		res := basicResponse{
-			"",
-			etag,
-			r.StatusCode,
-		}
-		return &res, nil
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("do request: %w", err)
-	}
-	defer r.Body.Close()
-
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read body: %w", err)
-	}
-	elapsed := time.Since(start)
-	rEtag := r.Header.Get("ETag")
-	slog.Debug("get response", "status", r.StatusCode, "bytes", len(body), "elapsed", elapsed, "etag", rEtag, "url", url, "compressed", r.Uncompressed)
-
-	res := basicResponse{
-		string(body), // We assume body is ASCII
-		rEtag,
-		r.StatusCode,
-	}
-	return &res, nil
-}
+// A HashList is a multi-line string containing password hashes and counts.
+// Specifically, 2 colon-separated values: HEX(SHA1(password)):count
+// eg. "308672AB94BCBE0B2FEE2EC68FC69F9D5E6:8"
+type HashList string
 
 // HexStrings generates all hexadecimal strings of the given length, zero-padded.
 func HexStrings(length int) iter.Seq[string] {
