@@ -9,19 +9,23 @@ import (
 
 const separator = ':'
 
-// ETagStore is an in-memory store that can saved to a file
-type ETagStore map[Prefix]string
+// ETags is an in-memory store that can saved to a file
+type ETags map[Prefix]string
 
-func NewETagStore() ETagStore {
+// NewETags builds an empty ETags mapping prefixes to ETag
+func NewETags() ETags {
 	return make(map[Prefix]string)
 }
 
-func (s ETagStore) Load(name string) error {
+// ETagsLoad attempts to load ETags from colon-separated file
+func ETagsLoad(name string) (ETags, error) {
 	fp, err := os.Open(name)
 	if err != nil {
-		return fmt.Errorf("loading etags: %w", err)
+		return nil, fmt.Errorf("loading etags: %w", err)
 	}
 
+	const expectedRows = 2
+	etags := make(ETags)
 	r := csv.NewReader(fp)
 	r.Comma = separator
 	i := 0
@@ -32,24 +36,31 @@ func (s ETagStore) Load(name string) error {
 			break
 		}
 		if err != nil {
-			return fmt.Errorf("loading etags, row %d: %w", i, err)
+			return nil, fmt.Errorf("loading etags, row %d: %w", i, err)
 		}
+
+		if len(row) != expectedRows {
+			return nil, fmt.Errorf("loading etags, wrong number of rows on row %d: %w", i, err)
+		}
+
 		prefix, err := NewPrefix(row[0])
 		if err != nil {
-			return fmt.Errorf("loading etags, row %d: %w", i, err)
+			return nil, fmt.Errorf("loading etags, bad prefix on row %d: %w", i, err)
 		}
-		s[prefix] = row[1]
+		etags[prefix] = row[1]
 	}
 
-	return nil
+	return etags, nil
 }
 
 // Save writes map out to colon-separated file
-func (s ETagStore) Save(name string) error {
-	fp, err := os.Create(name)
+func (s ETags) Save(path string) error {
+	fp, err := os.Create(path)
 	if err != nil {
 		return fmt.Errorf("saving etags: %w", err)
 	}
+	defer fp.Close()
+
 	w := csv.NewWriter(fp)
 	w.Comma = separator
 	for k, v := range s {

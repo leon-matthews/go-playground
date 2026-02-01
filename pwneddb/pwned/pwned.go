@@ -40,8 +40,13 @@ func NewPrefix(prefix string) (Prefix, error) {
 type HashList string
 
 // HexStrings generates all hexadecimal strings of the given length, zero-padded.
-func HexStrings(length int) iter.Seq[string] {
+func HexStrings(length int64) iter.Seq[string] {
+	if length < 0 || length > 16 {
+		
+	}
+
 	limit := 0x01 << (length * 4)
+	fmt.Printf("[%T]%+[1]v\n", limit)
 	return func(yield func(string) bool) {
 		for v := range limit {
 			hex := fmt.Sprintf("%0*x", length, v)
