@@ -9,39 +9,38 @@ import (
 	"pwneddb/pwned"
 )
 
-func TestHexStrings(t *testing.T) {
-	t.Run("length one", func(t *testing.T) {
-		h := pwned.HexStrings(1)
-		const expectedLength = 16
-		s := slices.Collect(h)
-
-		want := []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"}
-		assert.Equal(t, len(s), 16)
-		assert.Equal(t, want, s)
-	})
-
-	t.Run("length two", func(t *testing.T) {
-		h := pwned.HexStrings(2)
-		const expectedLength = 256
-		s := slices.Collect(h)
-		assert.Equal(t, len(s), 256)
-		assert.Equal(t, s[0], "00")
-		assert.Equal(t, s[expectedLength-1], "ff")
-	})
-
-	t.Run("length fifteen", func(t *testing.T) {
-		const length = 15
-		h := pwned.HexStrings(length)
-		var first string
-		for s := range h {
-			first = s
-			break
+func TestPrefixes(t *testing.T) {
+	t.Run("first five", func(t *testing.T) {
+		p := make([]pwned.Prefix, 0, 5)
+		for s := range pwned.Prefixes() {
+			p = append(p, s)
+			if len(p) >= 5 {
+				break
+			}
 		}
-		assert.Equal(t, first, "000000000000000")
-		assert.Equal(t, len(first), length)
+		assert.Equal(t, 5, len(p))
+		expected := []pwned.Prefix{"00000", "00001", "00002", "00003", "00004"}
+		assert.Equal(t, expected, p)
+	})
+
+	t.Run("last five", func(t *testing.T) {
+		// Is creating a million strings in a unit test excessive?
+		s := slices.Collect(pwned.Prefixes())
+		const expectedLength = 1_048_576
+		assert.Equal(t, expectedLength, len(s))
+		assert.Equal(t, s[0], pwned.Prefix("00000"))
+		expected := []pwned.Prefix{"ffffb", "ffffc", "ffffd", "ffffe", "fffff"}
+		assert.Equal(t, expected, s[expectedLength-len(expected):])
 	})
 }
 
-func TestHexStringsErrors(t *testing.T) {
-
+func BenchmarkPrefixes(b *testing.B) {
+	const expectedLength = 1_048_576
+	for b.Loop() {
+		count := 0
+		for range pwned.Prefixes() {
+			count++
+		}
+		assert.Equal(b, expectedLength, count)
+	}
 }

@@ -39,18 +39,13 @@ func NewPrefix(prefix string) (Prefix, error) {
 // eg. "308672AB94BCBE0B2FEE2EC68FC69F9D5E6:8"
 type HashList string
 
-// HexStrings generates all hexadecimal strings of the given length, zero-padded.
-func HexStrings(length int64) iter.Seq[string] {
-	if length < 0 || length > 16 {
-		
-	}
-
-	limit := 0x01 << (length * 4)
-	fmt.Printf("[%T]%+[1]v\n", limit)
-	return func(yield func(string) bool) {
+// Prefixes generates all possible hexadecimal prefixes
+func Prefixes() iter.Seq[Prefix] {
+	limit := 0x01 << (prefixLength * 4)
+	return func(yield func(Prefix) bool) {
 		for v := range limit {
-			hex := fmt.Sprintf("%0*x", length, v)
-			if !yield(hex) {
+			hex := fmt.Sprintf("%0*x", prefixLength, v)
+			if !yield(Prefix(hex)) {
 				return
 			}
 		}
