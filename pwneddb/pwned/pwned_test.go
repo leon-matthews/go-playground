@@ -44,3 +44,14 @@ func BenchmarkPrefixes(b *testing.B) {
 		assert.Equal(b, expectedLength, count)
 	}
 }
+
+func BenchmarkPrefixPool(b *testing.B) {
+	const expectedLength = 1_048_576
+	for b.Loop() {
+		count := 0
+		for range pwned.PrefixPool() {
+			count++
+		}
+		assert.Equal(b, expectedLength, count)
+	}
+}

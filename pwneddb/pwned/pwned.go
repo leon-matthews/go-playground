@@ -16,8 +16,10 @@
 package pwned
 
 import (
+	"bytes"
 	"fmt"
 	"iter"
+	"sync"
 )
 
 // Prefixes are currently 5 hexadecimal characters long
@@ -46,6 +48,24 @@ func Prefixes() iter.Seq[Prefix] {
 		for v := range limit {
 			hex := fmt.Sprintf("%0*x", prefixLength, v)
 			if !yield(Prefix(hex)) {
+				return
+			}
+		}
+	}
+}
+
+var bufferPool = sync.Pool{
+	New: func() any {
+		return new(bytes.Buffer)
+	},
+}
+
+func PrefixPool() iter.Seq[[]byte] {
+	limit := 0x01 << (prefixLength * 4)
+	return func(yield func([]byte) bool) {
+		for range limit {
+			b := make([]byte, 0, prefixLength)
+			if !yield(b) {
 				return
 			}
 		}
