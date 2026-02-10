@@ -9,6 +9,8 @@ package main
 import (
 	"fmt"
 	"time"
+
+	"github.com/dustin/go-humanize"
 )
 
 // child takes a channel c and loops over messages in it until it's closed,
@@ -29,15 +31,19 @@ func main() {
 	t1 := time.Now()
 	const niters = 20_000_000
 	for i := 0; i < niters; i++ {
-		c <- "joe0"
+		c <- "leon"
 		reply := <-c
-		if "joe0" != reply {
+		if "leon" != reply {
 			panic("oh no, mismatch")
 		}
 	}
 	elapsed := time.Since(t1)
 
-	fmt.Printf("%d iterations took %d ns. %.2f iters/sec\n",
-		niters, elapsed.Nanoseconds(),
-		1e9*niters/float64(elapsed.Nanoseconds()))
+	per_sec := int64(niters / elapsed.Seconds())
+	fmt.Printf(
+		"%s messages total, averaging %v each. %s iters/sec\n",
+		humanize.Comma(niters),
+		elapsed/niters,
+		humanize.Comma(per_sec),
+	)
 }
