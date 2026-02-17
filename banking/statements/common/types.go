@@ -33,3 +33,27 @@ func (t *Transaction) String() string {
 func (t *Transaction) Tabbed() string {
 	return fmt.Sprintf("%s\t%s\t%s\t$%.2f\t", t.Date.Format(dateFormat), t.Account, t.Details, t.Amount)
 }
+
+const (
+	CategoryFood = 100
+	CategoryFoodTakeaways = 101
+	CategoryFoodRestaurant = 102
+	CategoryFoodCafe = 103
+
+	CategoryTransport = 200
+	CategoryTransportFuel = 201
+	CategoryTransportMaintenance = 202
+	CategoryTransportPublic = 203
+
+	CategoryCharity = 300
+	CategoryCharityLocal = 301
+	CategoryCharityInternational = 302
+
+	CategoryHealth = 400
+
+	CategoryInsurance = 500
+
+	CategoryEducation = 600
+
+	CategoryPhone = 700
+}
