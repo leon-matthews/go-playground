@@ -28,7 +28,6 @@ func submitWords(next func() string) chan string {
 				break
 			}
 		}
-		close(out)
 	}()
 	return out
 }
@@ -45,8 +44,6 @@ func countWords(in chan string) chan pair {
 				break
 			}
 		}
-		close(out)
-
 	}()
 	return out
 }
@@ -64,6 +61,9 @@ func countDigitsInWords(next func() string) counter {
 func fillStats(counted chan pair) counter {
 	stats := counter{}
 	for p := range counted {
+		if p.word == "" {
+			break
+		}
 		stats[p.word] = p.count
 	}
 
