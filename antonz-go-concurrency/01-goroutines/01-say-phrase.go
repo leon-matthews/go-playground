@@ -11,19 +11,19 @@ import (
 func main() {
 	var wg sync.WaitGroup
 
-	// Pangrams!
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	// WaitGroup has a handy-dandy Go() function
+	wg.Go(func() {
 		say(1, "The quick brown fox jumps over the lazy dog")
-	}()
+	})
 
+	// Or you can use Add() and Done() manually
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		say(2, "Sphinx of black quartz, judge my vow.")
 	}()
 
+	// Blocks until the Done() calls equal the Add() calls
 	wg.Wait()
 
 	fmt.Println("main exited")

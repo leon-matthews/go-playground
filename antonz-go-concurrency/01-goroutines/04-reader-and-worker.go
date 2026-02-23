@@ -30,7 +30,7 @@ type pair struct {
 // │               │               │               │               └────────────────┘
 // └───────────────┘               └───────────────┘
 //
-//	reader          channel         worker           channel        collector
+//	reader         channel          worker          channel        collector
 func countDigitsInWords(next func() string) counter {
 	pending := make(chan string)
 	counted := make(chan pair)
