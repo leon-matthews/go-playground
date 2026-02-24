@@ -9,6 +9,8 @@ import (
 
 func main() {
 	phrase := "0ne 1wo thr33 4068"
+
+	// Old school generator
 	next := wordGenerator(phrase)
 	for {
 		word := next()
@@ -18,7 +20,13 @@ func main() {
 		fmt.Println(word)
 	}
 
+	// Friendly iterator
 	for word := range wordIterator(phrase) {
+		fmt.Println(word)
+	}
+
+	// Stdlib iterator
+	for word := range strings.FieldsSeq(phrase) {
 		fmt.Println(word)
 	}
 }
@@ -38,6 +46,8 @@ func wordGenerator(phrase string) func() string {
 }
 
 // wordIterator reworks wordGenerator into a standard Go iterator
+// This whole function is redundant, however. We could just return
+// `words` as-is, just as soon as it was created!
 func wordIterator(phrase string) iter.Seq[string] {
 	words := strings.FieldsSeq(phrase)
 	return func(yield func(string) bool) {

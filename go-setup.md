@@ -73,11 +73,21 @@ Browse and read markdown documentation under current folder:
 
 	$ go install github.com/charmbracelet/glow@latest
 
+
 ### goimports
 
 Command goimports updates your Go import lines, adding missing ones and removing unreferenced ones.
 
 	$ go install golang.org/x/tools/cmd/goimports@latest
+
+
+### golangci-lint
+
+Runs various linters in parallel. The docs suggest *not* to install from source like this, but I prefer
+getting the latest and greatest without using their bash script. No issues so far!
+
+    $ go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+
 
 ### go-size-analyzer
 
