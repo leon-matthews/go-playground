@@ -17,12 +17,7 @@ func main() {
 		close(in)
 	}()
 
-	for {
-		word, ok := <-in
-		if !ok {
-			break
-		}
-
+	for word := range in {
 		if word != "" {
 			fmt.Printf("%s ", word)
 		}
