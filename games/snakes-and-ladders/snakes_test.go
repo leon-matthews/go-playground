@@ -20,8 +20,12 @@ func TestD6(t *testing.T) {
 	assert.Equal(t, 6, slices.Max(rolls))
 }
 
+const oneMillion = 1_000_000
+
 func BenchmarkD6(b *testing.B) {
 	for b.Loop() {
-		snakes.D6()
+		for range oneMillion {
+			snakes.D6()
+		}
 	}
 }
