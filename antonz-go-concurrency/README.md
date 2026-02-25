@@ -7,6 +7,4 @@ https://antonz.org/go-concurrency/
 
 # Next
 
-Carry on from Preventing deadlocks:
-
-/channels/#preventing-deadlocks
+Carry on from channels chapter, `solve Promise.all()` exercise.
