@@ -1,13 +1,29 @@
 package main_test
 
 import (
-	"os"
+	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
-func TestErrorIs(t *testing.T) {
-	var err error
-	assert.ErrorIs(t, err, os.ErrNotExist)
+var loremIpsum = `Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed` +
+	`do eiusmod tempor incididunt ut labore et dolore magna aliqua. `
+
+func BenchmarkStringFields(b *testing.B) {
+	for b.Loop() {
+		for _, w := range strings.Fields(loremIpsum) {
+			if w == "adipiscing" {
+				break
+			}
+		}
+	}
+}
+
+func BenchmarkStringFieldsSeq(b *testing.B) {
+	for b.Loop() {
+		for w := range strings.FieldsSeq(loremIpsum) {
+			if w == "adipiscing" {
+				break
+			}
+		}
+	}
 }
