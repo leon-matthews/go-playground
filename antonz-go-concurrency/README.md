@@ -7,4 +7,4 @@ https://antonz.org/go-concurrency/
 
 # Next
 
-Carry on from channels chapter, `solve Promise.all()` exercise.
+Start pipelines chapter.
