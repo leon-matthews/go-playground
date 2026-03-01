@@ -7,8 +7,8 @@ import (
 )
 
 func main() {
-	// runExample("mergeSequentially()", mergeSequentially)
-	// runExample("mergeConcurrently()", mergeConcurrently)
+	runExample("mergeSequentially()", mergeSequentially)
+	runExample("mergeConcurrently()", mergeConcurrently)
 	runExample("mergeSelect()", mergeSelect)
 }
 
@@ -79,21 +79,24 @@ func mergeSelect(nums1, nums2 <-chan int) <-chan int {
 	go func() {
 		defer close(out)
 
-		// Exit if both channels are set to nil
-		for nums1 != nil && nums2 != nil {
+		// Exit once both channels have been closed
+		for numClosed := 0; numClosed < 2; {
+			// Set the channels to nil to turn off select, avoiding zero values
 			select {
-
-			// Set the channels to nil to turn off select and to avoid zero values
 			case n, ok := <-nums1:
-				if !ok {
+				if ok {
+					out <- n
+				} else {
 					nums1 = nil
+					numClosed++
 				}
-				out <- n
 			case n, ok := <-nums2:
-				if !ok {
+				if ok {
+					out <- n
+				} else {
 					nums2 = nil
+					numClosed++
 				}
-				out <- n
 			}
 		}
 	}()
