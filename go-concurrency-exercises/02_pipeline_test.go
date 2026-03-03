@@ -216,7 +216,7 @@ func TestGenerateCancellable(t *testing.T) {
 
 func TestTransformCancellable(t *testing.T) {
 	done := make(chan struct{})
-	input := GenerateCancellable(1, 1000000, done)
+	input := GenerateCancellable(1, 1_000_000, done)
 	double := func(n int) int { return n * 2 }
 	output := TransformCancellable(input, double, done)
 
