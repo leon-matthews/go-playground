@@ -51,9 +51,9 @@ func mergeN2(channels ...<-chan int) <-chan int {
 
 	// Start a goroutine for each input channel
 	var wg sync.WaitGroup
-	for i := range channels {
+	for _, ch := range channels {
 		wg.Go(func() {
-			for n := range channels[i] {
+			for n := range ch {
 				out <- n
 			}
 		})
