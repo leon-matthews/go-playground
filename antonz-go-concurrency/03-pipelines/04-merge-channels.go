@@ -12,20 +12,6 @@ func main() {
 	runExample("mergeSelect()", mergeSelect)
 }
 
-func runExample(name string, f func(nums1, nums2 <-chan int) <-chan int) {
-	fmt.Println(name)
-	start := time.Now()
-	nums1 := rangeGenerator(1, 10)
-	nums2 := rangeGenerator(10, 20)
-	nums := f(nums1, nums2)
-	for n := range nums {
-		fmt.Print(n, " ")
-	}
-	fmt.Println()
-	fmt.Println(time.Since(start))
-	fmt.Println()
-}
-
 // mergeSequentially performs no concurrency at all
 func mergeSequentially(nums1, nums2 <-chan int) <-chan int {
 	out := make(chan int)
@@ -114,4 +100,18 @@ func rangeGenerator(start int, stop int) <-chan int {
 		close(out)
 	}()
 	return out
+}
+
+func runExample(name string, f func(nums1, nums2 <-chan int) <-chan int) {
+	fmt.Println(name)
+	start := time.Now()
+	nums1 := rangeGenerator(1, 10)
+	nums2 := rangeGenerator(10, 20)
+	nums := f(nums1, nums2)
+	for n := range nums {
+		fmt.Print(n, " ")
+	}
+	fmt.Println()
+	fmt.Println(time.Since(start))
+	fmt.Println()
 }
