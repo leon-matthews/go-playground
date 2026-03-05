@@ -33,7 +33,7 @@ func mersenne(exponent *big.Int) (*big.Int, error) {
 	candidate := big.NewInt(0)
 	candidate = candidate.Exp(big.NewInt(2), exponent, nil)
 	candidate.Add(candidate, big.NewInt(-1))
-	if !candidate.ProbablyPrime(32) {
+	if !candidate.ProbablyPrime(64) {
 		return nil, fmt.Errorf("2^%v - 1 is not a Mersenne prime", exponent)
 	}
 	return candidate, nil
