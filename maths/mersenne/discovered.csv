@@ -1,0 +1,53 @@
+Exponent,Num. Digits,Date,Discovered by,method/hardware
+2,1,c. 500 BCE,Ancient Greek mathematicians,
+3,1,c. 500 BCE,Ancient Greek mathematicians,
+5,2,c. 275 BCE,Ancient Greek mathematicians,
+7,3,c. 275 BCE,Ancient Greek mathematicians,
+13,4,1456,Anonymous,trial division
+17,6,1588,Pietro Cataldi,trial division
+19,6,1588,Pietro Cataldi,trial division
+31,10,1772,Leonhard Euler,Enhanced trial division
+61,19,1883,Ivan Mikheevich Pervushin,Lucas sequences
+89,27,1911 Jun,R. E. Powers,Lucas sequences
+107,33,1914 Jun 11,R. E. Powers,Lucas sequences
+127,39,1876 Jan 10,Édouard Lucas,Lucas sequences
+521,157,1952 Jan 30,Raphael M. Robinson,L-L / SWAC
+607,183,1952 Jan 30,Raphael M. Robinson,L-L / SWAC
+1279,386,1952 Jun 25,Raphael M. Robinson,L-L / SWAC
+2203,664,1952 Oct 07,Raphael M. Robinson,L-L / SWAC
+2281,687,1952 Oct 09,Raphael M. Robinson,L-L / SWAC
+3217,969,1957 Sep 08,Hans Riesel,L-L / BESK
+4253,1281,1961 Nov 03,Alexander Hurwitz,L-L / IBM 7090
+4423,1332,1961 Nov 03,Alexander Hurwitz,L-L / IBM 7090
+9689,2917,1963 May 11,Donald B. Gillies,L-L / ILLIAC II
+9941,2993,1963 May 16,Donald B. Gillies,L-L / ILLIAC II
+11213,3376,1963 Jun 02,Donald B. Gillies,L-L / ILLIAC II
+19937,6002,1971 Mar 04,Bryant Tuckerman,L-L / IBM 360/91
+21701,6533,1978 Oct 30,Landon Curt Noll & Laura Nickel,L-L / CDC Cyber 174
+23209,6987,1979 Feb 09,Landon Curt Noll,L-L / CDC Cyber 174
+44497,13395,1979 Apr 08,Harry Lewis Nelson & David Slowinski,L-L / Cray 1
+86243,25962,1982 Sep 25,David Slowinski,L-L / Cray 1
+110503,33265,1988 Jan 28,Walter Colquitt & Luke Welsh,L-L / NEC SX-2
+132049,39751,1983 Sep 19,David Slowinski,L-L / Cray X-MP
+216091,65050,1985 Sep 01,David Slowinski,L-L / Cray X-MP/24
+756839,227832,1992 Feb 19,David Slowinski & Paul Gage,L-L / Maple on Harwell Lab Cray-2
+859433,258716,1994 Jan 04,David Slowinski & Paul Gage,L-L / Cray C90
+1257787,378632,1996 Sep 03,David Slowinski & Paul Gage,L-L / Cray T94
+1398269,420921,1996 Nov 13,GIMPS / Joel Armengaud,L-L / Prime95 on 90 MHz Pentium PC
+2976221,895932,1997 Aug 24,GIMPS / Gordon Spence,L-L / Prime95 on 100 MHz Pentium PC
+3021377,909526,1998 Jan 27,GIMPS / Roland Clarkson,L-L / Prime95 on 200 MHz Pentium PC
+6972593,2098960,1999 Jun 01,GIMPS / Nayan Hajratwala,L-L / Prime95 on 350 MHz Pentium II IBM Aptiva
+13466917,4053946,2001 Nov 14,GIMPS / Michael Cameron,L-L / Prime95 on 800 MHz Athlon Thunderbird
+20996011,6320430,2003 Nov 17,GIMPS / Michael Shafer,L-L / Prime95 on 2 GHz Dell Dimension
+24036583,7235733,2004 May 15,GIMPS / Josh Findley,L-L / Prime95 on 2.4 GHz Pentium 4 PC
+25964951,7816230,2005 Feb 18,GIMPS / Martin Nowak,L-L / Prime95 on 2.4 GHz Pentium 4 PC
+30402457,9152052,2005 Dec 15,GIMPS / Curtis Cooper & Steven Boone,L-L / Prime95 on 2 GHz Pentium 4 PC
+32582657,9808358,2006 Sep 04,GIMPS / Curtis Cooper & Steven Boone,L-L / Prime95 on 3 GHz Pentium 4 PC
+37156667,11185272,2008 Sep 06,GIMPS / Hans-Michael Elvenich,L-L / Prime95 on 2.83 GHz Core 2 Duo PC
+42643801,12837064,2009 Jun 04,GIMPS / Odd M. Strindmo,L-L / Prime95 on 3 GHz Core 2 PC
+43112609,12978189,2008 Aug 23,GIMPS / Edson Smith,L-L / Prime95 on Dell Optiplex 745
+57885161,17425170,2013 Jan 25,GIMPS / Curtis Cooper,L-L / Prime95 on Intel Core2 Duo E8400 @ 3.00GHz
+74207281,22338618,2016 Jan 07,GIMPS / Curtis Cooper,L-L / Prime95 on Intel i7-4790 @ 3.60GHz
+77232917,23249425,2017 Dec 26,GIMPS / Jon Pace,L-L / Prime95 on Intel i5-6600 @ 3.30GHz
+82589933,24862048,2018 Dec 07,GIMPS / Patrick Laroche,L-L / Prime95 on Intel i5-4590T @ 2.0GHz
+136279841,41024320,2024 Oct 12,GIMPS / Luke Durant,PRP / Gpuowl on NVIDIA A100
