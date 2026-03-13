@@ -2,8 +2,9 @@ package heap_test
 
 import (
 	"cmp"
-	"priority/heap"
 	"testing"
+
+	"priority/heap"
 
 	"github.com/stretchr/testify/assert"
 )

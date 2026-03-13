@@ -11,7 +11,7 @@ type Item[T any] struct {
 type PriorityQueue[T any] []Item[T]
 
 func (pq *PriorityQueue[T]) Len() int {
-	return len(pq)
+	return len(*pq)
 }
 
 func (pq *PriorityQueue[T]) Push(v Item[T]) {
