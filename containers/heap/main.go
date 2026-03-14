@@ -1,3 +1,4 @@
+// Example usage of heap package
 package main
 
 import (

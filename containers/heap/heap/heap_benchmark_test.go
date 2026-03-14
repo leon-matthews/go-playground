@@ -3,9 +3,11 @@ package heap_test
 import (
 	"math/rand/v2"
 	"slices"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"heap/heap"
 )
@@ -18,7 +20,7 @@ func BenchmarkBuildHeap(b *testing.B) {
 		numbers[i], numbers[j] = numbers[j], numbers[i]
 	})
 
-	b.Run("Build using heapify", func(b *testing.B) {
+	b.Run("using Heapify", func(b *testing.B) {
 		for b.Loop() {
 			b.StopTimer()
 			numbers := slices.Clone(numbers)
@@ -31,7 +33,7 @@ func BenchmarkBuildHeap(b *testing.B) {
 		}
 	})
 
-	b.Run("Build using new/push", func(b *testing.B) {
+	b.Run("using New/Push", func(b *testing.B) {
 		for b.Loop() {
 			b.StopTimer()
 			numbers := slices.Clone(numbers)
@@ -48,7 +50,7 @@ func BenchmarkBuildHeap(b *testing.B) {
 	})
 }
 
-// BenchmarkSort compares a DIY heap-sort with [slices.Sort]
+// BenchmarkSort just to see how many times slower a DIY heap-sort is vs stdlib
 func BenchmarkSort(b *testing.B) {
 	const count = 10_000
 	numbers := makeIntegers(count)
@@ -56,7 +58,7 @@ func BenchmarkSort(b *testing.B) {
 		numbers[i], numbers[j] = numbers[j], numbers[i]
 	})
 
-	b.Run("Sort using DIY heapsort", func(b *testing.B) {
+	b.Run("using DIY heapsort", func(b *testing.B) {
 		for b.Loop() {
 			b.StopTimer()
 			numbers := slices.Clone(numbers)
@@ -67,18 +69,29 @@ func BenchmarkSort(b *testing.B) {
 			for v := range h.All() {
 				sorted = append(sorted, v)
 			}
-			assert.True(b, slices.IsSorted(sorted))
+			require.True(b, slices.IsSorted(sorted))
 		}
 	})
 
-	b.Run("Sort using slices.Sort()", func(b *testing.B) {
+	b.Run("using slices.Sort()", func(b *testing.B) {
 		for b.Loop() {
 			b.StopTimer()
 			numbers := slices.Clone(numbers)
 			b.StartTimer()
 
 			slices.Sort(numbers)
-			assert.True(b, slices.IsSorted(numbers))
+			require.True(b, slices.IsSorted(numbers))
+		}
+	})
+
+	b.Run("using sort.Slice()", func(b *testing.B) {
+		for b.Loop() {
+			b.StopTimer()
+			numbers := slices.Clone(numbers)
+			b.StartTimer()
+
+			sort.Slice(numbers, func(i, j int) bool { return numbers[i] < numbers[j] })
+			require.True(b, slices.IsSorted(numbers))
 		}
 	})
 }

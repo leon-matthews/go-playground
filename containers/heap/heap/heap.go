@@ -1,3 +1,4 @@
+// Package heap is a generic Heap and PriorityQueue implementation
 package heap
 
 import (
@@ -17,7 +18,7 @@ type Heap[T any] struct {
 	values []T
 }
 
-// New builds an empty heap of any ordered type
+// New builds an empty heap of any basic ordered type
 func New[T cmp.Ordered]() *Heap[T] {
 	return NewComparable[T](cmp.Compare[T])
 }
@@ -31,7 +32,7 @@ func NewComparable[T any](cmp func(T, T) int) *Heap[T] {
 	return &h
 }
 
-// Heapify builds a heap from an existing slice.
+// Heapify builds a heap from an existing slice of basic comparable types.
 // This is much faster than calling [New] then pushing values individually.
 // The given slice is consumed in the process. Use [slices.Clone] if you need
 // to keep the original slices unchanged.
