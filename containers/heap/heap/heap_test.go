@@ -2,7 +2,6 @@ package heap_test
 
 import (
 	"cmp"
-	"fmt"
 	"slices"
 	"testing"
 
@@ -175,7 +174,6 @@ func TestComparableHeap(t *testing.T) {
 func TestHeapifyComparable(t *testing.T) {
 	unordered := makeItems(5)
 	slices.Reverse(unordered)
-	fmt.Println(unordered)
 
 	h := heap.HeapifyComparable(unordered, item.compare)
 	assert.Equal(t, 5, h.Len())
