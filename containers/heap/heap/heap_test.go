@@ -15,12 +15,12 @@ func TestHeap(t *testing.T) {
 	unordered := []int{5, 3, 1, 2, 4}
 
 	t.Run("new heap is empty", func(t *testing.T) {
-		h := heap.New[int]()
+		h := heap.NewHeap[int]()
 		assert.Equal(t, 0, h.Len())
 	})
 
 	t.Run("push adds value", func(t *testing.T) {
-		h := heap.New[int]()
+		h := heap.NewHeap[int]()
 		assert.Equal(t, 0, h.Len())
 		h.Push(42)
 		assert.Equal(t, 1, h.Len())
@@ -40,14 +40,14 @@ func TestHeap(t *testing.T) {
 	})
 
 	t.Run("peek on an empty heap returns zero vale", func(t *testing.T) {
-		h := heap.New[string]()
+		h := heap.NewHeap[string]()
 		v, ok := h.Peek()
 		assert.False(t, ok)
 		assert.Equal(t, "", v)
 	})
 
 	t.Run("peek does not remove value", func(t *testing.T) {
-		h := heap.New[int]()
+		h := heap.NewHeap[int]()
 		h.Push(42)
 		assert.Equal(t, 1, h.Len())
 
@@ -72,7 +72,7 @@ func TestHeap(t *testing.T) {
 	})
 
 	t.Run("pop removes value", func(t *testing.T) {
-		h := heap.New[int]()
+		h := heap.NewHeap[int]()
 		h.Push(42)
 		assert.Equal(t, 1, h.Len())
 
@@ -83,7 +83,7 @@ func TestHeap(t *testing.T) {
 	})
 
 	t.Run("pop on an empty heap returns zero vale", func(t *testing.T) {
-		h := heap.New[string]()
+		h := heap.NewHeap[string]()
 		v, ok := h.Pop()
 		assert.False(t, ok)
 		assert.Equal(t, "", v)
@@ -110,7 +110,7 @@ func TestHeapify(t *testing.T) {
 	assert.Equal(t, 5, heapified.Len())
 
 	// Build by iterative pushing
-	pushed := heap.New[int]()
+	pushed := heap.NewHeap[int]()
 	for _, v := range unordered {
 		pushed.Push(v)
 	}
@@ -139,32 +139,36 @@ func TestComparableHeap(t *testing.T) {
 	t.Parallel()
 
 	t.Run("new heap is empty", func(t *testing.T) {
-		h := heap.NewComparable[item](item.compare)
+		h := heap.NewHeapCustom[item](item.compare)
 		assert.Equal(t, 0, h.Len())
 	})
 
 	t.Run("push adds value", func(t *testing.T) {
-		h := heap.NewComparable[item](item.compare)
+		h := heap.NewHeapCustom[item](item.compare)
 		assert.Equal(t, 0, h.Len())
 		h.Push(item{1, 2})
 		assert.Equal(t, 1, h.Len())
 	})
 
 	t.Run("peek does not remove value", func(t *testing.T) {
-		h := heap.NewComparable[item](item.compare)
+		h := heap.NewHeapCustom[item](item.compare)
 		h.Push(item{2, 4})
 		assert.Equal(t, 1, h.Len())
+
 		v, ok := h.Peek()
+
 		assert.True(t, ok)
 		assert.Equal(t, item{2, 4}, v)
 		assert.Equal(t, 1, h.Len())
 	})
 
 	t.Run("pop removes value", func(t *testing.T) {
-		h := heap.NewComparable[item](item.compare)
+		h := heap.NewHeapCustom[item](item.compare)
 		h.Push(item{3, 8})
 		assert.Equal(t, 1, h.Len())
+
 		v, ok := h.Pop()
+
 		assert.True(t, ok)
 		assert.Equal(t, item{3, 8}, v)
 		assert.Equal(t, 0, h.Len())

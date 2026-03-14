@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	h := heap.New[int]()
+	h := heap.NewHeap[int]()
 	h.Push(42)
 	fmt.Println(h.Len())
 	fmt.Println(h)

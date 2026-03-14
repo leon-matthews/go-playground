@@ -33,13 +33,13 @@ func BenchmarkBuildHeap(b *testing.B) {
 		}
 	})
 
-	b.Run("using New/Push", func(b *testing.B) {
+	b.Run("using NewHeap/Push", func(b *testing.B) {
 		for b.Loop() {
 			b.StopTimer()
 			numbers := slices.Clone(numbers)
 			b.StartTimer()
 
-			h := heap.New[int]()
+			h := heap.NewHeap[int]()
 			for _, n := range numbers {
 				h.Push(n)
 			}
