@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"priority/heap"
+	"heap/heap"
 )
 
 func main() {

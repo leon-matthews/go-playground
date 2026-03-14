@@ -1,4 +1,4 @@
-module priority
+module heap
 
 go 1.26.1
 
