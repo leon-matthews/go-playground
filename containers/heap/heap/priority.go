@@ -1,6 +1,9 @@
 package heap
 
-import "cmp"
+import (
+	"cmp"
+	"iter"
+)
 
 // item holds a generic value T with a sequence id.
 type item[T any] struct {
@@ -12,35 +15,51 @@ func itemCompare[T any](a, b item[T]) int {
 	return cmp.Compare(a.id, b.id)
 }
 
-// A PriorityQueue pops values out in ascending order, no matter the insertion order.
+// A Queue pops values out in ascending ID, no matter the insertion order.
 // It is built on top of a Heap, with the same performance guarantees.
-type PriorityQueue[T cmp.Ordered] struct {
+type Queue[T cmp.Ordered] struct {
 	heap *Heap[item[T]]
 }
 
-func NewQueue[T cmp.Ordered]() *PriorityQueue[T] {
+func NewQueue[T cmp.Ordered]() *Queue[T] {
 	h := NewHeapCustom[item[T]](itemCompare)
-	return &PriorityQueue[T]{heap: h}
+	return &Queue[T]{heap: h}
 }
 
-func (pq *PriorityQueue[T]) Len() int {
-	return pq.heap.Len()
+// Values returns an iterator that pops values in order of ascending id
+// The heap is consumed in the process.
+func (q *Queue[T]) Values() iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for {
+			_, v, ok := q.Pop()
+			if !ok {
+				return
+			}
+			if !yield(v) {
+				return
+			}
+		}
+	}
 }
 
-func (pq *PriorityQueue[T]) Push(id int, v T) {
-	pq.heap.Push(item[T]{id, v})
+func (q *Queue[T]) Len() int {
+	return q.heap.Len()
+}
+
+func (q *Queue[T]) Push(id int, v T) {
+	q.heap.Push(item[T]{id, v})
 }
 
 // Peek returns a copy of value with the lowest ID but leaves it in place.
-func (pq *PriorityQueue[T]) Peek() (id int, v T, ok bool) {
-	i, ok := pq.heap.Peek()
+func (q *Queue[T]) Peek() (id int, v T, ok bool) {
+	i, ok := q.heap.Peek()
 	id, v = i.id, i.value
 	return id, v, ok
 }
 
 // Pop returns the value with the smallest id and removes it
-func (pq *PriorityQueue[T]) Pop() (id int, v T, ok bool) {
-	i, ok := pq.heap.Pop()
+func (q *Queue[T]) Pop() (id int, v T, ok bool) {
+	i, ok := q.heap.Pop()
 	id, v = i.id, i.value
 	return id, v, ok
 }

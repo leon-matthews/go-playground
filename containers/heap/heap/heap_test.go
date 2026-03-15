@@ -10,6 +10,15 @@ import (
 	"heap/heap"
 )
 
+type item struct {
+	index int
+	value int
+}
+
+func (i item) compare(b item) int {
+	return cmp.Compare(i.index, b.index)
+}
+
 func TestHeap(t *testing.T) {
 	t.Parallel()
 	unordered := []int{5, 3, 1, 2, 4}
@@ -24,6 +33,22 @@ func TestHeap(t *testing.T) {
 		assert.Equal(t, 0, h.Len())
 		h.Push(42)
 		assert.Equal(t, 1, h.Len())
+	})
+
+	t.Run("push adds value", func(t *testing.T) {
+		h := heap.NewHeap[int]()
+		assert.Equal(t, 0, h.Len())
+		h.Push(42)
+		assert.Equal(t, 1, h.Len())
+	})
+
+	t.Run("pushing same value is okay", func(t *testing.T) {
+		h := heap.NewHeap[int]()
+		h.Push(42)
+		h.Push(42)
+		h.Push(42)
+		assert.Equal(t, 3, h.Len())
+		assert.Equal(t, []int{42, 42, 42}, slices.Collect(h.All()))
 	})
 
 	t.Run("peek returns smallest value", func(t *testing.T) {
@@ -101,41 +126,44 @@ func TestHeap(t *testing.T) {
 		assert.Equal(t, []int{1, 2, 3, 4, 5}, out)
 		assert.Equal(t, 0, h.Len()) // Heap is now empty
 	})
+
+	t.Run("all partially consumes heap if interrupted", func(t *testing.T) {
+		unordered := slices.Clone(unordered)
+		h := heap.Heapify(unordered)
+		out := make([]int, 0, len(unordered))
+		assert.Equal(t, "[1 2 5 3 4]", h.String())
+
+		for v := range h.All() {
+			out = append(out, v)
+			if v == 3 {
+				break
+			}
+		}
+		assert.Equal(t, []int{1, 2, 3}, out)
+		assert.Equal(t, 2, h.Len())
+		assert.Equal(t, "[4 5]", h.String())
+	})
 }
 
 func TestHeapify(t *testing.T) {
 	// Build using Heapify()
 	unordered := []int{5, 3, 1, 2, 4}
-	heapified := heap.Heapify(unordered)
+	heapified := heap.Heapify(slices.Clone(unordered))
 	assert.Equal(t, 5, heapified.Len())
 
 	// Build by iterative pushing
 	pushed := heap.NewHeap[int]()
-	for _, v := range unordered {
+	for _, v := range slices.Clone(unordered) {
 		pushed.Push(v)
 	}
+	assert.Equal(t, 5, heapified.Len())
 
-	// The resultant heaps, built using different methods, should result
-	// in the same underlying slice, which we can peek at using the string
-	// method. The first element must be the smallest.
-	//
-	// Heaps are not directly comparable; inputs presented in many different
-	// orders would result in many different internal orders that all respect
-	// the "heap" property.
-	assert.Equal(t, "[1 2 5 3 4]", heapified.String())
-	assert.Equal(t, "[1 2 5 3 4]", pushed.String())
+	// The resultant heaps, built using different methods, should be equal
+	assert.Equal(t, []int{1, 2, 3, 4, 5}, slices.Collect(heapified.All()))
+	assert.Equal(t, []int{1, 2, 3, 4, 5}, slices.Collect(pushed.All()))
 }
 
-type item struct {
-	index int
-	value int
-}
-
-func (i item) compare(b item) int {
-	return cmp.Compare(i.index, b.index)
-}
-
-func TestComparableHeap(t *testing.T) {
+func TestHeapCustom(t *testing.T) {
 	t.Parallel()
 
 	t.Run("new heap is empty", func(t *testing.T) {
@@ -175,11 +203,11 @@ func TestComparableHeap(t *testing.T) {
 	})
 }
 
-func TestHeapifyComparable(t *testing.T) {
+func TestHeapifyCustom(t *testing.T) {
 	unordered := makeItems(5)
 	slices.Reverse(unordered)
 
-	h := heap.HeapifyComparable(unordered, item.compare)
+	h := heap.HeapifyCustom(unordered, item.compare)
 	assert.Equal(t, 5, h.Len())
 	// Peek under the covers using the string method.
 	// The first element must be the smallest.
@@ -188,7 +216,7 @@ func TestHeapifyComparable(t *testing.T) {
 
 func TestMakeItems(t *testing.T) {
 	items := makeItems(6)
-	want := []item{{1, 2}, {2, 4}, {3, 8}, {4, 16}, {5, 32}, {6, 64}}
+	want := []item{{1, 10}, {2, 20}, {3, 30}, {4, 40}, {5, 50}, {6, 60}}
 	assert.Equal(t, want, items)
 }
 
@@ -198,13 +226,13 @@ func TestMakeIntegers(t *testing.T) {
 	assert.Equal(t, want, items)
 }
 
-// makeItems builds a slice of item where the value is index**2
+// makeItems builds a slice of item where the value is index*10
 // ie. {1, 2}, {2, 4}, {3, 8}...
 func makeItems(count int) []item {
 	unordered := make([]item, 0, count)
 	for i := range count {
 		index := i + 1
-		unordered = append(unordered, item{index, 0x1 << index})
+		unordered = append(unordered, item{index, index * 10})
 	}
 	return unordered
 }

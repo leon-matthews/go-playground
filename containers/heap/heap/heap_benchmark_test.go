@@ -95,3 +95,23 @@ func BenchmarkSort(b *testing.B) {
 		}
 	})
 }
+
+func BenchmarkQueue(b *testing.B) {
+	// Create values in random order
+	items := makeItems(10_000)
+	rand.Shuffle(len(items), func(i, j int) {
+		items[i], items[j] = items[j], items[i]
+	})
+
+	var q *heap.Queue[int] // Hold on to a queue for later validation
+	for b.Loop() {
+		// Create new, then fill a queue n times
+		q = heap.NewQueue[int]()
+		for _, pair := range items {
+			q.Push(pair.index, pair.value)
+		}
+	}
+
+	s := slices.Collect(q.Values())
+	require.True(b, slices.IsSorted(s))
+}

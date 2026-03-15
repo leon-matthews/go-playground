@@ -34,17 +34,17 @@ func NewHeapCustom[T any](cmp func(T, T) int) *Heap[T] {
 
 // Heapify builds a heap from an existing slice of basic comparable types.
 // This is much faster than calling [NewHeap] then pushing values individually.
-// The given slice is consumed in the process. Use [slices.Clone] if you need
-// to keep the original slices unchanged.
+// The original slice is consumed in the process. Use [slices.Clone] if you need
+// to keep the original unchanged.
 func Heapify[T cmp.Ordered](values []T) *Heap[T] {
-	return HeapifyComparable(values, cmp.Compare[T])
+	return HeapifyCustom(values, cmp.Compare[T])
 }
 
-// HeapifyComparable builds a heap from an existing slice with a custom comparator
+// HeapifyCustom builds a heap from an existing slice with a custom comparator
 // This is much faster than calling [NewHeapCustom] then pushing values individually.
 // The given slice is consumed in the process. Use [slices.Clone] if you need
 // to keep the original slices unchanged.
-func HeapifyComparable[T any](values []T, cmp func(T, T) int) *Heap[T] {
+func HeapifyCustom[T any](values []T, cmp func(T, T) int) *Heap[T] {
 	h := &Heap[T]{
 		cmp:    cmp,
 		values: values,
