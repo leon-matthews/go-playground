@@ -211,7 +211,7 @@ func TestHeapifyCustom(t *testing.T) {
 	assert.Equal(t, 5, h.Len())
 	// Peek under the covers using the string method.
 	// The first element must be the smallest.
-	assert.Equal(t, "[{1 2} {2 4} {3 8} {5 32} {4 16}]", h.String())
+	assert.Equal(t, "[{1 10} {2 20} {3 30} {5 50} {4 40}]", h.String())
 }
 
 func TestMakeItems(t *testing.T) {

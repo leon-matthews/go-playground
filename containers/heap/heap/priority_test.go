@@ -91,7 +91,37 @@ func TestPriorityQueue(t *testing.T) {
 
 		s := slices.Collect(q.Values())
 
+		// Queue is consumed
+		assert.Equal(t, 0, q.Len())
+
+		// Values have been collected in correct order
 		want := []string{"Sphnix", "of", "black", "quartz", "judge", "my", "vow"}
+		assert.Equal(t, want, s)
+	})
+
+	t.Run("Values partially consumes queue if interupted", func(t *testing.T) {
+		q := heap.NewQueue[string]()
+		q.Push(3, "black")
+		q.Push(2, "of")
+		q.Push(4, "quartz")
+		q.Push(7, "vow")
+		q.Push(5, "judge")
+		q.Push(1, "Sphnix")
+		q.Push(6, "my")
+
+		s := make([]string, 0)
+		for v := range q.Values() {
+			s = append(s, v)
+			if v == "quartz" {
+				break
+			}
+		}
+
+		// Queue is only partially consumed
+		assert.Equal(t, 3, q.Len())
+
+		// Values have been collected in correct order
+		want := []string{"Sphnix", "of", "black", "quartz"}
 		assert.Equal(t, want, s)
 	})
 }
