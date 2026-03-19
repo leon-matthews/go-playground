@@ -10,15 +10,6 @@ import (
 	"heap/heap"
 )
 
-type item struct {
-	index int
-	value int
-}
-
-func (i item) compare(b item) int {
-	return cmp.Compare(i.index, b.index)
-}
-
 func TestHeap(t *testing.T) {
 	t.Parallel()
 	unordered := []int{5, 3, 1, 2, 4}
@@ -26,13 +17,6 @@ func TestHeap(t *testing.T) {
 	t.Run("new heap is empty", func(t *testing.T) {
 		h := heap.NewHeap[int]()
 		assert.Equal(t, 0, h.Len())
-	})
-
-	t.Run("push adds value", func(t *testing.T) {
-		h := heap.NewHeap[int]()
-		assert.Equal(t, 0, h.Len())
-		h.Push(42)
-		assert.Equal(t, 1, h.Len())
 	})
 
 	t.Run("push adds value", func(t *testing.T) {
@@ -64,7 +48,7 @@ func TestHeap(t *testing.T) {
 		assert.Equal(t, 1, v)
 	})
 
-	t.Run("peek on an empty heap returns zero vale", func(t *testing.T) {
+	t.Run("peek on an empty heap returns zero value", func(t *testing.T) {
 		h := heap.NewHeap[string]()
 		v, ok := h.Peek()
 		assert.False(t, ok)
@@ -107,7 +91,7 @@ func TestHeap(t *testing.T) {
 		assert.Equal(t, 0, h.Len())
 	})
 
-	t.Run("pop on an empty heap returns zero vale", func(t *testing.T) {
+	t.Run("pop on an empty heap returns zero value", func(t *testing.T) {
 		h := heap.NewHeap[string]()
 		v, ok := h.Pop()
 		assert.False(t, ok)
@@ -167,38 +151,38 @@ func TestHeapCustom(t *testing.T) {
 	t.Parallel()
 
 	t.Run("new heap is empty", func(t *testing.T) {
-		h := heap.NewHeapCustom[item](item.compare)
+		h := heap.NewHeapCustom[testItem](testItem.compare)
 		assert.Equal(t, 0, h.Len())
 	})
 
 	t.Run("push adds value", func(t *testing.T) {
-		h := heap.NewHeapCustom[item](item.compare)
+		h := heap.NewHeapCustom[testItem](testItem.compare)
 		assert.Equal(t, 0, h.Len())
-		h.Push(item{1, 2})
+		h.Push(testItem{1, 2})
 		assert.Equal(t, 1, h.Len())
 	})
 
 	t.Run("peek does not remove value", func(t *testing.T) {
-		h := heap.NewHeapCustom[item](item.compare)
-		h.Push(item{2, 4})
+		h := heap.NewHeapCustom[testItem](testItem.compare)
+		h.Push(testItem{2, 4})
 		assert.Equal(t, 1, h.Len())
 
 		v, ok := h.Peek()
 
 		assert.True(t, ok)
-		assert.Equal(t, item{2, 4}, v)
+		assert.Equal(t, testItem{2, 4}, v)
 		assert.Equal(t, 1, h.Len())
 	})
 
 	t.Run("pop removes value", func(t *testing.T) {
-		h := heap.NewHeapCustom[item](item.compare)
-		h.Push(item{3, 8})
+		h := heap.NewHeapCustom[testItem](testItem.compare)
+		h.Push(testItem{3, 8})
 		assert.Equal(t, 1, h.Len())
 
 		v, ok := h.Pop()
 
 		assert.True(t, ok)
-		assert.Equal(t, item{3, 8}, v)
+		assert.Equal(t, testItem{3, 8}, v)
 		assert.Equal(t, 0, h.Len())
 	})
 }
@@ -207,7 +191,7 @@ func TestHeapifyCustom(t *testing.T) {
 	unordered := makeItems(5)
 	slices.Reverse(unordered)
 
-	h := heap.HeapifyCustom(unordered, item.compare)
+	h := heap.HeapifyCustom(unordered, testItem.compare)
 	assert.Equal(t, 5, h.Len())
 	// Peek under the covers using the string method.
 	// The first element must be the smallest.
@@ -216,7 +200,7 @@ func TestHeapifyCustom(t *testing.T) {
 
 func TestMakeItems(t *testing.T) {
 	items := makeItems(6)
-	want := []item{{1, 10}, {2, 20}, {3, 30}, {4, 40}, {5, 50}, {6, 60}}
+	want := []testItem{{1, 10}, {2, 20}, {3, 30}, {4, 40}, {5, 50}, {6, 60}}
 	assert.Equal(t, want, items)
 }
 
@@ -226,13 +210,22 @@ func TestMakeIntegers(t *testing.T) {
 	assert.Equal(t, want, items)
 }
 
+type testItem struct {
+	index int
+	value int
+}
+
+func (i testItem) compare(b testItem) int {
+	return cmp.Compare(i.index, b.index)
+}
+
 // makeItems builds a slice of item where the value is index*10
-// ie. {1, 2}, {2, 4}, {3, 8}...
-func makeItems(count int) []item {
-	unordered := make([]item, 0, count)
+// ie. {1, 10}, {2, 20}, {3, 30}...
+func makeItems(count int) []testItem {
+	unordered := make([]testItem, 0, count)
 	for i := range count {
 		index := i + 1
-		unordered = append(unordered, item{index, index * 10})
+		unordered = append(unordered, testItem{index, index * 10})
 	}
 	return unordered
 }

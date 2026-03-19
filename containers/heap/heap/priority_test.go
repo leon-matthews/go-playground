@@ -23,7 +23,7 @@ func TestPriorityQueue(t *testing.T) {
 		assert.Equal(t, 1, q.Len())
 	})
 
-	t.Run("pop on an empty heap returns zero vale", func(t *testing.T) {
+	t.Run("pop on an empty heap returns zero value", func(t *testing.T) {
 		q := heap.NewQueue[string]()
 
 		i, v, ok := q.Pop()
@@ -46,7 +46,7 @@ func TestPriorityQueue(t *testing.T) {
 		assert.Equal(t, 0, q.Len())
 	})
 
-	t.Run("peek on an empty heap returns zero vale", func(t *testing.T) {
+	t.Run("peek on an empty heap returns zero value", func(t *testing.T) {
 		q := heap.NewQueue[string]()
 
 		i, v, ok := q.Peek()
@@ -69,16 +69,6 @@ func TestPriorityQueue(t *testing.T) {
 		assert.Equal(t, 1, q.Len())
 	})
 
-	t.Run("peek on an empty heap returns zero vale", func(t *testing.T) {
-		q := heap.NewQueue[string]()
-
-		i, v, ok := q.Pop()
-
-		assert.False(t, ok)
-		assert.Equal(t, 0, i)
-		assert.Equal(t, "", v)
-	})
-
 	t.Run("Values pops values by ascending id", func(t *testing.T) {
 		q := heap.NewQueue[string]()
 		q.Push(3, "black")
@@ -86,27 +76,27 @@ func TestPriorityQueue(t *testing.T) {
 		q.Push(4, "quartz")
 		q.Push(7, "vow")
 		q.Push(5, "judge")
-		q.Push(1, "Sphnix")
+		q.Push(1, "Sphinx")
 		q.Push(6, "my")
 
 		s := slices.Collect(q.Values())
 
-		// Queue is consumed
+		// PriorityQueue is consumed
 		assert.Equal(t, 0, q.Len())
 
 		// Values have been collected in correct order
-		want := []string{"Sphnix", "of", "black", "quartz", "judge", "my", "vow"}
+		want := []string{"Sphinx", "of", "black", "quartz", "judge", "my", "vow"}
 		assert.Equal(t, want, s)
 	})
 
-	t.Run("Values partially consumes queue if interupted", func(t *testing.T) {
+	t.Run("Values partially consumes queue if interrupted", func(t *testing.T) {
 		q := heap.NewQueue[string]()
 		q.Push(3, "black")
 		q.Push(2, "of")
 		q.Push(4, "quartz")
 		q.Push(7, "vow")
 		q.Push(5, "judge")
-		q.Push(1, "Sphnix")
+		q.Push(1, "Sphinx")
 		q.Push(6, "my")
 
 		s := make([]string, 0)
@@ -117,11 +107,11 @@ func TestPriorityQueue(t *testing.T) {
 			}
 		}
 
-		// Queue is only partially consumed
+		// PriorityQueue is only partially consumed
 		assert.Equal(t, 3, q.Len())
 
 		// Values have been collected in correct order
-		want := []string{"Sphnix", "of", "black", "quartz"}
+		want := []string{"Sphinx", "of", "black", "quartz"}
 		assert.Equal(t, want, s)
 	})
 }

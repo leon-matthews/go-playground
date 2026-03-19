@@ -21,32 +21,33 @@ func BenchmarkBuildHeap(b *testing.B) {
 	})
 
 	b.Run("using Heapify", func(b *testing.B) {
+		var h *heap.Heap[int]
 		for b.Loop() {
 			b.StopTimer()
 			numbers := slices.Clone(numbers)
 			b.StartTimer()
-
-			h := heap.Heapify(numbers)
-			v, ok := h.Peek()
-			assert.True(b, ok)
-			assert.Equal(b, v, 1)
+			h = heap.Heapify(numbers)
 		}
+		v, ok := h.Peek()
+		assert.True(b, ok)
+		assert.Equal(b, v, 1)
 	})
 
 	b.Run("using NewHeap/Push", func(b *testing.B) {
+		var h *heap.Heap[int]
 		for b.Loop() {
 			b.StopTimer()
 			numbers := slices.Clone(numbers)
 			b.StartTimer()
 
-			h := heap.NewHeap[int]()
+			h = heap.NewHeap[int]()
 			for _, n := range numbers {
 				h.Push(n)
 			}
-			v, ok := h.Peek()
-			assert.True(b, ok)
-			assert.Equal(b, v, 1)
 		}
+		v, ok := h.Peek()
+		assert.True(b, ok)
+		assert.Equal(b, v, 1)
 	})
 }
 
@@ -69,8 +70,10 @@ func BenchmarkSort(b *testing.B) {
 			for v := range h.All() {
 				sorted = append(sorted, v)
 			}
+			require.False(b, slices.IsSorted(numbers))
 			require.True(b, slices.IsSorted(sorted))
 		}
+
 	})
 
 	b.Run("using slices.Sort()", func(b *testing.B) {
@@ -79,6 +82,7 @@ func BenchmarkSort(b *testing.B) {
 			numbers := slices.Clone(numbers)
 			b.StartTimer()
 
+			require.False(b, slices.IsSorted(numbers))
 			slices.Sort(numbers)
 			require.True(b, slices.IsSorted(numbers))
 		}
@@ -90,6 +94,7 @@ func BenchmarkSort(b *testing.B) {
 			numbers := slices.Clone(numbers)
 			b.StartTimer()
 
+			require.False(b, slices.IsSorted(numbers))
 			sort.Slice(numbers, func(i, j int) bool { return numbers[i] < numbers[j] })
 			require.True(b, slices.IsSorted(numbers))
 		}
@@ -103,7 +108,7 @@ func BenchmarkQueue(b *testing.B) {
 		items[i], items[j] = items[j], items[i]
 	})
 
-	var q *heap.Queue[int] // Hold on to a queue for later validation
+	var q *heap.PriorityQueue[int] // Hold on to a queue for later validation
 	for b.Loop() {
 		// Create new queue, then fill it n times
 		q = heap.NewQueue[int]()
