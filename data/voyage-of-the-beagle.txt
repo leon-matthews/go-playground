@@ -1,19 +1,9 @@
 ﻿
-  THE VOYAGE OF THE BEAGLE BY
-  CHARLES DARWIN
-  1839
-
-
-About the online edition:
-  The degree symbol is represented as "degs." Italics are represented as
-  _italics_. Footnotes are collected at the end of each chapter.
-
-
-THE VOYAGE OF THE BEAGLE
-
+THE VOYAGE OF THE BEAGLE BY
+CHARLES DARWIN
+1839
 
 PREFACE
-
 
 I have stated in the preface to the first Edition of this work, and in
 the Zoology of the Voyage of the Beagle, that it was in consequence of
