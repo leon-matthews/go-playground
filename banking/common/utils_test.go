@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"statements/common"
+	"banking/common"
 )
 
 func TestCleanString(t *testing.T) {

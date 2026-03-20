@@ -1,7 +1,7 @@
 package anz
 
 import (
-	"statements/common"
+	"banking/common"
 	"testing"
 	"time"
 

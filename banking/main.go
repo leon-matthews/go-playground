@@ -9,7 +9,7 @@ import (
 	"slices"
 	"text/tabwriter"
 
-	"statements/anz"
+	"banking/statements/anz"
 )
 
 const (

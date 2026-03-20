@@ -7,7 +7,7 @@ import (
 
 	"github.com/xuri/excelize/v2"
 
-	"statements/common"
+	"banking/common"
 )
 
 const (

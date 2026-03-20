@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"statements/common"
+	"banking/common"
 )
 
 func TestTransaction(t *testing.T) {
