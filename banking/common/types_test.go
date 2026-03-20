@@ -1,7 +1,6 @@
 package common_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -27,7 +26,6 @@ Details: "Bob's Burgers"
 Amount: -75.80
 `
 		got := one.String()
-		fmt.Printf("[%T]%+[1]v\n", t)
 		assert.Equal(t, want, got)
 	})
 

@@ -10,10 +10,7 @@ import (
 	"banking/common"
 )
 
-const (
-	dateFormat = "2 Jan 2006"
-	sheetName  = "Transactions"
-)
+const sheetName = "Transactions"
 
 // Read produces Transaction values from a statement export file
 func Read(path string) ([]*common.Transaction, error) {
@@ -47,12 +44,15 @@ func Read(path string) ([]*common.Transaction, error) {
 
 // parseRow builds a Transaction from a single spreadsheet row
 func parseRow(row []string) (*common.Transaction, error) {
+	if len(row) < 5 {
+		return nil, fmt.Errorf("parse row: expected 5 fields, got %d", len(row))
+	}
 	var rowErr error
-	date, err := common.ParseDate(dateFormat, row[0])
+	date, err := common.ParseDate(common.DateFormat,row[0])
 	if err != nil {
 		rowErr = errors.Join(rowErr, err)
 	}
-	processed, err := common.ParseDate(dateFormat, row[1])
+	processed, err := common.ParseDate(common.DateFormat,row[1])
 	if err != nil {
 		rowErr = errors.Join(rowErr, err)
 	}

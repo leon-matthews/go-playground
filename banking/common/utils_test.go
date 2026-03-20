@@ -37,7 +37,7 @@ func TestParseAmount(t *testing.T) {
 	}{
 		// Valid
 		{"easy", "1.20", 1.20, ""},
-		{"dollars", "%61.99", 61.99, ""},
+		{"dollars", "$61.99", 61.99, ""},
 		{"negative", "-1.20", -1.20, ""},
 		{"negative spaced", "- 1.20", -1.20, ""},
 		{"negative spaced dollars", "- $1.20", -1.20, ""},
