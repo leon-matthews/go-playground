@@ -1,6 +1,7 @@
 package categorise
 
 import (
+	"path/filepath"
 	"testing"
 )
 
@@ -67,6 +68,81 @@ func TestLoadPrefixes(t *testing.T) {
 	})
 }
 
+func TestSavePrefixes(t *testing.T) {
+	t.Run("round-trip", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "prefixes.csv")
+		input := []Prefix{
+			{Text: "walmart", Category: "Shopping"},
+			{Text: "amazon", Category: "Online"},
+		}
+
+		if err := SavePrefixes(path, input); err != nil {
+			t.Fatal(err)
+		}
+
+		got, err := LoadPrefixes(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// SavePrefixes sorts, so expect alphabetical order
+		want := []Prefix{
+			{Text: "amazon", Category: "Online"},
+			{Text: "walmart", Category: "Shopping"},
+		}
+		if len(got) != len(want) {
+			t.Fatalf("got %d prefixes, want %d", len(got), len(want))
+		}
+		for i := range want {
+			if got[i] != want[i] {
+				t.Errorf("prefix[%d] = %+v, want %+v", i, got[i], want[i])
+			}
+		}
+	})
+
+	t.Run("empty", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "prefixes.csv")
+
+		if err := SavePrefixes(path, nil); err != nil {
+			t.Fatal(err)
+		}
+
+		got, err := LoadPrefixes(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(got) != 0 {
+			t.Fatalf("got %d prefixes, want 0", len(got))
+		}
+	})
+
+	t.Run("does not mutate input", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "prefixes.csv")
+		input := []Prefix{
+			{Text: "walmart", Category: "Shopping"},
+			{Text: "amazon", Category: "Online"},
+		}
+
+		if err := SavePrefixes(path, input); err != nil {
+			t.Fatal(err)
+		}
+
+		// Original slice should still be in its original order
+		if input[0].Text != "walmart" || input[1].Text != "amazon" {
+			t.Errorf("input was mutated: %+v", input)
+		}
+	})
+
+	t.Run("unwritable path", func(t *testing.T) {
+		err := SavePrefixes("/no/such/directory/prefixes.csv", []Prefix{
+			{Text: "test", Category: "Test"},
+		})
+		if err == nil {
+			t.Fatal("expected error for unwritable path")
+		}
+	})
+}
+
 func TestMatch(t *testing.T) {
 	matcher := NewMatcher([]Prefix{
 		{Text: "cafe", Category: "Food/Cafe"},
@@ -129,7 +205,7 @@ func TestMatch(t *testing.T) {
 func TestSummary(t *testing.T) {
 	t.Run("single category", func(t *testing.T) {
 		var s Summary
-		s.Add("Food/Groceries", "Woolworths NZ")
+		s.Add("Food/Groceries", "Woolworths NZ", -55.00)
 
 		if len(s.Groups) != 1 {
 			t.Fatalf("got %d root groups, want 1", len(s.Groups))
@@ -140,6 +216,9 @@ func TestSummary(t *testing.T) {
 		}
 		if food.Count() != 1 {
 			t.Errorf("Food count = %d, want 1", food.Count())
+		}
+		if food.Total != -55.00 {
+			t.Errorf("Food total = %.2f, want -55.00", food.Total)
 		}
 		if len(food.Children) != 1 {
 			t.Fatalf("Food children = %d, want 1", len(food.Children))
@@ -155,12 +234,15 @@ func TestSummary(t *testing.T) {
 
 	t.Run("multiple details same category", func(t *testing.T) {
 		var s Summary
-		s.Add("Food/Groceries", "Woolworths NZ")
-		s.Add("Food/Groceries", "Countdown Auckland")
+		s.Add("Food/Groceries", "Woolworths NZ", -55.00)
+		s.Add("Food/Groceries", "Countdown Auckland", -30.00)
 
 		food := s.Groups[0]
 		if food.Count() != 2 {
 			t.Errorf("Food count = %d, want 2", food.Count())
+		}
+		if food.Total != -85.00 {
+			t.Errorf("Food total = %.2f, want -85.00", food.Total)
 		}
 		groceries := food.Children[0]
 		if groceries.Count() != 2 {
@@ -170,8 +252,8 @@ func TestSummary(t *testing.T) {
 
 	t.Run("sibling categories", func(t *testing.T) {
 		var s Summary
-		s.Add("Food/Groceries", "Woolworths NZ")
-		s.Add("Food/Cafe", "Cafe Mocha")
+		s.Add("Food/Groceries", "Woolworths NZ", -55.00)
+		s.Add("Food/Cafe", "Cafe Mocha", -8.50)
 
 		food := s.Groups[0]
 		if food.Count() != 2 {
@@ -188,8 +270,8 @@ func TestSummary(t *testing.T) {
 
 	t.Run("distinct root categories", func(t *testing.T) {
 		var s Summary
-		s.Add("Food/Groceries", "Woolworths NZ")
-		s.Add("Transport/Public", "Auckland Transport")
+		s.Add("Food/Groceries", "Woolworths NZ", -55.00)
+		s.Add("Transport/Public", "Auckland Transport", -3.50)
 
 		if len(s.Groups) != 2 {
 			t.Fatalf("got %d root groups, want 2", len(s.Groups))
@@ -202,7 +284,7 @@ func TestSummary(t *testing.T) {
 
 	t.Run("single segment category", func(t *testing.T) {
 		var s Summary
-		s.Add("Misc", "Random Purchase")
+		s.Add("Misc", "Random Purchase", -12.99)
 
 		if len(s.Groups) != 1 {
 			t.Fatalf("got %d root groups, want 1", len(s.Groups))
@@ -217,6 +299,42 @@ func TestSummary(t *testing.T) {
 			t.Errorf("children = %d, want 0", len(s.Groups[0].Children))
 		}
 	})
+}
+
+func TestSort(t *testing.T) {
+	var s Summary
+	s.Add("Transport/Public", "bus", -3.50)
+	s.Add("Food/Groceries", "woolworths", -55.00)
+	s.Add("Food/Cafe", "cafe", -8.50)
+	s.Add("Entertainment", "netflix", -15.00)
+
+	s.Sort()
+
+	// Roots should be alphabetical
+	if len(s.Groups) != 3 {
+		t.Fatalf("got %d root groups, want 3", len(s.Groups))
+	}
+	if s.Groups[0].Name != "Entertainment" {
+		t.Errorf("root[0] = %q, want Entertainment", s.Groups[0].Name)
+	}
+	if s.Groups[1].Name != "Food" {
+		t.Errorf("root[1] = %q, want Food", s.Groups[1].Name)
+	}
+	if s.Groups[2].Name != "Transport" {
+		t.Errorf("root[2] = %q, want Transport", s.Groups[2].Name)
+	}
+
+	// Children under Food should be alphabetical
+	food := s.Groups[1]
+	if len(food.Children) != 2 {
+		t.Fatalf("Food children = %d, want 2", len(food.Children))
+	}
+	if food.Children[0].Name != "Cafe" {
+		t.Errorf("Food child[0] = %q, want Cafe", food.Children[0].Name)
+	}
+	if food.Children[1].Name != "Groceries" {
+		t.Errorf("Food child[1] = %q, want Groceries", food.Children[1].Name)
+	}
 }
 
 func BenchmarkMatch(b *testing.B) {

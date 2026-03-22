@@ -2,7 +2,6 @@ package common
 
 import (
 	"fmt"
-	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -39,12 +38,3 @@ func ParseDate(dateFormat string, date string) (time.Time, error) {
 	return t, nil
 }
 
-// Epsilon calculates the allowable difference between values
-func Epsilon(want float64) float64 {
-	return math.Nextafter(want, want+1.0) - want
-}
-
-// MakeDate constructs a new time without concern for... times
-func MakeDate(year, month, day int) time.Time {
-	return time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.UTC)
-}

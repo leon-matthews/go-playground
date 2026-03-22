@@ -34,3 +34,37 @@ invalid amount: ""`
 		assert.ErrorContains(t, err, wantErr)
 	})
 }
+
+func TestRead(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
+		transactions, err := Read("testdata/valid.xlsx")
+		assert.NoError(t, err)
+		assert.Len(t, transactions, 2)
+
+		assert.Equal(t, time.Date(2025, time.October, 21, 0, 0, 0, 0, time.UTC), transactions[0].Date)
+		assert.Equal(t, "4055-xxxx-1234", transactions[0].Account)
+		assert.Equal(t, "Bob's Burgers", transactions[0].Details)
+		assert.InDelta(t, -75.80, transactions[0].Amount, 0.001)
+
+		assert.Equal(t, time.Date(2025, time.October, 22, 0, 0, 0, 0, time.UTC), transactions[1].Date)
+		assert.Equal(t, time.Date(2025, time.October, 23, 0, 0, 0, 0, time.UTC), transactions[1].Processed)
+		assert.Equal(t, "4055-xxxx-5678", transactions[1].Account)
+		assert.Equal(t, "Coffee Shop", transactions[1].Details)
+		assert.InDelta(t, -5.50, transactions[1].Amount, 0.001)
+	})
+
+	t.Run("file not found", func(t *testing.T) {
+		_, err := Read("testdata/nonexistent.xlsx")
+		assert.Error(t, err)
+	})
+
+	t.Run("wrong sheet", func(t *testing.T) {
+		_, err := Read("testdata/no_sheet.xlsx")
+		assert.Error(t, err)
+	})
+
+	t.Run("bad row", func(t *testing.T) {
+		_, err := Read("testdata/bad_row.xlsx")
+		assert.Error(t, err)
+	})
+}

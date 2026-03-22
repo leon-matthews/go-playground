@@ -18,6 +18,11 @@ type Prefix struct {
 	Category string
 }
 
+// comparePrefix orders prefixes by text for binary search.
+func comparePrefix(a, b Prefix) int {
+	return strings.Compare(a.Text, b.Text)
+}
+
 // LoadPrefixes reads a CSV file of prefix,category pairs.
 func LoadPrefixes(path string) ([]Prefix, error) {
 	f, err := os.Open(path)
@@ -47,19 +52,41 @@ func LoadPrefixes(path string) ([]Prefix, error) {
 	return prefixes, nil
 }
 
+// SavePrefixes sorts and writes all prefixes to a CSV file.
+func SavePrefixes(path string, prefixes []Prefix) error {
+	sorted := make([]Prefix, len(prefixes))
+	copy(sorted, prefixes)
+	slices.SortFunc(sorted, comparePrefix)
+
+	f, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("create prefixes: %w", err)
+	}
+	defer f.Close()
+
+	w := csv.NewWriter(f)
+	for _, p := range sorted {
+		if err := w.Write([]string{p.Text, p.Category}); err != nil {
+			return fmt.Errorf("write prefix: %w", err)
+		}
+	}
+	w.Flush()
+	return w.Error()
+}
+
 // Matcher holds a sorted set of prefixes and supports longest-match lookup.
 type Matcher struct {
 	prefixes []Prefix
 }
 
 // NewMatcher creates a Matcher from the given prefixes, sorting them for
-// binary search.
+// binary search. If the prefixes are already sorted, the sort is skipped.
 func NewMatcher(prefixes []Prefix) *Matcher {
 	sorted := make([]Prefix, len(prefixes))
 	copy(sorted, prefixes)
-	slices.SortFunc(sorted, func(a, b Prefix) int {
-		return strings.Compare(a.Text, b.Text)
-	})
+	if !slices.IsSortedFunc(sorted, comparePrefix) {
+		slices.SortFunc(sorted, comparePrefix)
+	}
 	return &Matcher{prefixes: sorted}
 }
 
@@ -67,6 +94,7 @@ func NewMatcher(prefixes []Prefix) *Matcher {
 // It holds child groups and the transaction details that fall under it.
 type Group struct {
 	Name         string
+	Total        float64
 	Children     []*Group
 	Transactions []string
 }
@@ -81,9 +109,23 @@ type Summary struct {
 	Groups []*Group
 }
 
+// Sort recursively sorts all groups alphabetically by name.
+func (s *Summary) Sort() {
+	sortGroups(s.Groups)
+}
+
+func sortGroups(groups []*Group) {
+	slices.SortFunc(groups, func(a, b *Group) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+	for _, g := range groups {
+		sortGroups(g.Children)
+	}
+}
+
 // Add splits category on "/" and walks/creates groups along the path,
-// appending the detail to every group along the path.
-func (s *Summary) Add(category, detail string) {
+// appending the detail and accumulating the amount at every level.
+func (s *Summary) Add(category, detail string, amount float64) {
 	segments := strings.Split(category, "/")
 	groups := &s.Groups
 	for _, seg := range segments {
@@ -92,6 +134,7 @@ func (s *Summary) Add(category, detail string) {
 			g = &Group{Name: seg}
 			*groups = append(*groups, g)
 		}
+		g.Total += amount
 		g.Transactions = append(g.Transactions, detail)
 		groups = &g.Children
 	}

@@ -54,7 +54,7 @@ func TestParseAmount(t *testing.T) {
 			amount, err := common.ParseAmount(tt.given)
 			if tt.wantErr == "" {
 				assert.NoError(t, err)
-				assert.InDelta(t, tt.want, amount, common.Epsilon(tt.want))
+				assert.InDelta(t, tt.want, amount, epsilon(tt.want))
 			} else {
 				assert.ErrorContains(t, err, tt.wantErr)
 			}
@@ -69,8 +69,8 @@ func TestParseDate(t *testing.T) {
 		want    time.Time
 		wantErr string
 	}{
-		{"easy", "17 Jun 2025", common.MakeDate(2025, 6, 17), ""},
-		{"deceptive", "17 July 2025", common.MakeDate(2025, 7, 17), `invalid date: "17 July 2025"`},
+		{"easy", "17 Jun 2025", makeDate(2025, 6, 17), ""},
+		{"deceptive", "17 July 2025", makeDate(2025, 7, 17), `invalid date: "17 July 2025"`},
 	}
 
 	for _, tt := range testcases {

@@ -1,43 +1,60 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"maps"
 	"os"
-	"path"
-	"slices"
-	"text/tabwriter"
 
+	pflag "github.com/spf13/pflag"
+	"golang.org/x/term"
+
+	"banking/categorise"
+	"banking/common"
 	"banking/statements/anz"
+	"banking/tui"
 )
 
 func main() {
-	if len(os.Args) != 2 {
-		log.Fatalf("Usage: %v PATH", path.Base(os.Args[0]))
+	prefixesPath := pflag.StringP("prefixes", "p", "", "path to prefixes CSV file")
+	edit := pflag.BoolP("edit", "e", false, "interactively categorise unknown transactions")
+	cats := pflag.BoolP("categories", "c", false, "edit category tree")
+	verbose := pflag.CountP("verbose", "v", "increase category detail level")
+	pflag.Parse()
+
+	if *prefixesPath == "" {
+		log.Fatal("Usage: banking --prefixes PREFIXES [--edit] [--categories] [STATEMENT ...]")
 	}
 
-	transactions, err := anz.Read(os.Args[1])
+	prefixes, err := categorise.LoadPrefixes(*prefixesPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Accumulate card totals
-	cards := make(map[string]float64)
-	for _, t := range transactions {
-		cards[t.Account] += t.Amount
+	if *cats {
+		if err := tui.RunCategoryEditor(prefixes, *prefixesPath); err != nil {
+			log.Fatal(err)
+		}
+		return
 	}
 
-	// Print in columns
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
-	for _, t := range transactions {
-		fmt.Fprintln(w, t.Tabbed())
+	if pflag.NArg() == 0 {
+		log.Fatal("Usage: banking --prefixes PREFIXES [--edit] STATEMENT [STATEMENT ...]")
 	}
-	w.Flush()
 
-	// Print totals
-	names := slices.Sorted(maps.Keys(cards))
-	for _, name := range names {
-		fmt.Printf("%s $%.2f\n", name, cards[name])
+	var transactions []*common.Transaction
+	for _, path := range pflag.Args() {
+		tt, err := anz.Read(path)
+		if err != nil {
+			log.Fatal(err)
+		}
+		transactions = append(transactions, tt...)
+	}
+
+	termWidth := 80
+	if w, _, err := term.GetSize(int(os.Stdout.Fd())); err == nil {
+		termWidth = w
+	}
+
+	if err := tui.Run(transactions, prefixes, *prefixesPath, *verbose, termWidth, *edit); err != nil {
+		log.Fatal(err)
 	}
 }
