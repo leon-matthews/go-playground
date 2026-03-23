@@ -82,6 +82,8 @@ const (
 	focusPrefix   = 0
 	focusTree     = 1
 	focusFreeText = 2
+
+	pageStep = 10
 )
 
 // EditorModel is the bubbletea model for interactively categorising unknown transactions.
@@ -123,6 +125,7 @@ func NewEditorModel(unknowns []*common.Transaction, basePrefixes []categorise.Pr
 	}
 	m.prefixInput.SetValue(strings.ToLower(unknowns[0].Details))
 	m.prefixInput.CursorEnd()
+	m.prefixInput.Focus()
 
 	return m
 }
@@ -164,6 +167,16 @@ func (m EditorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "down", "j":
 			if m.focus == focusTree && m.treeCursor < len(m.tree)-1 {
 				m.treeCursor++
+				return m, nil
+			}
+		case "pgup":
+			if m.focus == focusTree {
+				m.treeCursor = max(0, m.treeCursor-pageStep)
+				return m, nil
+			}
+		case "pgdown":
+			if m.focus == focusTree {
+				m.treeCursor = min(len(m.tree)-1, m.treeCursor+pageStep)
 				return m, nil
 			}
 		}

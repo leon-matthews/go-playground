@@ -81,6 +81,10 @@ func (m CategoriesModel) updateBrowse(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) 
 		if m.cursor < len(m.tree)-1 {
 			m.cursor++
 		}
+	case "pgup":
+		m.cursor = max(0, m.cursor-pageStep)
+	case "pgdown":
+		m.cursor = min(max(0, len(m.tree)-1), m.cursor+pageStep)
 	case "r":
 		if len(m.tree) == 0 {
 			return m, nil
@@ -171,6 +175,10 @@ func (m CategoriesModel) updateMove(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		if m.cursor < len(m.tree)-1 {
 			m.cursor++
 		}
+	case "pgup":
+		m.cursor = max(0, m.cursor-pageStep)
+	case "pgdown":
+		m.cursor = min(max(0, len(m.tree)-1), m.cursor+pageStep)
 	case "enter":
 		src := m.tree[m.source]
 		dst := m.tree[m.cursor]
@@ -202,6 +210,10 @@ func (m CategoriesModel) updateMerge(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		if m.cursor < len(m.tree)-1 {
 			m.cursor++
 		}
+	case "pgup":
+		m.cursor = max(0, m.cursor-pageStep)
+	case "pgdown":
+		m.cursor = min(max(0, len(m.tree)-1), m.cursor+pageStep)
 	case "enter":
 		src := m.tree[m.source]
 		dst := m.tree[m.cursor]
