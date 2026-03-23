@@ -1,0 +1,5 @@
+Food                     -63.50 (2)
+  Cafe                    -8.50 (1)
+  Groceries              -55.00 (1)
+Transport                 -3.50 (1)
+  Public                  -3.50 (1)

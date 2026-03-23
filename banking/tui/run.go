@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"os"
 	"slices"
 
 	tea "charm.land/bubbletea/v2"
@@ -43,24 +44,28 @@ func Run(transactions []*common.Transaction, prefixes []categorise.Prefix, prefi
 	}
 
 	// Measure both trees to find a common left width.
-	leftWidth := MeasureTree(expenses.Groups, 0, maxDepth, showTransactions, expensesByCategory, "")
-	if w := MeasureTree(income.Groups, 0, maxDepth, showTransactions, incomeByCategory, ""); w > leftWidth {
+	ep := TreePrinter{W: os.Stdout, MaxDepth: maxDepth, ShowTx: showTransactions, ByCategory: expensesByCategory}
+	ip := TreePrinter{W: os.Stdout, MaxDepth: maxDepth, ShowTx: showTransactions, ByCategory: incomeByCategory}
+	leftWidth := ep.Measure(expenses.Groups)
+	if w := ip.Measure(income.Groups); w > leftWidth {
 		leftWidth = w
 	}
 	if leftWidth+18 > termWidth {
 		leftWidth = termWidth - 18
 	}
+	ep.LeftWidth = leftWidth
+	ip.LeftWidth = leftWidth
 
 	if len(expenses.Groups) > 0 {
 		fmt.Println("Expenses")
-		PrintTree(expenses.Groups, 0, maxDepth, showTransactions, expensesByCategory, "", leftWidth)
+		ep.Print(expenses.Groups)
 	}
 	if len(income.Groups) > 0 {
 		if len(expenses.Groups) > 0 {
 			fmt.Println()
 		}
 		fmt.Println("Income")
-		PrintTree(income.Groups, 0, maxDepth, showTransactions, incomeByCategory, "", leftWidth)
+		ip.Print(income.Groups)
 	}
 
 	if edit && len(unknowns) > 0 {
