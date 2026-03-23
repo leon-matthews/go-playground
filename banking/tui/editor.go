@@ -226,7 +226,7 @@ func (m EditorModel) saveAndAdvance(category string) (tea.Model, tea.Cmd) {
 		Text:     strings.ToLower(m.prefixInput.Value()),
 		Category: category,
 	})
-	all := append(m.basePrefixes, m.Added...)
+	all := slices.Concat(m.basePrefixes, m.Added)
 	m.matcher = categorise.NewMatcher(all)
 	m.tree = BuildCategoryTree(all)
 	m.treeCursor = 0
@@ -235,12 +235,7 @@ func (m EditorModel) saveAndAdvance(category string) (tea.Model, tea.Cmd) {
 
 func (m EditorModel) advance() (tea.Model, tea.Cmd) {
 	for m.current++; m.current < len(m.unknowns); m.current++ {
-		detail := m.unknowns[m.current].Details
-		if cat := m.matcher.Match(detail); cat != categorise.Unknown {
-			m.Added = append(m.Added, categorise.Prefix{
-				Text:     strings.ToLower(detail),
-				Category: cat,
-			})
+		if m.matcher.Match(m.unknowns[m.current].Details) != categorise.Unknown {
 			continue
 		}
 		break

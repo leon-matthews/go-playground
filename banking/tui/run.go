@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"slices"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -71,7 +72,7 @@ func Run(transactions []*common.Transaction, prefixes []categorise.Prefix, prefi
 		}
 		newPrefixes := result.(EditorModel).Added
 		if len(newPrefixes) > 0 {
-			all := append(prefixes, newPrefixes...)
+			all := slices.Concat(prefixes, newPrefixes)
 			if err := categorise.SavePrefixes(prefixesPath, all); err != nil {
 				return err
 			}

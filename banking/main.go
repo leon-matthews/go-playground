@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -72,7 +73,7 @@ func readStatementFile(bank, path string) ([]*common.Transaction, error) {
 	if bank != "" {
 		f, ok := statements.Get(bank)
 		if !ok {
-			log.Fatalf("unknown bank format %q (available: %v)", bank, statements.Names())
+			return nil, fmt.Errorf("unknown bank format %q (available: %v)", bank, statements.Names())
 		}
 		format = f
 	} else {
