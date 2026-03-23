@@ -85,7 +85,7 @@ func convertTransaction(txn ofxgo.Transaction, account string) (*common.Transact
 	memo := txn.Memo.String()
 	combined := name
 	if memo != "" {
-		combined = memo + " " + name
+		combined = name + " " + memo
 	}
 	details := common.CleanString(combined)
 

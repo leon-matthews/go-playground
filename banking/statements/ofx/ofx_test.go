@@ -79,7 +79,7 @@ func TestRead(t *testing.T) {
 
 		// Second transaction: has memo
 		tx = transactions[1]
-		want := "FXAmnt=4.00 FXCurr=AUD FXRate=0.6897 Cafe Mocha Auckland Nz"
+		want := "Cafe Mocha Auckland Nz FXAmnt=4.00 FXCurr=AUD FXRate=0.6897"
 		if tx.Details != want {
 			t.Errorf("details = %q, want %q", tx.Details, want)
 		}
