@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"slices"
 
@@ -20,7 +21,7 @@ func Run(transactions []*common.Transaction, cfg *common.Config, configPath stri
 	maxDepth := verbose + 1
 	showTransactions := verbose >= 2
 	if showTransactions {
-		maxDepth = 1<<31 - 1 // unlimited
+		maxDepth = math.MaxInt
 	}
 
 	// Measure both trees to find a common left width.
@@ -55,7 +56,11 @@ func Run(transactions []*common.Transaction, cfg *common.Config, configPath stri
 		if err != nil {
 			return err
 		}
-		newPrefixes := result.(EditorModel).Added
+		em, ok := result.(EditorModel)
+		if !ok {
+			return fmt.Errorf("unexpected model type %T from editor", result)
+		}
+		newPrefixes := em.Added
 		if len(newPrefixes) > 0 {
 			cfg.Prefixes = slices.Concat(cfg.Prefixes, newPrefixes)
 			if err := common.SaveConfig(configPath, cfg); err != nil {
@@ -76,7 +81,10 @@ func RunCategoryEditor(cfg *common.Config, configPath string) error {
 		return err
 	}
 
-	cm := result.(CategoriesModel)
+	cm, ok := result.(CategoriesModel)
+	if !ok {
+		return fmt.Errorf("unexpected model type %T from category editor", result)
+	}
 	if cm.Changed {
 		cfg.Prefixes = cm.Prefixes
 		if err := common.SaveConfig(configPath, cfg); err != nil {

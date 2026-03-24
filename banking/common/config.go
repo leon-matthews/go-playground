@@ -36,8 +36,7 @@ func LoadConfig(path string) (*Config, error) {
 // SaveConfig sorts prefixes and writes the config as pretty-printed JSON.
 func SaveConfig(path string, cfg *Config) error {
 	out := *cfg
-	out.Prefixes = make([]Prefix, len(cfg.Prefixes))
-	copy(out.Prefixes, cfg.Prefixes)
+	out.Prefixes = slices.Clone(cfg.Prefixes)
 	slices.SortFunc(out.Prefixes, ComparePrefix)
 
 	data, err := json.MarshalIndent(&out, "", "  ")

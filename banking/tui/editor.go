@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -23,14 +24,10 @@ type TreeRow struct {
 func BuildCategoryTree(prefixes []common.Prefix) []TreeRow {
 	// Collect unique categories and sort them so the tree is stable.
 	seen := make(map[string]struct{})
-	var categories []string
 	for _, p := range prefixes {
-		if _, ok := seen[p.Category]; !ok {
-			seen[p.Category] = struct{}{}
-			categories = append(categories, p.Category)
-		}
+		seen[p.Category] = struct{}{}
 	}
-	slices.Sort(categories)
+	categories := slices.Sorted(maps.Keys(seen))
 
 	// Build a tree of nodes, then flatten.
 	type node struct {
@@ -79,9 +76,9 @@ func BuildCategoryTree(prefixes []common.Prefix) []TreeRow {
 }
 
 const (
-	focusPrefix   = 0
-	focusTree     = 1
-	focusFreeText = 2
+	focusPrefix = iota
+	focusTree
+	focusFreeText
 
 	pageStep = 10
 )

@@ -17,8 +17,7 @@ type Matcher struct {
 // NewMatcher creates a Matcher from the given prefixes, sorting them for
 // binary search. If the prefixes are already sorted, the sort is skipped.
 func NewMatcher(prefixes []common.Prefix) *Matcher {
-	sorted := make([]common.Prefix, len(prefixes))
-	copy(sorted, prefixes)
+	sorted := slices.Clone(prefixes)
 	if !slices.IsSortedFunc(sorted, common.ComparePrefix) {
 		slices.SortFunc(sorted, common.ComparePrefix)
 	}

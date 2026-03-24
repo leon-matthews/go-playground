@@ -66,7 +66,7 @@ func main() {
 func readStatementFile(bank, path string, cfg *common.Config) ([]*common.Transaction, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read statement %s: %w", path, err)
 	}
 
 	var format statements.Format
@@ -79,14 +79,14 @@ func readStatementFile(bank, path string, cfg *common.Config) ([]*common.Transac
 	} else {
 		f, err := statements.Detect(data)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("detect format of %s: %w", path, err)
 		}
 		format = f
 	}
 
 	transactions, err := format.Read(data)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read %s as %s: %w", path, format.Name(), err)
 	}
 
 	if sc, ok := cfg.Sources[format.Name()]; ok && len(sc.Delete) > 0 {
