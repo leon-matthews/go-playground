@@ -8,6 +8,8 @@ import (
 	"os"
 	"slices"
 	"strings"
+
+	"banking/common"
 )
 
 const Unknown = "UNKNOWN"
@@ -91,12 +93,12 @@ func NewMatcher(prefixes []Prefix) *Matcher {
 }
 
 // Group is a node in the category hierarchy (e.g. "Food", "Groceries").
-// It holds child groups and the transaction details that fall under it.
+// It holds child groups and the transactions that fall under it.
 type Group struct {
 	Name         string
 	Total        float64
 	Children     []*Group
-	Transactions []string
+	Transactions []*common.Transaction
 }
 
 // Count returns the number of transactions in this group.
@@ -104,9 +106,11 @@ func (g *Group) Count() int {
 	return len(g.Transactions)
 }
 
-// Summary is a top-level container holding root groups.
+// Summary is a top-level container holding root groups and a flat index
+// of transactions by their full category path.
 type Summary struct {
-	Groups []*Group
+	Groups     []*Group
+	ByCategory map[string][]*common.Transaction
 }
 
 // Sort recursively sorts all groups alphabetically by name.
@@ -124,8 +128,13 @@ func sortGroups(groups []*Group) {
 }
 
 // Add splits category on "/" and walks/creates groups along the path,
-// appending the detail and accumulating the amount at every level.
-func (s *Summary) Add(category, detail string, amount float64) {
+// appending the transaction and accumulating the amount at every level.
+func (s *Summary) Add(category string, t *common.Transaction) {
+	if s.ByCategory == nil {
+		s.ByCategory = make(map[string][]*common.Transaction)
+	}
+	s.ByCategory[category] = append(s.ByCategory[category], t)
+
 	segments := strings.Split(category, "/")
 	groups := &s.Groups
 	for _, seg := range segments {
@@ -134,10 +143,29 @@ func (s *Summary) Add(category, detail string, amount float64) {
 			g = &Group{Name: seg}
 			*groups = append(*groups, g)
 		}
-		g.Total += amount
-		g.Transactions = append(g.Transactions, detail)
+		g.Total += t.Amount
+		g.Transactions = append(g.Transactions, t)
 		groups = &g.Children
 	}
+}
+
+// Summarise categorises transactions into expense and income summaries,
+// and collects any transactions that could not be matched.
+func Summarise(matcher *Matcher, transactions []*common.Transaction) (expenses, income Summary, unknowns []*common.Transaction) {
+	for _, t := range transactions {
+		cat := matcher.Match(t.Details)
+		if t.Amount < 0 {
+			expenses.Add(cat, t)
+		} else {
+			income.Add(cat, t)
+		}
+		if cat == Unknown {
+			unknowns = append(unknowns, t)
+		}
+	}
+	expenses.Sort()
+	income.Sort()
+	return
 }
 
 func findGroup(groups []*Group, name string) *Group {

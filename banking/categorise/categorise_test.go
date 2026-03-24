@@ -3,6 +3,8 @@ package categorise
 import (
 	"path/filepath"
 	"testing"
+
+	"banking/common"
 )
 
 func TestLoadPrefixes(t *testing.T) {
@@ -205,7 +207,7 @@ func TestMatch(t *testing.T) {
 func TestSummary(t *testing.T) {
 	t.Run("single category", func(t *testing.T) {
 		var s Summary
-		s.Add("Food/Groceries", "Woolworths NZ", -55.00)
+		s.Add("Food/Groceries", new(common.Transaction{Details: "Woolworths NZ", Amount: -55.00}))
 
 		if len(s.Groups) != 1 {
 			t.Fatalf("got %d root groups, want 1", len(s.Groups))
@@ -234,8 +236,8 @@ func TestSummary(t *testing.T) {
 
 	t.Run("multiple details same category", func(t *testing.T) {
 		var s Summary
-		s.Add("Food/Groceries", "Woolworths NZ", -55.00)
-		s.Add("Food/Groceries", "Countdown Auckland", -30.00)
+		s.Add("Food/Groceries", new(common.Transaction{Details: "Woolworths NZ", Amount: -55.00}))
+		s.Add("Food/Groceries", new(common.Transaction{Details: "Countdown Auckland", Amount: -30.00}))
 
 		food := s.Groups[0]
 		if food.Count() != 2 {
@@ -252,8 +254,8 @@ func TestSummary(t *testing.T) {
 
 	t.Run("sibling categories", func(t *testing.T) {
 		var s Summary
-		s.Add("Food/Groceries", "Woolworths NZ", -55.00)
-		s.Add("Food/Cafe", "Cafe Mocha", -8.50)
+		s.Add("Food/Groceries", new(common.Transaction{Details: "Woolworths NZ", Amount: -55.00}))
+		s.Add("Food/Cafe", new(common.Transaction{Details: "Cafe Mocha", Amount: -8.50}))
 
 		food := s.Groups[0]
 		if food.Count() != 2 {
@@ -270,8 +272,8 @@ func TestSummary(t *testing.T) {
 
 	t.Run("distinct root categories", func(t *testing.T) {
 		var s Summary
-		s.Add("Food/Groceries", "Woolworths NZ", -55.00)
-		s.Add("Transport/Public", "Auckland Transport", -3.50)
+		s.Add("Food/Groceries", new(common.Transaction{Details: "Woolworths NZ", Amount: -55.00}))
+		s.Add("Transport/Public", new(common.Transaction{Details: "Auckland Transport", Amount: -3.50}))
 
 		if len(s.Groups) != 2 {
 			t.Fatalf("got %d root groups, want 2", len(s.Groups))
@@ -284,7 +286,7 @@ func TestSummary(t *testing.T) {
 
 	t.Run("single segment category", func(t *testing.T) {
 		var s Summary
-		s.Add("Misc", "Random Purchase", -12.99)
+		s.Add("Misc", new(common.Transaction{Details: "Random Purchase", Amount: -12.99}))
 
 		if len(s.Groups) != 1 {
 			t.Fatalf("got %d root groups, want 1", len(s.Groups))
@@ -303,10 +305,10 @@ func TestSummary(t *testing.T) {
 
 func TestSort(t *testing.T) {
 	var s Summary
-	s.Add("Transport/Public", "bus", -3.50)
-	s.Add("Food/Groceries", "woolworths", -55.00)
-	s.Add("Food/Cafe", "cafe", -8.50)
-	s.Add("Entertainment", "netflix", -15.00)
+	s.Add("Transport/Public", new(common.Transaction{Details: "bus", Amount: -3.50}))
+	s.Add("Food/Groceries", new(common.Transaction{Details: "woolworths", Amount: -55.00}))
+	s.Add("Food/Cafe", new(common.Transaction{Details: "cafe", Amount: -8.50}))
+	s.Add("Entertainment", new(common.Transaction{Details: "netflix", Amount: -15.00}))
 
 	s.Sort()
 
