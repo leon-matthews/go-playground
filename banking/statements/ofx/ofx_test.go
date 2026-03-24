@@ -57,11 +57,11 @@ func TestRead(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if len(transactions) != 3 {
-			t.Fatalf("got %d transactions, want 3", len(transactions))
+		if len(transactions) != 5 {
+			t.Fatalf("got %d transactions, want 5", len(transactions))
 		}
 
-		// First transaction: debit
+		// First transaction: credit card debit
 		tx := transactions[0]
 		if tx.Account != "1234-xxxx-5678" {
 			t.Errorf("account = %q, want 1234-xxxx-5678", tx.Account)
@@ -84,13 +84,41 @@ func TestRead(t *testing.T) {
 			t.Errorf("details = %q, want %q", tx.Details, want)
 		}
 
-		// Third transaction: credit
+		// Third transaction: credit card credit
 		tx = transactions[2]
 		if tx.Amount != 500.00 {
 			t.Errorf("amount = %.2f, want 500.00", tx.Amount)
 		}
 		if tx.Details != "Online Payment Thank You" {
 			t.Errorf("details = %q, want Online Payment Thank You", tx.Details)
+		}
+
+		// Fourth transaction: bank debit with memo
+		tx = transactions[3]
+		if tx.Account != "0123456-00" {
+			t.Errorf("account = %q, want 0123456-00", tx.Account)
+		}
+		wantDate = time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC)
+		if !tx.Date.Equal(wantDate) {
+			t.Errorf("date = %v, want %v", tx.Date, wantDate)
+		}
+		if tx.Details != "Rent Payment Jan 2026" {
+			t.Errorf("details = %q, want Rent Payment Jan 2026", tx.Details)
+		}
+		if tx.Amount != -1250.00 {
+			t.Errorf("amount = %.2f, want -1250.00", tx.Amount)
+		}
+
+		// Fifth transaction: bank credit (salary)
+		tx = transactions[4]
+		if tx.Account != "0123456-00" {
+			t.Errorf("account = %q, want 0123456-00", tx.Account)
+		}
+		if tx.Amount != 3200.00 {
+			t.Errorf("amount = %.2f, want 3200.00", tx.Amount)
+		}
+		if tx.Details != "Salary" {
+			t.Errorf("details = %q, want Salary", tx.Details)
 		}
 	})
 
