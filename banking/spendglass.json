@@ -1,0 +1,1413 @@
+{
+  "prefixes": [
+    {
+      "prefix": "/prusa london",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "2degrees mobile",
+      "category": "Personal/Phone"
+    },
+    {
+      "prefix": "5max westgate auckland nz",
+      "category": "House/Misc"
+    },
+    {
+      "prefix": "aa driver training auckland nz",
+      "category": "Transport/Car"
+    },
+    {
+      "prefix": "aa insurance auckland nz",
+      "category": "Insurance"
+    },
+    {
+      "prefix": "aa lynnmall new lynn nz",
+      "category": "Transport/Car"
+    },
+    {
+      "prefix": "account fee",
+      "category": "Misc"
+    },
+    {
+      "prefix": "acquisitions lynnmall auckland nz",
+      "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "actionzone",
+      "category": "Entertainment"
+    },
+    {
+      "prefix": "adidas new zealand ltd auckland nz",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "air new z0864110982301 auckland nz",
+      "category": "Holiday"
+    },
+    {
+      "prefix": "air new zand",
+      "category": "Holiday"
+    },
+    {
+      "prefix": "akl airport parking",
+      "category": "Transport/Parking"
+    },
+    {
+      "prefix": "akl council",
+      "category": "House/Misc"
+    },
+    {
+      "prefix": "akld transport parking auckland nz",
+      "category": "Transport/Parking"
+    },
+    {
+      "prefix": "aliexpress london gb",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "amazon au sydney south au",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "amazon marketplace",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "amazon mktpl",
+      "category": "Misc"
+    },
+    {
+      "prefix": "angels spices",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "angkor bakery auckland nz",
+      "category": "Food/Bakery"
+    },
+    {
+      "prefix": "animal register wellington nz",
+      "category": "Pets"
+    },
+    {
+      "prefix": "animates new lynn new lynn nz",
+      "category": "Pets"
+    },
+    {
+      "prefix": "anz st lukes",
+      "category": "Misc"
+    },
+    {
+      "prefix": "apiculture new zealand",
+      "category": "Pets"
+    },
+    {
+      "prefix": "arada promotions",
+      "category": "Entertainment"
+    },
+    {
+      "prefix": "arbung thai street foo auckland cent nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "arthurs emporium whangarei nz",
+      "category": "House/Misc"
+    },
+    {
+      "prefix": "at hop auckland auckland nz",
+      "category": "Transport/Public"
+    },
+    {
+      "prefix": "at public transport",
+      "category": "Transport/Public"
+    },
+    {
+      "prefix": "atomic coffee",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "auckland council onlin auckland nz",
+      "category": "House/Misc"
+    },
+    {
+      "prefix": "auckland hospital car",
+      "category": "Transport/Parking"
+    },
+    {
+      "prefix": "auckland transport",
+      "category": "Transport/Public"
+    },
+    {
+      "prefix": "aucklandbeekeepersclub",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "aucklandtransportparki",
+      "category": "Transport/Parking"
+    },
+    {
+      "prefix": "aussie butcher",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "avondale colleg",
+      "category": "Education"
+    },
+    {
+      "prefix": "avondale dental",
+      "category": "Personal/Dentist"
+    },
+    {
+      "prefix": "avondale health centre",
+      "category": "Health/Doctor"
+    },
+    {
+      "prefix": "avondale supervalue avondale nz",
+      "category": "Food/Dairy"
+    },
+    {
+      "prefix": "bakers delight",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "bargain chemist",
+      "category": "Health/Chemist"
+    },
+    {
+      "prefix": "bbb lynnmall auckland nz",
+      "category": "House/Misc"
+    },
+    {
+      "prefix": "bch westgate auckland nz",
+      "category": "Health/Chemist"
+    },
+    {
+      "prefix": "bfc chicken",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "bien sushi auckland nz",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "bird barn auckland nz",
+      "category": "Pets"
+    },
+    {
+      "prefix": "blockhouse bay vet",
+      "category": "Pets/Vet"
+    },
+    {
+      "prefix": "bodrum kitchen auckland nz",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "bolliwood xpress auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "bolt.eu",
+      "category": "Transport/Rideshare"
+    },
+    {
+      "prefix": "bookabach",
+      "category": "Holiday"
+    },
+    {
+      "prefix": "booktopia st peters au",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "boracay garden restaur auckland nz",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "bp connect",
+      "category": "Transport/Petrol"
+    },
+    {
+      "prefix": "briscoes",
+      "category": "House/Misc"
+    },
+    {
+      "prefix": "browne st auckland nz",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "bunnings",
+      "category": "House/Misc"
+    },
+    {
+      "prefix": "buns \u0026 rolls auckland nz",
+      "category": "Food/Bakery"
+    },
+    {
+      "prefix": "burchies fried chick",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "burger king",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "burgerfuel",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "chemist warehouse",
+      "category": "Health/Chemist"
+    },
+    {
+      "prefix": "city chic northwest westgate nz",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "costco",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "cotton on",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "crackerjack",
+      "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "daiso japan auckland nz",
+      "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "daruma ramen auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "dbs*flex fitness",
+      "category": "Personal/Gym"
+    },
+    {
+      "prefix": "de'niro restaurant auckland nz",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "devonport op shop auckland nz",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "dominos point chev pt chevalier nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "downlow burgers",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "downtown car park auckland nz",
+      "category": "Transport/Parking"
+    },
+    {
+      "prefix": "duck island ice crea auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "dunkin donuts",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "ecostore",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "eden tyres and mags li mount eden nz",
+      "category": "Transport/Car"
+    },
+    {
+      "prefix": "euro deli auckland nz",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "event cinemas",
+      "category": "Entertainment"
+    },
+    {
+      "prefix": "event cinemas st lukes mt albert nz",
+      "category": "Entertainment"
+    },
+    {
+      "prefix": "ezypay *flexfitness",
+      "category": "Personal/Gym"
+    },
+    {
+      "prefix": "ezypay ezypay*flex fit",
+      "category": "Personal/Gym"
+    },
+    {
+      "prefix": "fantasy korean bbq auckland nz",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "farmers",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "farro fresh",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "flip! whangarei nz",
+      "category": "Entertainment"
+    },
+    {
+      "prefix": "foodie asian supermark",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "foot locker",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "four square",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "four square rodney wellsford nz",
+      "category": "Food/Dairy"
+    },
+    {
+      "prefix": "fresh sushi whangarei nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "fresh sushi whangarei nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "fresha auckland nz",
+      "category": "Personal/Haircuts"
+    },
+    {
+      "prefix": "fruit world",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "gas te hana",
+      "category": "Transport/Petrol"
+    },
+    {
+      "prefix": "glassons",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "gong cha st lukes auckland nz",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "goode brothers",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "goodstuff auckland nz",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "google youtubepremium auckland nz",
+      "category": "Entertainment"
+    },
+    {
+      "prefix": "green jade takeaways auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "h\u0026m commercial bay auckland nz",
+      "category": "House/Misc"
+    },
+    {
+      "prefix": "hallensteins",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "hansan lynnmall auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "happy takeaways auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "health new zealand",
+      "category": "Health"
+    },
+    {
+      "prefix": "hello mister wynyard q auckland nz",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "hiso auckland nz",
+      "category": "Entertainment"
+    },
+    {
+      "prefix": "hobbs gifts\u0026 homewares wellsford nz",
+      "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "ikea auckland nz",
+      "category": "House/Misc"
+    },
+    {
+      "prefix": "ikea restaurant auckland nz",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "interest",
+      "category": "Misc"
+    },
+    {
+      "prefix": "japan mart",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "jay jays",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "joint/additional account fee",
+      "category": "Misc"
+    },
+    {
+      "prefix": "juicy nz",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "just cuts",
+      "category": "Personal/Haircuts"
+    },
+    {
+      "prefix": "k chicken auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "kaiwaka st johns kaiwaka nz",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "kebab king auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "kfc",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "kickstarter.com",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "kings plant barn st lu mt albert nz",
+      "category": "House/Plants"
+    },
+    {
+      "prefix": "kiwi artisan wanaka nz",
+      "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "kiwi kebab",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "kiwiyo mission bay auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "kmart",
+      "category": "House/Misc"
+    },
+    {
+      "prefix": "krispy kreme",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "kumeu fresh",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "l'authentique auckland nz",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "lawn cafe auckland nz",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "lawn cafe auckland nz",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "lepak auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "life pharmacy st lukes st lukes nz",
+      "category": "Health/Chemist"
+    },
+    {
+      "prefix": "lime*2 rides",
+      "category": "Transport/Scooters"
+    },
+    {
+      "prefix": "lime*pass",
+      "category": "Transport/Scooters"
+    },
+    {
+      "prefix": "lime*payoff",
+      "category": "Transport/Scooters"
+    },
+    {
+      "prefix": "linkedinpre",
+      "category": "Misc"
+    },
+    {
+      "prefix": "liquor centre - pt che auckland nz",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "local butcher",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "look sharp st lukes auckland nz",
+      "category": "Personal/Haircuts"
+    },
+    {
+      "prefix": "lovisa lynmall auckland nz",
+      "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "lovisa st lukes auckland nz",
+      "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "lucky chopstick",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "lucky table 13",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "lush queen street auckland nz",
+      "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "magness benrow auckland nz",
+      "category": "House/Misc"
+    },
+    {
+      "prefix": "maki mono",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "maritime carpark",
+      "category": "Transport/Parking"
+    },
+    {
+      "prefix": "martha's backyard glen innes nz",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "matsu sushi lynnmall auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "mcdonald",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "mcdonalds",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "mercy hospice auckland auckland nz",
+      "category": "Charity/Local"
+    },
+    {
+      "prefix": "mezze bar auckland nz",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "mirrou st lukes auckland nz",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "mitre 10",
+      "category": "House/Misc"
+    },
+    {
+      "prefix": "mobil",
+      "category": "Transport/Petrol"
+    },
+    {
+      "prefix": "mobil pt chevalier auckland nz",
+      "category": "Transport/Petrol"
+    },
+    {
+      "prefix": "mobil wellsford wellsford nz",
+      "category": "Transport/Petrol"
+    },
+    {
+      "prefix": "monthly a c fee",
+      "category": "Bank/Fee"
+    },
+    {
+      "prefix": "mphs community trust auckland nz",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "mr zhous dumplings auckland nz",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "mt eden pharmacy auckland nz",
+      "category": "Health/Chemist"
+    },
+    {
+      "prefix": "mud pie deli auckland nz",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "muffin break lynn mall auckland nz",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "nam nam harbour auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "nando's auckland nz",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "nandos botany auckland nz",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "netflix",
+      "category": "Entertainment"
+    },
+    {
+      "prefix": "new balance *1102 auckland nz",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "new world",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "noel leeming auckland nz",
+      "category": "House/Misc"
+    },
+    {
+      "prefix": "nomad restaurant auckland nz",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "noodle canteen auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "north shore hospice",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "north western toyota new lynn nz",
+      "category": "Transport/Car"
+    },
+    {
+      "prefix": "nz artisan auckland nz",
+      "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "nz fudge farm",
+      "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "nz transport agency",
+      "category": "Transport/Car"
+    },
+    {
+      "prefix": "nz uniforms new lynn nz",
+      "category": "Education/Uniforms"
+    },
+    {
+      "prefix": "o bowl new lynn auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "oceanz seafood westgat auckland nz",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "oji sushi harbour eats auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "om star convenience st auckland nz",
+      "category": "Food/Dairy"
+    },
+    {
+      "prefix": "online payment - thank you",
+      "category": "Payment"
+    },
+    {
+      "prefix": "orcon takapuna nz",
+      "category": "Personal/Phone"
+    },
+    {
+      "prefix": "orconinternet",
+      "category": "House/Utilities"
+    },
+    {
+      "prefix": "pacific foodmart auckland nz",
+      "category": "Food/Dairy"
+    },
+    {
+      "prefix": "pagani new lynn auckland nz",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "pak n save",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "paper moon mairangi",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "parua bay tavern whangarei nz",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "pasadena dairy point chevali nz",
+      "category": "Food/Dairy"
+    },
+    {
+      "prefix": "passa.passa nz limit auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "pasta masta auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "paypal *codebergev",
+      "category": "House/IT"
+    },
+    {
+      "prefix": "paypal *core elec",
+      "category": "House/IT"
+    },
+    {
+      "prefix": "paypal *dlishperfum",
+      "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "paypal *dlishperfum 4029357733 sg",
+      "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "paypal *ebay",
+      "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "paypal *fisag ltd 4029357733 sg",
+      "category": "Misc"
+    },
+    {
+      "prefix": "paypal *gog",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "paypal *gumroad",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "paypal *kiwifil",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "paypal *lcsceles74u 4029357733 hk",
+      "category": "Misc"
+    },
+    {
+      "prefix": "paypal *pimoroniltd",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "paypal *prusadevelo 35314369001 cz",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "paypal *raspberrypi",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "paypal *signal",
+      "category": "Charity/International"
+    },
+    {
+      "prefix": "paypal *waves8d2q 4029357733 hk",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "paypal *wikipedia",
+      "category": "Charity/International"
+    },
+    {
+      "prefix": "pb tech online",
+      "category": "House/IT"
+    },
+    {
+      "prefix": "pgg wrightson",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "pimarn thai rathbone st w nz",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "pink bin",
+      "category": "House/Maintenance"
+    },
+    {
+      "prefix": "pita pit",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "pizza hut",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "platypus",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "point chev beach cafe auckland nz",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "point chev fresh point chevali nz",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "point superette",
+      "category": "Food/Dairy"
+    },
+    {
+      "prefix": "poke house",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "pp*humblebundl humbleb 4029357733 ca",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "professionail st lukes auckland nz",
+      "category": "Personal/Nails"
+    },
+    {
+      "prefix": "pt chev fresh point chevali nz",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "pt chev organic wine auckland nz",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "pt chevalier takeaways",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "ptchev beachcafe auckland nz",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "rainbows end manukau nz",
+      "category": "Entertainment"
+    },
+    {
+      "prefix": "raspberry pi cambridge",
+      "category": "Charity/International"
+    },
+    {
+      "prefix": "reading cinemas",
+      "category": "Entertainment"
+    },
+    {
+      "prefix": "remark-it solutions",
+      "category": "House/IT"
+    },
+    {
+      "prefix": "riru fanshawe",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "riverside cafe whangarei nz",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "roberts superette",
+      "category": "Food/Dairy"
+    },
+    {
+      "prefix": "rolls of vietnam auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "sal's pizza",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "sals pizza new lynn new lynn nz",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "salt cafe auckland cent nz",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "salvation army",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "samosa fundraiser auckland nz",
+      "category": "Charity/Local"
+    },
+    {
+      "prefix": "savemart new lynn new lynn nz",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "seoulmate auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "settebello new lynn nz",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "shamiana st lukes auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "shein.com",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "skinny mobile",
+      "category": "Personal/Phone"
+    },
+    {
+      "prefix": "smart sushi",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "smoking shack",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "smz*bakers delight",
+      "category": "Food/Bakery"
+    },
+    {
+      "prefix": "smz*christmas",
+      "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "snowplanet auckland nz",
+      "category": "Entertainment"
+    },
+    {
+      "prefix": "sofitel auckland auckland nz",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "sp bits4bots",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "sp culleys",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "sp huski pukekohe nz",
+      "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "sp igadgetnz auckland nz",
+      "category": "Personal/Phone"
+    },
+    {
+      "prefix": "sp jansport nz auckland nz",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "sp mr. henry cherries",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "sp nuphy nuphy.com tx",
+      "category": "House/IT"
+    },
+    {
+      "prefix": "sp nuzest",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "sp online vet store",
+      "category": "Pets/Food"
+    },
+    {
+      "prefix": "sp pimoroni ltd london",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "sp purebowl",
+      "category": "Pets/Food"
+    },
+    {
+      "prefix": "sp ruby rain",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "sp tech supply shed auckland nz",
+      "category": "House/IT"
+    },
+    {
+      "prefix": "sp tkc outlet st pauls au",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "sp varsity",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "spca op shop",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "specsavers new lynn auckland nz",
+      "category": "Personal/Glasses"
+    },
+    {
+      "prefix": "spectra cafe auckland nz",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "spice world ltd avondale nz",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "spotlight",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "st pierre's",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "starbuck",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "steam purchase seattle de",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "steamgames.com 4259522 912-1844160 wa",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "stevens st lukes auckland nz",
+      "category": "House/Misc"
+    },
+    {
+      "prefix": "stolen summer auckland",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "storage box new lynn auckland nz",
+      "category": "House/Misc"
+    },
+    {
+      "prefix": "sunny mart auckland nz",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "super liquor",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "sushi donburi auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "sushi tomi auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "sweat shop brew kitche auckland nz",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "sweet chilli @ pt chev auckland nz",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "swimart henderson",
+      "category": "House/Maintenance"
+    },
+    {
+      "prefix": "t d little dental avondale nz",
+      "category": "Personal/Dentist"
+    },
+    {
+      "prefix": "tai ping new lynn auckland nz",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "tai ping newmarket auckland nz",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "tb brickworks",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "tb westgate 112 auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "texas chicken",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "texas chicken",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "tf* gourmetwok",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "tf* ptchevalierchinese",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "the 8.55 to cairo",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "the breakfast club auckland nz",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "the greek house auckland nz",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "the liquor store auckland nz",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "the master\u0026margherita auckland nz",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "the push-up challenge",
+      "category": "Charity/Local"
+    },
+    {
+      "prefix": "the salvation army whangarei nz",
+      "category": "Personal/Clothing"
+    },
+    {
+      "prefix": "the warehouse",
+      "category": "House/Misc"
+    },
+    {
+      "prefix": "the warehouse 208 west auckland nz",
+      "category": "House/Misc"
+    },
+    {
+      "prefix": "the wharf auckland nz",
+      "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "tony's tyre service lt whangarei nz",
+      "category": "Transport/Car"
+    },
+    {
+      "prefix": "torpedo7 westgate auckland nz",
+      "category": "Transport/Bicycle"
+    },
+    {
+      "prefix": "tracey hand",
+      "category": "Education"
+    },
+    {
+      "prefix": "trademe",
+      "category": "Misc"
+    },
+    {
+      "prefix": "trademe hwr0 ping wellington nz",
+      "category": "House/Misc"
+    },
+    {
+      "prefix": "tuck shop auckland nz",
+      "category": "Food/Bakery"
+    },
+    {
+      "prefix": "tui crescent food",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "turkish kebab auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "typo 9717 9717 - north westgate nz",
+      "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "typo 9722 lynn mall",
+      "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "uber*",
+      "category": "Transport/Rideshare"
+    },
+    {
+      "prefix": "unichem point chevalie auckland nz",
+      "category": "Health/Chemist"
+    },
+    {
+      "prefix": "up2ten auckland nz",
+      "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "valet nails auckland nz",
+      "category": "Personal/Nails"
+    },
+    {
+      "prefix": "victoria superette",
+      "category": "Food/Dairy"
+    },
+    {
+      "prefix": "vital health company auckland nz",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "waipu tyres and automo waipu nz",
+      "category": "Transport/Car"
+    },
+    {
+      "prefix": "warehouse stationery",
+      "category": "Education"
+    },
+    {
+      "prefix": "waterview coffee",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "waterview laundromat auckland nz",
+      "category": "Food/Dairy"
+    },
+    {
+      "prefix": "waterview superette auckland nz",
+      "category": "Food/Dairy"
+    },
+    {
+      "prefix": "wendys",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "west auckland hospice",
+      "category": "Charity/Local"
+    },
+    {
+      "prefix": "west auckland hospice new lynn nz",
+      "category": "Charity/Local"
+    },
+    {
+      "prefix": "weta unleashed auckland nz",
+      "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "whanau and friends",
+      "category": "Charity/Local"
+    },
+    {
+      "prefix": "whangarei dargaville whangarei nz",
+      "category": "Food/Dairy"
+    },
+    {
+      "prefix": "whangarei district cou whangarei nz",
+      "category": "Misc"
+    },
+    {
+      "prefix": "whitcoulls",
+      "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "wicked chicken",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "wine villa kelston auckland nz",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "woolworths",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "world trading limited auckland nz",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "www.aliexpress.com www.aliexpres gb",
+      "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "www.chemistwarehouse",
+      "category": "Health/Chemist"
+    },
+    {
+      "prefix": "www.phoronix.com",
+      "category": "House/IT"
+    },
+    {
+      "prefix": "www.wonkybox.nz",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "yorkshire roasts auckland nz",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "yoyoso",
+      "category": "House/Misc"
+    },
+    {
+      "prefix": "z avondale",
+      "category": "Transport/Petrol"
+    },
+    {
+      "prefix": "z kensington",
+      "category": "Transport/Petrol"
+    },
+    {
+      "prefix": "zebrano",
+      "category": "Personal/Clothing"
+    }
+  ],
+  "sources": {}
+}
