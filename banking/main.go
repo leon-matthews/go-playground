@@ -11,7 +11,8 @@ import (
 	"banking/categorise"
 	"banking/common"
 	"banking/statements"
-	_ "banking/statements/anz_visa" // register ANZ format
+	_ "banking/statements/anz"      // register ANZ format
+	_ "banking/statements/anz_visa" // register ANZ Visa format
 	_ "banking/statements/ofx"      // register OFX format
 	"banking/tui"
 )
