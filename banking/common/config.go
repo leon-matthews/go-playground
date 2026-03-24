@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"slices"
@@ -30,7 +31,29 @@ func LoadConfig(path string) (*Config, error) {
 		cfg.Prefixes[i].Category = strings.TrimSpace(cfg.Prefixes[i].Category)
 	}
 
+	if err := cfg.validate(); err != nil {
+		return nil, fmt.Errorf("invalid config: %w", err)
+	}
+
 	return &cfg, nil
+}
+
+func (cfg *Config) validate() error {
+	var errs []error
+	seen := make(map[string]bool)
+	for i, p := range cfg.Prefixes {
+		if p.Text == "" {
+			errs = append(errs, fmt.Errorf("prefix %d: empty prefix text", i+1))
+		}
+		if p.Category == "" {
+			errs = append(errs, fmt.Errorf("prefix %d (%q): empty category", i+1, p.Text))
+		}
+		if seen[p.Text] {
+			errs = append(errs, fmt.Errorf("prefix %d: duplicate prefix %q", i+1, p.Text))
+		}
+		seen[p.Text] = true
+	}
+	return errors.Join(errs...)
 }
 
 // SaveConfig sorts prefixes and writes the config as pretty-printed JSON.

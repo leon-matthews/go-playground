@@ -3,6 +3,7 @@ package common
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -71,6 +72,74 @@ func TestLoadConfig(t *testing.T) {
 		}
 		if cfg.Prefixes[0].Category != "Shopping" {
 			t.Errorf("Category = %q, want %q", cfg.Prefixes[0].Category, "Shopping")
+		}
+	})
+}
+
+func TestLoadConfigValidation(t *testing.T) {
+	writeJSON := func(t *testing.T, content string) string {
+		t.Helper()
+		path := filepath.Join(t.TempDir(), "config.json")
+		os.WriteFile(path, []byte(content), 0644)
+		return path
+	}
+
+	t.Run("empty prefix text", func(t *testing.T) {
+		path := writeJSON(t, `{"prefixes": [{"prefix": "", "category": "Shopping"}]}`)
+		_, err := LoadConfig(path)
+		if err == nil {
+			t.Fatal("expected error for empty prefix text")
+		}
+		if !strings.Contains(err.Error(), "empty prefix text") {
+			t.Errorf("error = %q, want mention of empty prefix text", err)
+		}
+	})
+
+	t.Run("empty category", func(t *testing.T) {
+		path := writeJSON(t, `{"prefixes": [{"prefix": "walmart", "category": ""}]}`)
+		_, err := LoadConfig(path)
+		if err == nil {
+			t.Fatal("expected error for empty category")
+		}
+		if !strings.Contains(err.Error(), "empty category") {
+			t.Errorf("error = %q, want mention of empty category", err)
+		}
+	})
+
+	t.Run("duplicate prefix", func(t *testing.T) {
+		path := writeJSON(t, `{"prefixes": [
+			{"prefix": "walmart", "category": "Shopping"},
+			{"prefix": "walmart", "category": "Retail"}
+		]}`)
+		_, err := LoadConfig(path)
+		if err == nil {
+			t.Fatal("expected error for duplicate prefix")
+		}
+		if !strings.Contains(err.Error(), "duplicate prefix") {
+			t.Errorf("error = %q, want mention of duplicate prefix", err)
+		}
+	})
+
+	t.Run("reports all errors at once", func(t *testing.T) {
+		path := writeJSON(t, `{"prefixes": [
+			{"prefix": "", "category": ""},
+			{"prefix": "walmart", "category": "Shopping"},
+			{"prefix": "walmart", "category": "Retail"}
+		]}`)
+		_, err := LoadConfig(path)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		// Should contain all three issues: empty text, empty category, duplicate
+		s := err.Error()
+		if !strings.Contains(s, "empty prefix text") {
+			t.Errorf("missing 'empty prefix text' in %q", s)
+		}
+		if !strings.Contains(s, "empty category") {
+			t.Errorf("missing 'empty category' in %q", s)
+		}
+		if !strings.Contains(s, "duplicate prefix") {
+			t.Errorf("missing 'duplicate prefix' in %q", s)
 		}
 	})
 }

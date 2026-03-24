@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
 
 	pflag "github.com/spf13/pflag"
 	"golang.org/x/term"
@@ -31,6 +32,13 @@ func main() {
 	cfg, err := common.LoadConfig(*configPath)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	knownFormats := statements.Names()
+	for name := range cfg.Sources {
+		if !slices.Contains(knownFormats, name) {
+			log.Fatalf("config: unknown source %q (available: %v)", name, knownFormats)
+		}
 	}
 
 	if *cats {
