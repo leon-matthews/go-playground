@@ -17,8 +17,8 @@ var update = flag.Bool("update", false, "update golden files")
 func TestMeasure(t *testing.T) {
 	t.Run("group names only", func(t *testing.T) {
 		var s categorise.Summary
-		s.Add("Food", "test", -10)
-		s.Add("Transport", "test", -5)
+		s.Add("Food", new(common.Transaction{Details: "test", Amount: -10}))
+		s.Add("Transport", new(common.Transaction{Details: "test", Amount: -5}))
 
 		p := TreePrinter{MaxDepth: 1}
 		got := p.Measure(s.Groups)
@@ -31,7 +31,7 @@ func TestMeasure(t *testing.T) {
 
 	t.Run("includes indent for children", func(t *testing.T) {
 		var s categorise.Summary
-		s.Add("Food/Groceries", "test", -10)
+		s.Add("Food/Groceries", new(common.Transaction{Details: "test", Amount: -10}))
 
 		p := TreePrinter{MaxDepth: 2}
 		got := p.Measure(s.Groups)
@@ -45,7 +45,7 @@ func TestMeasure(t *testing.T) {
 
 	t.Run("respects maxDepth", func(t *testing.T) {
 		var s categorise.Summary
-		s.Add("Food/Groceries", "test", -10)
+		s.Add("Food/Groceries", new(common.Transaction{Details: "test", Amount: -10}))
 
 		p := TreePrinter{MaxDepth: 1}
 		got := p.Measure(s.Groups)
@@ -58,19 +58,14 @@ func TestMeasure(t *testing.T) {
 
 	t.Run("includes transactions", func(t *testing.T) {
 		var s categorise.Summary
-		s.Add("Food", "test", -10)
-
-		tx := &common.Transaction{
+		s.Add("Food", new(common.Transaction{
 			Date:    time.Date(2026, 3, 5, 0, 0, 0, 0, time.UTC),
 			Account: "Visa",
 			Details: "Woolworths",
 			Amount:  -55,
-		}
-		byCategory := map[string][]*common.Transaction{
-			"Food": {tx},
-		}
+		}))
 
-		p := TreePrinter{MaxDepth: 1<<31 - 1, ShowTx: true, ByCategory: byCategory}
+		p := TreePrinter{MaxDepth: 1<<31 - 1, ShowTx: true, ByCategory: s.ByCategory}
 		got := p.Measure(s.Groups)
 
 		// depth 1 indent (2) + "5 Mar 2026" (10) + 2 + "Visa" (4) + 2 + "Woolworths" (10) = 30
@@ -82,19 +77,14 @@ func TestMeasure(t *testing.T) {
 
 	t.Run("transactions not measured when showTx false", func(t *testing.T) {
 		var s categorise.Summary
-		s.Add("Food", "test", -10)
-
-		tx := &common.Transaction{
+		s.Add("Food", new(common.Transaction{
 			Date:    time.Date(2026, 3, 5, 0, 0, 0, 0, time.UTC),
 			Account: "Visa",
 			Details: "Woolworths Nz/Lynnmall New Lynn",
 			Amount:  -55,
-		}
-		byCategory := map[string][]*common.Transaction{
-			"Food": {tx},
-		}
+		}))
 
-		p := TreePrinter{MaxDepth: 1, ByCategory: byCategory}
+		p := TreePrinter{MaxDepth: 1, ByCategory: s.ByCategory}
 		got := p.Measure(s.Groups)
 
 		// Only the group name: "Food" = 4
@@ -115,8 +105,8 @@ func TestMeasure(t *testing.T) {
 func TestPrint(t *testing.T) {
 	t.Run("group_names_only", func(t *testing.T) {
 		var s categorise.Summary
-		s.Add("Food", "test", -10)
-		s.Add("Transport", "test", -5)
+		s.Add("Food", new(common.Transaction{Details: "test", Amount: -10}))
+		s.Add("Transport", new(common.Transaction{Details: "test", Amount: -5}))
 		s.Sort()
 
 		var buf bytes.Buffer
@@ -127,9 +117,9 @@ func TestPrint(t *testing.T) {
 
 	t.Run("nested_groups", func(t *testing.T) {
 		var s categorise.Summary
-		s.Add("Food/Groceries", "woolworths", -55)
-		s.Add("Food/Cafe", "cafe mocha", -8.50)
-		s.Add("Transport/Public", "bus", -3.50)
+		s.Add("Food/Groceries", new(common.Transaction{Details: "woolworths", Amount: -55}))
+		s.Add("Food/Cafe", new(common.Transaction{Details: "cafe mocha", Amount: -8.50}))
+		s.Add("Transport/Public", new(common.Transaction{Details: "bus", Amount: -3.50}))
 		s.Sort()
 
 		var buf bytes.Buffer
@@ -140,47 +130,36 @@ func TestPrint(t *testing.T) {
 
 	t.Run("with_transactions", func(t *testing.T) {
 		var s categorise.Summary
-		s.Add("Food", "Woolworths Auckland", -55)
-		s.Add("Food", "Countdown Mt Eden", -30)
-
-		tx1 := &common.Transaction{
+		s.Add("Food", new(common.Transaction{
 			Date:    time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC),
 			Account: "Visa",
 			Details: "Woolworths Auckland",
 			Amount:  -55,
-		}
-		tx2 := &common.Transaction{
+		}))
+		s.Add("Food", new(common.Transaction{
 			Date:    time.Date(2026, 1, 16, 0, 0, 0, 0, time.UTC),
 			Account: "Visa",
 			Details: "Countdown Mt Eden",
 			Amount:  -30,
-		}
-		byCategory := map[string][]*common.Transaction{
-			"Food": {tx1, tx2},
-		}
+		}))
 
 		var buf bytes.Buffer
-		p := TreePrinter{W: &buf, MaxDepth: 1<<31 - 1, ShowTx: true, ByCategory: byCategory, LeftWidth: 50}
+		p := TreePrinter{W: &buf, MaxDepth: 1<<31 - 1, ShowTx: true, ByCategory: s.ByCategory, LeftWidth: 50}
 		p.Print(s.Groups)
 		compareGolden(t, "PrintTree_with_transactions", buf.Bytes())
 	})
 
 	t.Run("truncated_details", func(t *testing.T) {
 		var s categorise.Summary
-		s.Add("Food", "Woolworths Nz/Lynnmall New Lynn Auckland", -55)
-
-		tx := &common.Transaction{
+		s.Add("Food", new(common.Transaction{
 			Date:    time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC),
 			Account: "Visa",
 			Details: "Woolworths Nz/Lynnmall New Lynn Auckland",
 			Amount:  -55,
-		}
-		byCategory := map[string][]*common.Transaction{
-			"Food": {tx},
-		}
+		}))
 
 		var buf bytes.Buffer
-		p := TreePrinter{W: &buf, MaxDepth: 1<<31 - 1, ShowTx: true, ByCategory: byCategory, LeftWidth: 30}
+		p := TreePrinter{W: &buf, MaxDepth: 1<<31 - 1, ShowTx: true, ByCategory: s.ByCategory, LeftWidth: 30}
 		p.Print(s.Groups)
 		compareGolden(t, "PrintTree_truncated_details", buf.Bytes())
 	})

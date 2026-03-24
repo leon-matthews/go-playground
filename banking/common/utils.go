@@ -37,4 +37,3 @@ func ParseDate(dateFormat string, date string) (time.Time, error) {
 	}
 	return t, nil
 }
-
