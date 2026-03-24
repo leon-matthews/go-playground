@@ -13,8 +13,8 @@ import (
 
 // Run categorises transactions, prints the summary tree, and optionally
 // launches the interactive editor for unknown transactions.
-func Run(transactions []*common.Transaction, prefixes []categorise.Prefix, prefixesPath string, verbose, termWidth int, edit bool) error {
-	matcher := categorise.NewMatcher(prefixes)
+func Run(transactions []*common.Transaction, cfg *common.Config, configPath string, verbose, termWidth int, edit bool) error {
+	matcher := categorise.NewMatcher(cfg.Prefixes)
 	expenses, income, unknowns := categorise.Summarise(matcher, transactions)
 
 	maxDepth := verbose + 1
@@ -49,19 +49,19 @@ func Run(transactions []*common.Transaction, prefixes []categorise.Prefix, prefi
 	}
 
 	if edit && len(unknowns) > 0 {
-		tree := BuildCategoryTree(prefixes)
-		m := NewEditorModel(unknowns, prefixes, tree)
+		tree := BuildCategoryTree(cfg.Prefixes)
+		m := NewEditorModel(unknowns, cfg.Prefixes, tree)
 		result, err := tea.NewProgram(m).Run()
 		if err != nil {
 			return err
 		}
 		newPrefixes := result.(EditorModel).Added
 		if len(newPrefixes) > 0 {
-			all := slices.Concat(prefixes, newPrefixes)
-			if err := categorise.SavePrefixes(prefixesPath, all); err != nil {
+			cfg.Prefixes = slices.Concat(cfg.Prefixes, newPrefixes)
+			if err := common.SaveConfig(configPath, cfg); err != nil {
 				return err
 			}
-			fmt.Printf("Added %d new prefix(es) to %s\n", len(newPrefixes), prefixesPath)
+			fmt.Printf("Added %d new prefix(es) to %s\n", len(newPrefixes), configPath)
 		}
 	}
 
@@ -69,8 +69,8 @@ func Run(transactions []*common.Transaction, prefixes []categorise.Prefix, prefi
 }
 
 // RunCategoryEditor launches the interactive category editor.
-func RunCategoryEditor(prefixes []categorise.Prefix, prefixesPath string) error {
-	m := NewCategoriesModel(prefixes)
+func RunCategoryEditor(cfg *common.Config, configPath string) error {
+	m := NewCategoriesModel(cfg.Prefixes)
 	result, err := tea.NewProgram(m).Run()
 	if err != nil {
 		return err
@@ -78,10 +78,11 @@ func RunCategoryEditor(prefixes []categorise.Prefix, prefixesPath string) error 
 
 	cm := result.(CategoriesModel)
 	if cm.Changed {
-		if err := categorise.SavePrefixes(prefixesPath, cm.Prefixes); err != nil {
+		cfg.Prefixes = cm.Prefixes
+		if err := common.SaveConfig(configPath, cfg); err != nil {
 			return err
 		}
-		fmt.Printf("Saved changes to %s\n", prefixesPath)
+		fmt.Printf("Saved changes to %s\n", configPath)
 	}
 
 	return nil

@@ -3,12 +3,12 @@ package tui
 import (
 	"testing"
 
-	"banking/categorise"
+	"banking/common"
 )
 
 func TestRewritePrefixes(t *testing.T) {
 	t.Run("rename leaf", func(t *testing.T) {
-		m := NewCategoriesModel([]categorise.Prefix{
+		m := NewCategoriesModel([]common.Prefix{
 			{Text: "woolworths", Category: "Food/Groceries"},
 			{Text: "cafe", Category: "Food/Cafe"},
 		})
@@ -22,7 +22,7 @@ func TestRewritePrefixes(t *testing.T) {
 	})
 
 	t.Run("rename parent rewrites children", func(t *testing.T) {
-		m := NewCategoriesModel([]categorise.Prefix{
+		m := NewCategoriesModel([]common.Prefix{
 			{Text: "woolworths", Category: "Food/Groceries"},
 			{Text: "cafe", Category: "Food/Cafe"},
 			{Text: "woolworths lynnmall", Category: "Food/Groceries/Local"},
@@ -35,7 +35,7 @@ func TestRewritePrefixes(t *testing.T) {
 	})
 
 	t.Run("no false matches", func(t *testing.T) {
-		m := NewCategoriesModel([]categorise.Prefix{
+		m := NewCategoriesModel([]common.Prefix{
 			{Text: "woolworths", Category: "Food/Groceries"},
 			{Text: "bus", Category: "Transport/Public"},
 		})
@@ -46,7 +46,7 @@ func TestRewritePrefixes(t *testing.T) {
 	})
 
 	t.Run("move subtree", func(t *testing.T) {
-		m := NewCategoriesModel([]categorise.Prefix{
+		m := NewCategoriesModel([]common.Prefix{
 			{Text: "cafe", Category: "Food/Cafe"},
 			{Text: "fancy cafe", Category: "Food/Cafe/Fancy"},
 		})
@@ -57,7 +57,7 @@ func TestRewritePrefixes(t *testing.T) {
 	})
 
 	t.Run("rebuilds tree", func(t *testing.T) {
-		m := NewCategoriesModel([]categorise.Prefix{
+		m := NewCategoriesModel([]common.Prefix{
 			{Text: "cafe", Category: "Food/Cafe"},
 		})
 		m.rewritePrefixes("Food/Cafe", "Dining/Cafe")
@@ -73,7 +73,7 @@ func TestRewritePrefixes(t *testing.T) {
 
 func TestDeletePrefixes(t *testing.T) {
 	t.Run("delete leaf", func(t *testing.T) {
-		m := NewCategoriesModel([]categorise.Prefix{
+		m := NewCategoriesModel([]common.Prefix{
 			{Text: "woolworths", Category: "Food/Groceries"},
 			{Text: "cafe", Category: "Food/Cafe"},
 		})
@@ -88,7 +88,7 @@ func TestDeletePrefixes(t *testing.T) {
 	})
 
 	t.Run("delete parent removes children", func(t *testing.T) {
-		m := NewCategoriesModel([]categorise.Prefix{
+		m := NewCategoriesModel([]common.Prefix{
 			{Text: "woolworths", Category: "Food/Groceries"},
 			{Text: "cafe", Category: "Food/Cafe"},
 			{Text: "bus", Category: "Transport/Public"},
@@ -104,7 +104,7 @@ func TestDeletePrefixes(t *testing.T) {
 	})
 
 	t.Run("no false matches", func(t *testing.T) {
-		m := NewCategoriesModel([]categorise.Prefix{
+		m := NewCategoriesModel([]common.Prefix{
 			{Text: "woolworths", Category: "Food/Groceries"},
 			{Text: "bus", Category: "Transport/Public"},
 		})
@@ -119,7 +119,7 @@ func TestDeletePrefixes(t *testing.T) {
 	})
 
 	t.Run("delete all", func(t *testing.T) {
-		m := NewCategoriesModel([]categorise.Prefix{
+		m := NewCategoriesModel([]common.Prefix{
 			{Text: "cafe", Category: "Food/Cafe"},
 		})
 		got := m.deletePrefixes("Food")
@@ -130,7 +130,7 @@ func TestDeletePrefixes(t *testing.T) {
 	})
 
 	t.Run("delete nonexistent path", func(t *testing.T) {
-		m := NewCategoriesModel([]categorise.Prefix{
+		m := NewCategoriesModel([]common.Prefix{
 			{Text: "cafe", Category: "Food/Cafe"},
 		})
 		got := m.deletePrefixes("Transport")
@@ -141,7 +141,7 @@ func TestDeletePrefixes(t *testing.T) {
 	})
 }
 
-func assertCategory(t *testing.T, prefixes []categorise.Prefix, text, wantCategory string) {
+func assertCategory(t *testing.T, prefixes []common.Prefix, text, wantCategory string) {
 	t.Helper()
 	for _, p := range prefixes {
 		if p.Text == text {

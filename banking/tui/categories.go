@@ -7,7 +7,7 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 
-	"banking/categorise"
+	"banking/common"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 
 // CategoriesModel is the bubbletea model for editing the category tree.
 type CategoriesModel struct {
-	Prefixes  []categorise.Prefix
+	Prefixes  []common.Prefix
 	tree      []TreeRow
 	cursor    int
 	mode      int
@@ -32,7 +32,7 @@ type CategoriesModel struct {
 }
 
 // NewCategoriesModel creates a CategoriesModel for the given prefixes.
-func NewCategoriesModel(prefixes []categorise.Prefix) CategoriesModel {
+func NewCategoriesModel(prefixes []common.Prefix) CategoriesModel {
 	ti := textinput.New()
 	ti.Prompt = "  New name: "
 	ti.CharLimit = 80
@@ -246,8 +246,8 @@ func (m *CategoriesModel) rewritePrefixes(oldPath, newPath string) {
 	m.mode = catModeBrowse
 }
 
-func (m CategoriesModel) deletePrefixes(path string) []categorise.Prefix {
-	var keep []categorise.Prefix
+func (m CategoriesModel) deletePrefixes(path string) []common.Prefix {
+	var keep []common.Prefix
 	for _, p := range m.Prefixes {
 		if p.Category != path && !strings.HasPrefix(p.Category, path+"/") {
 			keep = append(keep, p)

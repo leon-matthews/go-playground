@@ -14,7 +14,7 @@ func TestLoadPrefixes(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		want := []Prefix{
+		want := []common.Prefix{
 			{Text: "walmart", Category: "Shopping"},
 			{Text: "amazon", Category: "Online"},
 		}
@@ -73,7 +73,7 @@ func TestLoadPrefixes(t *testing.T) {
 func TestSavePrefixes(t *testing.T) {
 	t.Run("round-trip", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "prefixes.csv")
-		input := []Prefix{
+		input := []common.Prefix{
 			{Text: "walmart", Category: "Shopping"},
 			{Text: "amazon", Category: "Online"},
 		}
@@ -88,7 +88,7 @@ func TestSavePrefixes(t *testing.T) {
 		}
 
 		// SavePrefixes sorts, so expect alphabetical order
-		want := []Prefix{
+		want := []common.Prefix{
 			{Text: "amazon", Category: "Online"},
 			{Text: "walmart", Category: "Shopping"},
 		}
@@ -120,7 +120,7 @@ func TestSavePrefixes(t *testing.T) {
 
 	t.Run("does not mutate input", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "prefixes.csv")
-		input := []Prefix{
+		input := []common.Prefix{
 			{Text: "walmart", Category: "Shopping"},
 			{Text: "amazon", Category: "Online"},
 		}
@@ -136,7 +136,7 @@ func TestSavePrefixes(t *testing.T) {
 	})
 
 	t.Run("unwritable path", func(t *testing.T) {
-		err := SavePrefixes("/no/such/directory/prefixes.csv", []Prefix{
+		err := SavePrefixes("/no/such/directory/prefixes.csv", []common.Prefix{
 			{Text: "test", Category: "Test"},
 		})
 		if err == nil {
@@ -146,7 +146,7 @@ func TestSavePrefixes(t *testing.T) {
 }
 
 func TestMatch(t *testing.T) {
-	matcher := NewMatcher([]Prefix{
+	matcher := NewMatcher([]common.Prefix{
 		{Text: "cafe", Category: "Food/Cafe"},
 		{Text: "woolworths", Category: "Food/Groceries"},
 		{Text: "woolworths nz/lynnmall", Category: "Food/Groceries/Local"},
@@ -357,5 +357,25 @@ func BenchmarkMatch(b *testing.B) {
 		for _, d := range details {
 			matcher.Match(d)
 		}
+	}
+}
+
+func TestMigrateCSV(t *testing.T) {
+	cfg, err := MigrateCSV("testdata/valid.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(cfg.Prefixes) != 2 {
+		t.Fatalf("got %d prefixes, want 2", len(cfg.Prefixes))
+	}
+	if cfg.Prefixes[0].Text != "walmart" {
+		t.Errorf("prefix[0].Text = %q, want %q", cfg.Prefixes[0].Text, "walmart")
+	}
+	if cfg.Sources == nil {
+		t.Fatal("Sources is nil, want empty map")
+	}
+	if len(cfg.Sources) != 0 {
+		t.Errorf("got %d sources, want 0", len(cfg.Sources))
 	}
 }

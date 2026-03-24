@@ -18,36 +18,52 @@ import (
 )
 
 func main() {
-	prefixesPath := pflag.StringP("prefixes", "p", "", "path to prefixes CSV file")
+	configPath := pflag.StringP("config", "f", "", "path to config JSON file")
 	bank := pflag.StringP("bank", "b", "", "bank format (e.g. anz_visa); auto-detected if omitted")
 	edit := pflag.BoolP("edit", "e", false, "interactively categorise unknown transactions")
 	cats := pflag.BoolP("categories", "c", false, "edit category tree")
 	verbose := pflag.CountP("verbose", "v", "increase category detail level")
+	migrate := pflag.Bool("migrate", false, "convert a prefixes CSV file to JSON config")
 	pflag.Parse()
 
-	if *prefixesPath == "" {
-		log.Fatal("Usage: banking --prefixes PREFIXES [--bank FORMAT] [--edit] [--categories] [STATEMENT ...]")
+	if *migrate {
+		if *configPath == "" || pflag.NArg() == 0 {
+			log.Fatal("Usage: banking --migrate --config CONFIG.json PREFIXES.csv")
+		}
+		cfg, err := categorise.MigrateCSV(pflag.Arg(0))
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := common.SaveConfig(*configPath, cfg); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("Migrated %s → %s (%d prefixes)\n", pflag.Arg(0), *configPath, len(cfg.Prefixes))
+		return
 	}
 
-	prefixes, err := categorise.LoadPrefixes(*prefixesPath)
+	if *configPath == "" {
+		log.Fatal("Usage: banking --config CONFIG [--bank FORMAT] [--edit] [--categories] [STATEMENT ...]")
+	}
+
+	cfg, err := common.LoadConfig(*configPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if *cats {
-		if err := tui.RunCategoryEditor(prefixes, *prefixesPath); err != nil {
+		if err := tui.RunCategoryEditor(cfg, *configPath); err != nil {
 			log.Fatal(err)
 		}
 		return
 	}
 
 	if pflag.NArg() == 0 {
-		log.Fatal("Usage: banking --prefixes PREFIXES [--bank FORMAT] [--edit] STATEMENT [STATEMENT ...]")
+		log.Fatal("Usage: banking --config CONFIG [--bank FORMAT] [--edit] STATEMENT [STATEMENT ...]")
 	}
 
 	var transactions []*common.Transaction
 	for _, path := range pflag.Args() {
-		tt, err := readStatementFile(*bank, path)
+		tt, err := readStatementFile(*bank, path, cfg)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -59,12 +75,12 @@ func main() {
 		termWidth = w
 	}
 
-	if err := tui.Run(transactions, prefixes, *prefixesPath, *verbose, termWidth, *edit); err != nil {
+	if err := tui.Run(transactions, cfg, *configPath, *verbose, termWidth, *edit); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func readStatementFile(bank, path string) ([]*common.Transaction, error) {
+func readStatementFile(bank, path string, cfg *common.Config) ([]*common.Transaction, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -85,5 +101,17 @@ func readStatementFile(bank, path string) ([]*common.Transaction, error) {
 		format = f
 	}
 
-	return format.Read(data)
+	transactions, err := format.Read(data)
+	if err != nil {
+		return nil, err
+	}
+
+	if sc, ok := cfg.Sources[format.Name()]; ok && len(sc.Delete) > 0 {
+		replacer := common.NewReplacer(sc.Delete)
+		for _, t := range transactions {
+			t.Details = common.CleanDetails(t.Details, replacer)
+		}
+	}
+
+	return transactions, nil
 }

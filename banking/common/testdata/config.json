@@ -1,0 +1,11 @@
+{
+  "prefixes": [
+    {"prefix": "Walmart", "category": "Shopping"},
+    {"prefix": "Amazon", "category": "Online"}
+  ],
+  "sources": {
+    "anz": {
+      "delete": ["4835-****-****-9371"]
+    }
+  }
+}

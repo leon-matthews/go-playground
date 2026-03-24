@@ -20,7 +20,7 @@ type TreeRow struct {
 }
 
 // BuildCategoryTree builds a sorted, flattened tree from category strings.
-func BuildCategoryTree(prefixes []categorise.Prefix) []TreeRow {
+func BuildCategoryTree(prefixes []common.Prefix) []TreeRow {
 	// Collect unique categories and sort them so the tree is stable.
 	seen := make(map[string]struct{})
 	var categories []string
@@ -95,14 +95,14 @@ type EditorModel struct {
 	treeCursor   int
 	freeText     textinput.Model
 	focus        int
-	basePrefixes []categorise.Prefix
-	Added        []categorise.Prefix
+	basePrefixes []common.Prefix
+	Added        []common.Prefix
 	matcher      *categorise.Matcher
 	done         bool
 }
 
 // NewEditorModel creates an EditorModel for the given unknown transactions.
-func NewEditorModel(unknowns []*common.Transaction, basePrefixes []categorise.Prefix, tree []TreeRow) EditorModel {
+func NewEditorModel(unknowns []*common.Transaction, basePrefixes []common.Prefix, tree []TreeRow) EditorModel {
 	pi := textinput.New()
 	pi.Prompt = "  Prefix: "
 	pi.Placeholder = "trim to make more general"
@@ -222,7 +222,7 @@ func (m EditorModel) handleEnter() (tea.Model, tea.Cmd) {
 }
 
 func (m EditorModel) saveAndAdvance(category string) (tea.Model, tea.Cmd) {
-	m.Added = append(m.Added, categorise.Prefix{
+	m.Added = append(m.Added, common.Prefix{
 		Text:     strings.ToLower(m.prefixInput.Value()),
 		Category: category,
 	})

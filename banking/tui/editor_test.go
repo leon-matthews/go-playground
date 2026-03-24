@@ -3,12 +3,12 @@ package tui
 import (
 	"testing"
 
-	"banking/categorise"
+	"banking/common"
 )
 
 func TestBuildCategoryTree(t *testing.T) {
 	t.Run("single category", func(t *testing.T) {
-		prefixes := []categorise.Prefix{
+		prefixes := []common.Prefix{
 			{Text: "walmart", Category: "Shopping"},
 		}
 		got := BuildCategoryTree(prefixes)
@@ -20,7 +20,7 @@ func TestBuildCategoryTree(t *testing.T) {
 	})
 
 	t.Run("hierarchical categories", func(t *testing.T) {
-		prefixes := []categorise.Prefix{
+		prefixes := []common.Prefix{
 			{Text: "woolworths", Category: "Food/Groceries"},
 			{Text: "cafe", Category: "Food/Cafe"},
 		}
@@ -35,7 +35,7 @@ func TestBuildCategoryTree(t *testing.T) {
 	})
 
 	t.Run("multiple roots", func(t *testing.T) {
-		prefixes := []categorise.Prefix{
+		prefixes := []common.Prefix{
 			{Text: "woolworths", Category: "Food/Groceries"},
 			{Text: "bus", Category: "Transport/Public"},
 		}
@@ -51,7 +51,7 @@ func TestBuildCategoryTree(t *testing.T) {
 	})
 
 	t.Run("three levels deep", func(t *testing.T) {
-		prefixes := []categorise.Prefix{
+		prefixes := []common.Prefix{
 			{Text: "woolworths lynnmall", Category: "Food/Groceries/Local"},
 		}
 		got := BuildCategoryTree(prefixes)
@@ -65,7 +65,7 @@ func TestBuildCategoryTree(t *testing.T) {
 	})
 
 	t.Run("deduplicates categories", func(t *testing.T) {
-		prefixes := []categorise.Prefix{
+		prefixes := []common.Prefix{
 			{Text: "woolworths", Category: "Food/Groceries"},
 			{Text: "new world", Category: "Food/Groceries"},
 			{Text: "costco", Category: "Food/Groceries"},
@@ -80,7 +80,7 @@ func TestBuildCategoryTree(t *testing.T) {
 	})
 
 	t.Run("sorted output", func(t *testing.T) {
-		prefixes := []categorise.Prefix{
+		prefixes := []common.Prefix{
 			{Text: "bus", Category: "Transport/Public"},
 			{Text: "cafe", Category: "Food/Cafe"},
 			{Text: "woolworths", Category: "Food/Groceries"},

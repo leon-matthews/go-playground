@@ -14,19 +14,9 @@ import (
 
 const Unknown = "UNKNOWN"
 
-// Prefix maps a lowercase merchant prefix to its category.
-type Prefix struct {
-	Text     string
-	Category string
-}
-
-// comparePrefix orders prefixes by text for binary search.
-func comparePrefix(a, b Prefix) int {
-	return strings.Compare(a.Text, b.Text)
-}
 
 // LoadPrefixes reads a CSV file of prefix,category pairs.
-func LoadPrefixes(path string) ([]Prefix, error) {
+func LoadPrefixes(path string) ([]common.Prefix, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("open prefixes: %w", err)
@@ -34,7 +24,7 @@ func LoadPrefixes(path string) ([]Prefix, error) {
 	defer f.Close()
 
 	r := csv.NewReader(f)
-	var prefixes []Prefix
+	var prefixes []common.Prefix
 	for {
 		record, err := r.Read()
 		if errors.Is(err, io.EOF) {
@@ -46,7 +36,7 @@ func LoadPrefixes(path string) ([]Prefix, error) {
 		if len(record) != 2 {
 			return nil, fmt.Errorf("expected 2 fields, got %d: %v", len(record), record)
 		}
-		prefixes = append(prefixes, Prefix{
+		prefixes = append(prefixes, common.Prefix{
 			Text:     strings.ToLower(strings.TrimSpace(record[0])),
 			Category: strings.TrimSpace(record[1]),
 		})
@@ -55,10 +45,10 @@ func LoadPrefixes(path string) ([]Prefix, error) {
 }
 
 // SavePrefixes sorts and writes all prefixes to a CSV file.
-func SavePrefixes(path string, prefixes []Prefix) error {
-	sorted := make([]Prefix, len(prefixes))
+func SavePrefixes(path string, prefixes []common.Prefix) error {
+	sorted := make([]common.Prefix, len(prefixes))
 	copy(sorted, prefixes)
-	slices.SortFunc(sorted, comparePrefix)
+	slices.SortFunc(sorted, common.ComparePrefix)
 
 	f, err := os.Create(path)
 	if err != nil {
@@ -78,16 +68,16 @@ func SavePrefixes(path string, prefixes []Prefix) error {
 
 // Matcher holds a sorted set of prefixes and supports longest-match lookup.
 type Matcher struct {
-	prefixes []Prefix
+	prefixes []common.Prefix
 }
 
 // NewMatcher creates a Matcher from the given prefixes, sorting them for
 // binary search. If the prefixes are already sorted, the sort is skipped.
-func NewMatcher(prefixes []Prefix) *Matcher {
-	sorted := make([]Prefix, len(prefixes))
+func NewMatcher(prefixes []common.Prefix) *Matcher {
+	sorted := make([]common.Prefix, len(prefixes))
 	copy(sorted, prefixes)
-	if !slices.IsSortedFunc(sorted, comparePrefix) {
-		slices.SortFunc(sorted, comparePrefix)
+	if !slices.IsSortedFunc(sorted, common.ComparePrefix) {
+		slices.SortFunc(sorted, common.ComparePrefix)
 	}
 	return &Matcher{prefixes: sorted}
 }
@@ -183,7 +173,7 @@ func (m *Matcher) Match(detail string) string {
 	lower := strings.ToLower(detail)
 	// Find the insertion point for the detail in the sorted prefixes.
 	// The longest matching prefix (if any) is at or before that point.
-	i, found := slices.BinarySearchFunc(m.prefixes, lower, func(p Prefix, target string) int {
+	i, found := slices.BinarySearchFunc(m.prefixes, lower, func(p common.Prefix, target string) int {
 		return strings.Compare(p.Text, target)
 	})
 	if !found {
@@ -195,4 +185,16 @@ func (m *Matcher) Match(detail string) string {
 		}
 	}
 	return Unknown
+}
+
+// MigrateCSV reads a CSV prefixes file and returns a Config.
+func MigrateCSV(csvPath string) (*common.Config, error) {
+	prefixes, err := LoadPrefixes(csvPath)
+	if err != nil {
+		return nil, err
+	}
+	return &common.Config{
+		Prefixes: prefixes,
+		Sources:  map[string]common.SourceConfig{},
+	}, nil
 }

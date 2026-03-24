@@ -7,6 +7,23 @@ import (
 
 const DateFormat = "2 Jan 2006"
 
+// Prefix maps a lowercase merchant prefix to its category.
+type Prefix struct {
+	Text     string `json:"prefix"`
+	Category string `json:"category"`
+}
+
+// SourceConfig holds per-statement-source settings.
+type SourceConfig struct {
+	Delete []string `json:"delete"`
+}
+
+// Config is the top-level configuration for the banking app.
+type Config struct {
+	Prefixes []Prefix                `json:"prefixes"`
+	Sources  map[string]SourceConfig `json:"sources"`
+}
+
 // Transaction holds basic details on a single financial event
 // A negative Amount indicates outgoing funds, eg. a purchase.
 // The Date and Processed fields have no time information
