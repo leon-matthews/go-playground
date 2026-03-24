@@ -1,5 +1,5 @@
-// Package anz reads ANZ Excel credit card statements
-package anz
+// Package anz_visa reads ANZ Excel credit card statements
+package anz_visa
 
 import (
 	"bytes"
@@ -16,20 +16,20 @@ const sheetName = "Transactions"
 
 var headers = []string{"Transaction Date", "Processed Date", "Card", "Details", "Amount", "Conversion Charge", "Foreign Currency Amount"}
 
-// Format is the ANZ statement format.
-var Format anzFormat
+type anzVisaFormat struct{}
 
-type anzFormat struct{}
+// Format is the ANZ statement format.
+var Format anzVisaFormat
 
 func init() {
 	statements.Register(&Format)
 }
 
-func (anzFormat) Name() string { return "anz" }
+func (anzVisaFormat) Name() string { return "anz_visa" }
 
 // Detect checks whether the data contains an Excel file with a "Transactions"
 // sheet and the expected header row.
-func (anzFormat) Detect(data []byte) error {
+func (anzVisaFormat) Detect(data []byte) error {
 	f, err := excelize.OpenReader(bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("not an Excel file")
@@ -55,7 +55,7 @@ func (anzFormat) Detect(data []byte) error {
 }
 
 // Read produces Transaction values from statement data.
-func (anzFormat) Read(data []byte) ([]*common.Transaction, error) {
+func (anzVisaFormat) Read(data []byte) ([]*common.Transaction, error) {
 	f, err := excelize.OpenReader(bytes.NewReader(data))
 	if err != nil {
 		return nil, fmt.Errorf("opening file: %w", err)

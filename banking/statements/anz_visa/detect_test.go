@@ -1,4 +1,4 @@
-package anz
+package anz_visa
 
 import (
 	"os"

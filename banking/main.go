@@ -11,14 +11,14 @@ import (
 	"banking/categorise"
 	"banking/common"
 	"banking/statements"
-	_ "banking/statements/anz" // register ANZ format
-	_ "banking/statements/ofx" // register OFX format
+	_ "banking/statements/anz_visa" // register ANZ format
+	_ "banking/statements/ofx"      // register OFX format
 	"banking/tui"
 )
 
 func main() {
 	prefixesPath := pflag.StringP("prefixes", "p", "", "path to prefixes CSV file")
-	bank := pflag.StringP("bank", "b", "", "bank format (e.g. anz); auto-detected if omitted")
+	bank := pflag.StringP("bank", "b", "", "bank format (e.g. anz_visa); auto-detected if omitted")
 	edit := pflag.BoolP("edit", "e", false, "interactively categorise unknown transactions")
 	cats := pflag.BoolP("categories", "c", false, "edit category tree")
 	verbose := pflag.CountP("verbose", "v", "increase category detail level")
