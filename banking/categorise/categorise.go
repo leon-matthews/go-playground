@@ -1,11 +1,6 @@
 package categorise
 
 import (
-	"encoding/csv"
-	"errors"
-	"fmt"
-	"io"
-	"os"
 	"slices"
 	"strings"
 
@@ -13,58 +8,6 @@ import (
 )
 
 const Unknown = "UNKNOWN"
-
-
-// LoadPrefixes reads a CSV file of prefix,category pairs.
-func LoadPrefixes(path string) ([]common.Prefix, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("open prefixes: %w", err)
-	}
-	defer f.Close()
-
-	r := csv.NewReader(f)
-	var prefixes []common.Prefix
-	for {
-		record, err := r.Read()
-		if errors.Is(err, io.EOF) {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("read prefixes: %w", err)
-		}
-		if len(record) != 2 {
-			return nil, fmt.Errorf("expected 2 fields, got %d: %v", len(record), record)
-		}
-		prefixes = append(prefixes, common.Prefix{
-			Text:     strings.ToLower(strings.TrimSpace(record[0])),
-			Category: strings.TrimSpace(record[1]),
-		})
-	}
-	return prefixes, nil
-}
-
-// SavePrefixes sorts and writes all prefixes to a CSV file.
-func SavePrefixes(path string, prefixes []common.Prefix) error {
-	sorted := make([]common.Prefix, len(prefixes))
-	copy(sorted, prefixes)
-	slices.SortFunc(sorted, common.ComparePrefix)
-
-	f, err := os.Create(path)
-	if err != nil {
-		return fmt.Errorf("create prefixes: %w", err)
-	}
-	defer f.Close()
-
-	w := csv.NewWriter(f)
-	for _, p := range sorted {
-		if err := w.Write([]string{p.Text, p.Category}); err != nil {
-			return fmt.Errorf("write prefix: %w", err)
-		}
-	}
-	w.Flush()
-	return w.Error()
-}
 
 // Matcher holds a sorted set of prefixes and supports longest-match lookup.
 type Matcher struct {
@@ -185,16 +128,4 @@ func (m *Matcher) Match(detail string) string {
 		}
 	}
 	return Unknown
-}
-
-// MigrateCSV reads a CSV prefixes file and returns a Config.
-func MigrateCSV(csvPath string) (*common.Config, error) {
-	prefixes, err := LoadPrefixes(csvPath)
-	if err != nil {
-		return nil, err
-	}
-	return &common.Config{
-		Prefixes: prefixes,
-		Sources:  map[string]common.SourceConfig{},
-	}, nil
 }

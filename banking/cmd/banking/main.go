@@ -8,7 +8,6 @@ import (
 	pflag "github.com/spf13/pflag"
 	"golang.org/x/term"
 
-	"banking/categorise"
 	"banking/common"
 	"banking/statements"
 	_ "banking/statements/anz"      // register ANZ format
@@ -23,23 +22,7 @@ func main() {
 	edit := pflag.BoolP("edit", "e", false, "interactively categorise unknown transactions")
 	cats := pflag.BoolP("categories", "c", false, "edit category tree")
 	verbose := pflag.CountP("verbose", "v", "increase category detail level")
-	migrate := pflag.Bool("migrate", false, "convert a prefixes CSV file to JSON config")
 	pflag.Parse()
-
-	if *migrate {
-		if *configPath == "" || pflag.NArg() == 0 {
-			log.Fatal("Usage: banking --migrate --config CONFIG.json PREFIXES.csv")
-		}
-		cfg, err := categorise.MigrateCSV(pflag.Arg(0))
-		if err != nil {
-			log.Fatal(err)
-		}
-		if err := common.SaveConfig(*configPath, cfg); err != nil {
-			log.Fatal(err)
-		}
-		fmt.Printf("Migrated %s → %s (%d prefixes)\n", pflag.Arg(0), *configPath, len(cfg.Prefixes))
-		return
-	}
 
 	if *configPath == "" {
 		log.Fatal("Usage: banking --config CONFIG [--bank FORMAT] [--edit] [--categories] [STATEMENT ...]")

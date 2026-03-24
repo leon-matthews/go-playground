@@ -1,149 +1,10 @@
 package categorise
 
 import (
-	"path/filepath"
 	"testing"
 
 	"banking/common"
 )
-
-func TestLoadPrefixes(t *testing.T) {
-	t.Run("valid", func(t *testing.T) {
-		got, err := LoadPrefixes("testdata/valid.csv")
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		want := []common.Prefix{
-			{Text: "walmart", Category: "Shopping"},
-			{Text: "amazon", Category: "Online"},
-		}
-		if len(got) != len(want) {
-			t.Fatalf("got %d prefixes, want %d", len(got), len(want))
-		}
-		for i := range want {
-			if got[i] != want[i] {
-				t.Errorf("prefix[%d] = %+v, want %+v", i, got[i], want[i])
-			}
-		}
-	})
-
-	t.Run("lowercases and trims", func(t *testing.T) {
-		got, err := LoadPrefixes("testdata/trim.csv")
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if len(got) != 1 {
-			t.Fatalf("got %d prefixes, want 1", len(got))
-		}
-		if got[0].Text != "walmart" {
-			t.Errorf("Text = %q, want %q", got[0].Text, "walmart")
-		}
-		if got[0].Category != "Shopping" {
-			t.Errorf("Category = %q, want %q", got[0].Category, "Shopping")
-		}
-	})
-
-	t.Run("empty file", func(t *testing.T) {
-		got, err := LoadPrefixes("testdata/empty.csv")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(got) != 0 {
-			t.Fatalf("got %d prefixes, want 0", len(got))
-		}
-	})
-
-	t.Run("file not found", func(t *testing.T) {
-		_, err := LoadPrefixes("testdata/nonexistent.csv")
-		if err == nil {
-			t.Fatal("expected error for missing file")
-		}
-	})
-
-	t.Run("wrong field count", func(t *testing.T) {
-		_, err := LoadPrefixes("testdata/wrong_fields.csv")
-		if err == nil {
-			t.Fatal("expected error for wrong field count")
-		}
-	})
-}
-
-func TestSavePrefixes(t *testing.T) {
-	t.Run("round-trip", func(t *testing.T) {
-		path := filepath.Join(t.TempDir(), "prefixes.csv")
-		input := []common.Prefix{
-			{Text: "walmart", Category: "Shopping"},
-			{Text: "amazon", Category: "Online"},
-		}
-
-		if err := SavePrefixes(path, input); err != nil {
-			t.Fatal(err)
-		}
-
-		got, err := LoadPrefixes(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		// SavePrefixes sorts, so expect alphabetical order
-		want := []common.Prefix{
-			{Text: "amazon", Category: "Online"},
-			{Text: "walmart", Category: "Shopping"},
-		}
-		if len(got) != len(want) {
-			t.Fatalf("got %d prefixes, want %d", len(got), len(want))
-		}
-		for i := range want {
-			if got[i] != want[i] {
-				t.Errorf("prefix[%d] = %+v, want %+v", i, got[i], want[i])
-			}
-		}
-	})
-
-	t.Run("empty", func(t *testing.T) {
-		path := filepath.Join(t.TempDir(), "prefixes.csv")
-
-		if err := SavePrefixes(path, nil); err != nil {
-			t.Fatal(err)
-		}
-
-		got, err := LoadPrefixes(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(got) != 0 {
-			t.Fatalf("got %d prefixes, want 0", len(got))
-		}
-	})
-
-	t.Run("does not mutate input", func(t *testing.T) {
-		path := filepath.Join(t.TempDir(), "prefixes.csv")
-		input := []common.Prefix{
-			{Text: "walmart", Category: "Shopping"},
-			{Text: "amazon", Category: "Online"},
-		}
-
-		if err := SavePrefixes(path, input); err != nil {
-			t.Fatal(err)
-		}
-
-		// Original slice should still be in its original order
-		if input[0].Text != "walmart" || input[1].Text != "amazon" {
-			t.Errorf("input was mutated: %+v", input)
-		}
-	})
-
-	t.Run("unwritable path", func(t *testing.T) {
-		err := SavePrefixes("/no/such/directory/prefixes.csv", []common.Prefix{
-			{Text: "test", Category: "Test"},
-		})
-		if err == nil {
-			t.Fatal("expected error for unwritable path")
-		}
-	})
-}
 
 func TestMatch(t *testing.T) {
 	matcher := NewMatcher([]common.Prefix{
@@ -340,11 +201,11 @@ func TestSort(t *testing.T) {
 }
 
 func BenchmarkMatch(b *testing.B) {
-	prefixes, err := LoadPrefixes("testdata/prefixes.csv")
+	cfg, err := common.LoadConfig("testdata/prefixes.json")
 	if err != nil {
 		b.Fatal(err)
 	}
-	matcher := NewMatcher(prefixes)
+	matcher := NewMatcher(cfg.Prefixes)
 
 	details := []string{
 		"Woolworths Nz/Lynnmall New Lynn Nz",
@@ -357,25 +218,5 @@ func BenchmarkMatch(b *testing.B) {
 		for _, d := range details {
 			matcher.Match(d)
 		}
-	}
-}
-
-func TestMigrateCSV(t *testing.T) {
-	cfg, err := MigrateCSV("testdata/valid.csv")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(cfg.Prefixes) != 2 {
-		t.Fatalf("got %d prefixes, want 2", len(cfg.Prefixes))
-	}
-	if cfg.Prefixes[0].Text != "walmart" {
-		t.Errorf("prefix[0].Text = %q, want %q", cfg.Prefixes[0].Text, "walmart")
-	}
-	if cfg.Sources == nil {
-		t.Fatal("Sources is nil, want empty map")
-	}
-	if len(cfg.Sources) != 0 {
-		t.Errorf("got %d sources, want 0", len(cfg.Sources))
 	}
 }

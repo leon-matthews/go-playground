@@ -1,0 +1,177 @@
+{
+  "prefixes": [
+    {
+      "prefix": "atomic coffee",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "avondale colleg",
+      "category": "Education"
+    },
+    {
+      "prefix": "riru fanshawe",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "2degrees mobile",
+      "category": "Phone"
+    },
+    {
+      "prefix": "auckland transport",
+      "category": "Transport/Public"
+    },
+    {
+      "prefix": "new world",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "woolworths",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "air new zand",
+      "category": "Holiday/Aeroplane"
+    },
+    {
+      "prefix": "aucklandtransportparki",
+      "category": "Transport/Parking"
+    },
+    {
+      "prefix": "bakers delight",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "bargain chemist",
+      "category": "Health/Chemist"
+    },
+    {
+      "prefix": "bp connect",
+      "category": "Transport/Petrol"
+    },
+    {
+      "prefix": "briscoes",
+      "category": "Household/Misc"
+    },
+    {
+      "prefix": "bunnings",
+      "category": "Household/Misc"
+    },
+    {
+      "prefix": "burger king",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "costco",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "ezypay *flexfitness",
+      "category": "Health/Gym"
+    },
+    {
+      "prefix": "foot locker",
+      "category": "Clothing"
+    },
+    {
+      "prefix": "fruit world",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "kfc",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "kmart",
+      "category": "Household/Misc"
+    },
+    {
+      "prefix": "maritime carpark",
+      "category": "Transport/Parking"
+    },
+    {
+      "prefix": "mcdonalds",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "mitre 10",
+      "category": "Household/Misc"
+    },
+    {
+      "prefix": "netflix",
+      "category": "Entertainment"
+    },
+    {
+      "prefix": "orconinternet",
+      "category": "Household/Utilities"
+    },
+    {
+      "prefix": "paypal *signal",
+      "category": "Charity/International"
+    },
+    {
+      "prefix": "paypal *wikipedia",
+      "category": "Charity/International"
+    },
+    {
+      "prefix": "pgg wrightson",
+      "category": "Clothing"
+    },
+    {
+      "prefix": "pink bin",
+      "category": "Household/Maintenance"
+    },
+    {
+      "prefix": "pizza hut",
+      "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "platypus",
+      "category": "Clothing"
+    },
+    {
+      "prefix": "poke house",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "raspberry pi cambridge",
+      "category": "Charity/International"
+    },
+    {
+      "prefix": "skinny mobile",
+      "category": "Phone"
+    },
+    {
+      "prefix": "sp mr. henry cherries",
+      "category": "Food/Groceries"
+    },
+    {
+      "prefix": "sp online vet store",
+      "category": "Pets/Food"
+    },
+    {
+      "prefix": "sp pimoroni ltd london",
+      "category": "Hobby"
+    },
+    {
+      "prefix": "spotlight",
+      "category": "Hobby"
+    },
+    {
+      "prefix": "the push-up challenge",
+      "category": "Charity/Local"
+    },
+    {
+      "prefix": "warehouse stationery",
+      "category": "Education"
+    },
+    {
+      "prefix": "waterview coffee",
+      "category": "Food/Cafe"
+    },
+    {
+      "prefix": "wendys",
+      "category": "Food/Takeaways"
+    }
+  ],
+  "sources": {}
+}
