@@ -5,6 +5,14 @@
       "category": "Personal/Hobby"
     },
     {
+      "prefix": "004600 to: 88245122-1001",
+      "category": "Bank/Transfer"
+    },
+    {
+      "prefix": "24e fairland watercare",
+      "category": "House/Utilities"
+    },
+    {
       "prefix": "2degrees mobile",
       "category": "Personal/Phone"
     },
@@ -165,6 +173,10 @@
       "category": "Food/Dairy"
     },
     {
+      "prefix": "b c matthews",
+      "category": "Payment"
+    },
+    {
       "prefix": "bakers delight",
       "category": "Food/Groceries"
     },
@@ -253,6 +265,10 @@
       "category": "Food/Takeaways"
     },
     {
+      "prefix": "chemist ware",
+      "category": "Health/Chemist"
+    },
+    {
       "prefix": "chemist warehouse",
       "category": "Health/Chemist"
     },
@@ -315,6 +331,10 @@
     {
       "prefix": "ecostore",
       "category": "Food/Groceries"
+    },
+    {
+      "prefix": "ecotricity",
+      "category": "House/Utilities"
     },
     {
       "prefix": "eden tyres and mags li mount eden nz",
@@ -389,6 +409,10 @@
       "category": "Personal/Clothing"
     },
     {
+      "prefix": "glen mbgk",
+      "category": "Transport/Car"
+    },
+    {
       "prefix": "gong cha st lukes auckland nz",
       "category": "Food/Cafe"
     },
@@ -403,6 +427,10 @@
     {
       "prefix": "google youtubepremium auckland nz",
       "category": "Entertainment"
+    },
+    {
+      "prefix": "green jade t",
+      "category": "Food/Takeaways"
     },
     {
       "prefix": "green jade takeaways auckland nz",
@@ -445,12 +473,20 @@
       "category": "House/Misc"
     },
     {
+      "prefix": "ikea restaur",
+      "category": "Food/Restauraunt"
+    },
+    {
       "prefix": "ikea restaurant auckland nz",
       "category": "Food/Restauraunt"
     },
     {
       "prefix": "interest",
       "category": "Misc"
+    },
+    {
+      "prefix": "ipayroll dbvisit",
+      "category": "Payment"
     },
     {
       "prefix": "japan mart",
@@ -581,6 +617,14 @@
       "category": "Food/Cafe"
     },
     {
+      "prefix": "lunch blake",
+      "category": "Personal/Pocket Money"
+    },
+    {
+      "prefix": "lunch stella",
+      "category": "Personal/Pocket Money"
+    },
+    {
       "prefix": "lush queen street auckland nz",
       "category": "Personal/Gifts"
     },
@@ -603,6 +647,14 @@
     {
       "prefix": "matsu sushi lynnmall auckland nz",
       "category": "Food/Takeaways"
+    },
+    {
+      "prefix": "matthews cake",
+      "category": "Entertainment"
+    },
+    {
+      "prefix": "maxy barber",
+      "category": "Personal/Haircuts"
     },
     {
       "prefix": "mcdonald",
@@ -753,6 +805,10 @@
       "category": "House/Utilities"
     },
     {
+      "prefix": "orthodontist totara",
+      "category": "Personal/Dentist"
+    },
+    {
       "prefix": "pacific foodmart auckland nz",
       "category": "Food/Dairy"
     },
@@ -877,6 +933,14 @@
       "category": "Personal/Clothing"
     },
     {
+      "prefix": "pocket blake",
+      "category": "Personal/Pocket Money"
+    },
+    {
+      "prefix": "pocket money",
+      "category": "Personal/Pocket Money"
+    },
+    {
       "prefix": "point chev beach cafe auckland nz",
       "category": "Food/Cafe"
     },
@@ -913,6 +977,10 @@
       "category": "Food/Takeaways"
     },
     {
+      "prefix": "ptchev beach",
+      "category": "Food/Cafe"
+    },
+    {
       "prefix": "ptchev beachcafe auckland nz",
       "category": "Food/Cafe"
     },
@@ -931,6 +999,10 @@
     {
       "prefix": "remark-it solutions",
       "category": "House/IT"
+    },
+    {
+      "prefix": "riru fanshaw",
+      "category": "Food/Cafe"
     },
     {
       "prefix": "riru fanshawe",
@@ -1001,6 +1073,10 @@
       "category": "Food/Restauraunt"
     },
     {
+      "prefix": "smz*bakers",
+      "category": "Food/Bakery"
+    },
+    {
       "prefix": "smz*bakers delight",
       "category": "Food/Bakery"
     },
@@ -1015,6 +1091,10 @@
     {
       "prefix": "sofitel auckland auckland nz",
       "category": "Food/Restauraunt"
+    },
+    {
+      "prefix": "software dbvisit expenses",
+      "category": "Payment"
     },
     {
       "prefix": "sp bits4bots",
@@ -1095,6 +1175,10 @@
     {
       "prefix": "spotlight",
       "category": "Personal/Hobby"
+    },
+    {
+      "prefix": "st lukes br anz",
+      "category": "Personal/Pocket Money"
     },
     {
       "prefix": "st pierre's",
@@ -1213,6 +1297,10 @@
       "category": "Personal/Clothing"
     },
     {
+      "prefix": "the warehous",
+      "category": "House/Misc"
+    },
+    {
       "prefix": "the warehouse",
       "category": "House/Misc"
     },
@@ -1243,6 +1331,14 @@
     {
       "prefix": "trademe hwr0 ping wellington nz",
       "category": "House/Misc"
+    },
+    {
+      "prefix": "transfer asb account",
+      "category": "Bank/Transfer"
+    },
+    {
+      "prefix": "transfer debit 090852",
+      "category": "Bank/Transfer"
     },
     {
       "prefix": "tuck shop auckland nz",
@@ -1289,12 +1385,20 @@
       "category": "Food/Groceries"
     },
     {
+      "prefix": "wage/salary auckland transport",
+      "category": "Payment"
+    },
+    {
       "prefix": "waipu tyres and automo waipu nz",
       "category": "Transport/Car"
     },
     {
       "prefix": "warehouse stationery",
       "category": "Education"
+    },
+    {
+      "prefix": "waterview co",
+      "category": "Food/Cafe"
     },
     {
       "prefix": "waterview coffee",
