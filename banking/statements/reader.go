@@ -3,6 +3,7 @@ package statements
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"banking/common"
@@ -36,11 +37,14 @@ func Get(name string) (Format, bool) {
 func Detect(data []byte) (Format, error) {
 	var reasons []string
 	for _, ff := range formats {
-		if err := ff.Detect(data); err == nil {
+		slog.Debug("trying format", "format", ff.Name())
+		err := ff.Detect(data)
+		if err == nil {
+			slog.Debug("detected format", "format", ff.Name())
 			return ff, nil
-		} else {
-			reasons = append(reasons, fmt.Sprintf("  %s: %s", ff.Name(), err))
 		}
+		slog.Debug("format rejected", "format", ff.Name(), "reason", err)
+		reasons = append(reasons, fmt.Sprintf("  %s: %s", ff.Name(), err))
 	}
 	return nil, fmt.Errorf("unrecognised statement format\n%s", strings.Join(reasons, "\n"))
 }
