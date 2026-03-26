@@ -753,6 +753,10 @@
       "category": "Food/Takeaways"
     },
     {
+      "prefix": "north haven hospice",
+      "category": "Personal/Clothing"
+    },
+    {
       "prefix": "north shore hospice",
       "category": "Personal/Clothing"
     },
@@ -1359,6 +1363,10 @@
     {
       "prefix": "typo 9722 lynn mall",
       "category": "Personal/Gifts"
+    },
+    {
+      "prefix": "uber",
+      "category": "Transport/Rideshare"
     },
     {
       "prefix": "uber*",
