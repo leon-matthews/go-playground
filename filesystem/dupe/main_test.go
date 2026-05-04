@@ -85,6 +85,26 @@ func TestCollectFiles(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, paths, readable[0], "readable file should still be returned")
 	})
+
+	t.Run("symlinks are excluded", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("symlink creation requires privileges on Windows")
+		}
+
+		root := t.TempDir()
+		want := writeFiles(t, root, "real.txt", "sub/target.txt")
+
+		fileLink := filepath.Join(root, "file-link")
+		require.NoError(t, os.Symlink(want[0], fileLink))
+
+		dirLink := filepath.Join(root, "dir-link")
+		require.NoError(t, os.Symlink(filepath.Join(root, "sub"), dirLink))
+
+		paths, err := collectFiles(root)
+
+		require.NoError(t, err)
+		assert.ElementsMatch(t, want, paths)
+	})
 }
 
 func TestHashFile(t *testing.T) {
@@ -160,6 +180,36 @@ func TestHashFile(t *testing.T) {
 		assert.Error(t, err)
 		assert.Empty(t, got)
 	})
+}
+
+func TestFormatSize(t *testing.T) {
+	const (
+		KiB = 1024
+		MiB = KiB * 1024
+		GiB = MiB * 1024
+	)
+
+	tests := map[string]struct {
+		bytes int64
+		want  string
+	}{
+		"zero":               {0, "0 B"},
+		"one byte":           {1, "1 B"},
+		"just under KiB":     {1023, "1023 B"},
+		"exactly one KiB":    {KiB, "1.0 KiB"},
+		"one and a half KiB": {KiB + KiB/2, "1.5 KiB"},
+		"exactly one MiB":    {MiB, "1.0 MiB"},
+		"one and a half MiB": {MiB + MiB/2, "1.5 MiB"},
+		"exactly one GiB":    {GiB, "1.0 GiB"},
+		"two and a half GiB": {GiB * 5 / 2, "2.5 GiB"},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := formatSize(tc.bytes)
+			assert.Equal(t, tc.want, got)
+		})
+	}
 }
 
 // writeFiles creates each path (relative to root) as an empty file, making any
