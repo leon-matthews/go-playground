@@ -12,14 +12,11 @@ import (
 )
 
 var (
-	verbose = pflag.BoolP("verbose", "v", false, "debug-level logging)")
+	verbose = pflag.BoolP("verbose", "v", false, "debug-level logging")
 	quiet   = pflag.BoolP("quiet", "q", false, "warnings and errors only")
 )
 
 // setupLogging installs a slog default logger that writes to stderr.
-
-// The time attribute is stripped because this CLI is short-lived and the
-// per-line timestamp is noise rather than signal.
 func setupLogging() {
 	// Level is chosen from the -v and -q flags; -v wins if both are set.
 	level := slog.LevelInfo
@@ -42,14 +39,27 @@ func setupLogging() {
 	}
 	handler := slog.NewTextHandler(os.Stderr, opts)
 	slog.SetDefault(slog.New(handler))
-	handlerJSON := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{})
-	slog.SetDefault(slog.New(handlerJSON))
 }
 
-// setupCharmingLogging installs a slog default logger that writes to stderr.
+// setupJSONLogging installs a slog default logger that writes line-delimited
+// JSON to stderr — the format most log aggregators expect.
+func setupJSONLogging() {
+	level := slog.LevelInfo
+	switch {
+	case *verbose:
+		level = slog.LevelDebug
+	case *quiet:
+		level = slog.LevelWarn
+	}
+
+	handler := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: level})
+	slog.SetDefault(slog.New(handler))
+}
+
+// setupCharmingLogging installs a slog default backed by Charmbracelet's
+// log package — colourised, with caller info and a short Kitchen timestamp.
 func setupCharmingLogging() {
-	// Level is chosen from the -v and -q flags; -v wins if both are set.
-	var level charminglog.Level
+	level := charminglog.InfoLevel
 	switch {
 	case *verbose:
 		level = charminglog.DebugLevel
@@ -63,9 +73,39 @@ func setupCharmingLogging() {
 		ReportTimestamp: true,
 		TimeFormat:      time.Kitchen,
 	})
+	slog.SetDefault(slog.New(handler))
+}
 
-	logger := slog.New(handler)
-	slog.SetDefault(logger)
+// setupMultiHandler installs a slog default that writes pretty output to
+// stderr (level driven by -v/-q) and JSON to a freshly-truncated log file
+// (always at Debug). The caller is responsible for closing the file.
+// Note that this time, we're not printing the source file, but are logging it.
+func setupMultiHandler(path string) (*os.File, error) {
+	f, err := os.Create(path)
+	if err != nil {
+		return nil, err
+	}
+
+	consoleLevel := charminglog.InfoLevel
+	switch {
+	case *verbose:
+		consoleLevel = charminglog.DebugLevel
+	case *quiet:
+		consoleLevel = charminglog.WarnLevel
+	}
+	console := charminglog.NewWithOptions(os.Stderr, charminglog.Options{
+		Level:           consoleLevel,
+		ReportTimestamp: true,
+		TimeFormat:      time.Kitchen,
+	})
+
+	file := slog.NewJSONHandler(f, &slog.HandlerOptions{
+		Level:     slog.LevelDebug,
+		AddSource: true,
+	})
+
+	slog.SetDefault(slog.New(MultiHandler{console, file}))
+	return f, nil
 }
 
 func slogExamples() {
@@ -91,7 +131,22 @@ func main() {
 	slogExamples()
 	fmt.Println()
 
+	fmt.Println("## slog.JSONHandler with default options")
+	setupJSONLogging()
+	slogExamples()
+	fmt.Println()
+
 	fmt.Println("## charmbraclet.log configured as slog handler")
 	setupCharmingLogging()
+	slogExamples()
+	fmt.Println()
+
+	fmt.Println("## MultiHandler: charm to stderr, JSON to slogging.log")
+	f, err := setupMultiHandler("slogging.log")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "open log file:", err)
+		os.Exit(1)
+	}
+	defer f.Close()
 	slogExamples()
 }
