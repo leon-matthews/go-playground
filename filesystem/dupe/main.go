@@ -6,10 +6,19 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"sync"
+
+	flag "github.com/spf13/pflag"
+)
+
+var (
+	verbose = flag.BoolP("verbose", "v", false, "verbose output (debug-level logging)")
+	quiet   = flag.BoolP("quiet", "q", false, "quiet output (warnings and errors only)")
 )
 
 // FileInfo track per-file statistics
@@ -147,41 +156,50 @@ func hashFile(path string) (string, error) {
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }
 
-// processFiles creates a goroutine for every path
+// processFiles stats and hashes every path using a fixed pool of workers
 func processFiles(paths []string) []FileInfo {
-	// Create a huge buffered channel
-	results := make(chan FileInfo, len(paths))
+	numWorkers := min(len(paths), runtime.NumCPU())
+	jobs := make(chan string)
+	results := make(chan FileInfo)
 	var wg sync.WaitGroup
 
-	// Start a goroutine for every entry in paths
-	for _, p := range paths {
+	// Start a fixed pool of workers
+	slog.Info("starting workers", "count", numWorkers)
+	for i := 0; i < numWorkers; i++ {
 		wg.Add(1)
-		go func(path string) {
+		go func() {
 			defer wg.Done()
-
-			info, err := os.Stat(path)
-			if err != nil {
-				return
+			for path := range jobs {
+				slog.Debug("Reading file", "worker", i, "file", path)
+				info, err := os.Stat(path)
+				if err != nil {
+					continue
+				}
+				hash, _ := hashFile(path)
+				results <- FileInfo{
+					Path:      path,
+					Size:      info.Size(),
+					Extension: filepath.Ext(path),
+					Hash:      hash,
+				}
 			}
-
-			hash, _ := hashFile(path)
-
-			results <- FileInfo{
-				Path:      path,
-				Size:      info.Size(),
-				Extension: filepath.Ext(path),
-				Hash:      hash,
-			}
-		}(p)
+		}()
 	}
 
-	// Wait for all goroutines to finish
+	// Feeder: send every path, then close jobs
+	go func() {
+		for _, p := range paths {
+			jobs <- p
+		}
+		close(jobs)
+	}()
+
+	// Closer: when all workers exit, close results
 	go func() {
 		wg.Wait()
 		close(results)
 	}()
 
-	// Empty channel into a slice
 	var files []FileInfo
 	for f := range results {
 		files = append(files, f)
@@ -189,16 +207,45 @@ func processFiles(paths []string) []FileInfo {
 	return files
 }
 
+// setupLogging installs a slog default logger that writes to stderr.
+// Level is chosen from the -v and -q flags; -v wins if both are set.
+// The time attribute is stripped because this CLI is short-lived and the
+// per-line timestamp is noise rather than signal.
+func setupLogging() {
+	level := slog.LevelInfo
+	switch {
+	case *verbose:
+		level = slog.LevelDebug
+	case *quiet:
+		level = slog.LevelWarn
+	}
+
+	opts := &slog.HandlerOptions{
+		Level: level,
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			if len(groups) == 0 && a.Key == slog.TimeKey {
+				return slog.Attr{}
+			}
+			return a
+		},
+	}
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, opts)))
+}
+
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "Usage: filescan <directory>")
+	flag.Parse()
+	setupLogging()
+
+	if flag.NArg() < 1 {
+		fmt.Fprintln(os.Stderr, "Usage: filescan [-v|-q] <directory>")
 		os.Exit(1)
 	}
 
-	root := os.Args[1]
+	root := flag.Arg(0)
 	fmt.Printf("Scanning: %s\n", root)
 
 	paths, err := collectFiles(root)
+	fmt.Printf("Found %d files\n", len(paths))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
