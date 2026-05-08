@@ -19,6 +19,7 @@ import (
 var (
 	verbose = flag.BoolP("verbose", "v", false, "verbose output (debug-level logging)")
 	quiet   = flag.BoolP("quiet", "q", false, "quiet output (warnings and errors only)")
+	minSize = flag.Int64P("min-size", "m", 1024, "ignore duplicates smaller than this many bytes")
 )
 
 // FileInfo track per-file statistics
@@ -35,40 +36,44 @@ type ExtensionStats struct {
 	Size  int64
 }
 
-// analyse prints stats to terminal from given data
-func analyse(files []FileInfo) {
-	var totalSize int64
-	extMap := make(map[string]*ExtensionStats)
-	hashMap := make(map[string][]FileInfo)
+// analyse prints summary, per-extension breakdown, and duplicate groups.
+func analyse(files []FileInfo, minSize int64) {
+	printSummary(files)
+	printByExtension(files)
+	printDuplicates(files, minSize)
+}
 
+// printSummary writes the total file count and combined size.
+func printSummary(files []FileInfo) {
+	var totalSize int64
 	for _, f := range files {
 		totalSize += f.Size
+	}
+	fmt.Printf("Found %d files (%s)\n\n", len(files), formatSize(totalSize))
+}
 
-		if _, ok := extMap[f.Extension]; !ok {
-			extMap[f.Extension] = &ExtensionStats{}
+// printByExtension writes a per-extension breakdown sorted by file count desc.
+func printByExtension(files []FileInfo) {
+	stats := make(map[string]*ExtensionStats)
+	for _, f := range files {
+		if _, ok := stats[f.Extension]; !ok {
+			stats[f.Extension] = &ExtensionStats{}
 		}
-		extMap[f.Extension].Count++
-		extMap[f.Extension].Size += f.Size
-
-		if f.Hash != "" {
-			hashMap[f.Hash] = append(hashMap[f.Hash], f)
-		}
+		stats[f.Extension].Count++
+		stats[f.Extension].Size += f.Size
 	}
 
-	fmt.Printf("Found %d files (%s)\n\n", len(files), formatSize(totalSize))
-
-	// Sort extensions by file count
 	type extEntry struct {
 		Ext   string
 		Stats *ExtensionStats
 	}
-	var exts []extEntry
-	for ext, stats := range extMap {
+	exts := make([]extEntry, 0, len(stats))
+	for ext, s := range stats {
 		name := ext
 		if name == "" {
 			name = "(none)"
 		}
-		exts = append(exts, extEntry{name, stats})
+		exts = append(exts, extEntry{name, s})
 	}
 	sort.Slice(exts, func(i, j int) bool {
 		return exts[i].Stats.Count > exts[j].Stats.Count
@@ -78,20 +83,39 @@ func analyse(files []FileInfo) {
 	for _, e := range exts {
 		fmt.Printf("  %-10s %4d files   %s\n", e.Ext, e.Stats.Count, formatSize(e.Stats.Size))
 	}
+}
 
-	// Find duplicates
-	fmt.Println("\nDuplicates:")
-	found := false
-	for _, group := range hashMap {
-		if len(group) < 2 {
+// printDuplicates writes duplicate groups at or above minSize, largest first.
+func printDuplicates(files []FileInfo, minSize int64) {
+	groups := make(map[string][]FileInfo)
+	for _, f := range files {
+		if f.Hash != "" {
+			groups[f.Hash] = append(groups[f.Hash], f)
+		}
+	}
+
+	var dups [][]FileInfo
+	for _, group := range groups {
+		if len(group) < 2 || group[0].Size < minSize {
 			continue
 		}
-		found = true
+		dups = append(dups, group)
+	}
+	sort.Slice(dups, func(i, j int) bool {
+		if dups[i][0].Size != dups[j][0].Size {
+			return dups[i][0].Size > dups[j][0].Size
+		}
+		return filepath.Base(dups[i][0].Path) < filepath.Base(dups[j][0].Path)
+	})
+
+	fmt.Printf("\nDuplicates (>= %s):\n", formatSize(minSize))
+	if len(dups) == 0 {
+		fmt.Println("  No duplicates found.")
+		return
+	}
+	for _, group := range dups {
 		name := filepath.Base(group[0].Path)
 		fmt.Printf("  %s (%d copies, %s each)\n", name, len(group), formatSize(group[0].Size))
-	}
-	if !found {
-		fmt.Println("  No duplicates found.")
 	}
 }
 
@@ -173,9 +197,14 @@ func processFiles(paths []string) []FileInfo {
 				slog.Debug("Reading file", "worker", i, "file", path)
 				info, err := os.Stat(path)
 				if err != nil {
+					slog.Warn("stat failed; skipping file", "path", path, "err", err)
 					continue
 				}
-				hash, _ := hashFile(path)
+				hash, err := hashFile(path)
+				if err != nil {
+					// Empty hash value will exclude value from duplicate detection
+					slog.Warn("hash failed; excluding from duplicates", "path", path, "err", err)
+				}
 				results <- FileInfo{
 					Path:      path,
 					Size:      info.Size(),
@@ -207,19 +236,10 @@ func processFiles(paths []string) []FileInfo {
 	return files
 }
 
-// setupLogging installs a slog default logger that writes to stderr.
-// Level is chosen from the -v and -q flags; -v wins if both are set.
-// The time attribute is stripped because this CLI is short-lived and the
-// per-line timestamp is noise rather than signal.
-func setupLogging() {
-	level := slog.LevelInfo
-	switch {
-	case *verbose:
-		level = slog.LevelDebug
-	case *quiet:
-		level = slog.LevelWarn
-	}
-
+// setupLogging installs a slog default logger that writes to stderr at the
+// given level. The time attribute is stripped because this CLI is short-lived
+// and the per-line timestamp is noise rather than signal.
+func setupLogging(level slog.Level) {
 	opts := &slog.HandlerOptions{
 		Level: level,
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
@@ -234,10 +254,18 @@ func setupLogging() {
 
 func main() {
 	flag.Parse()
-	setupLogging()
+
+	level := slog.LevelInfo
+	switch {
+	case *verbose:
+		level = slog.LevelDebug
+	case *quiet:
+		level = slog.LevelWarn
+	}
+	setupLogging(level)
 
 	if flag.NArg() < 1 {
-		fmt.Fprintln(os.Stderr, "Usage: filescan [-v|-q] <directory>")
+		fmt.Fprintln(os.Stderr, "Usage: filescan [-v|-q] [-m bytes] <directory>")
 		os.Exit(1)
 	}
 
@@ -257,5 +285,5 @@ func main() {
 	}
 
 	files := processFiles(paths)
-	analyse(files)
+	analyse(files, *minSize)
 }
