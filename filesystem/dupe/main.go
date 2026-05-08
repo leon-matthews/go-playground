@@ -183,16 +183,14 @@ func hashFile(path string) (string, error) {
 // processFiles stats and hashes every path using a fixed pool of workers
 func processFiles(paths []string) []FileInfo {
 	numWorkers := min(len(paths), runtime.NumCPU())
-	jobs := make(chan string)
-	results := make(chan FileInfo)
+	jobs := make(chan string, numWorkers)
+	results := make(chan FileInfo, numWorkers)
 	var wg sync.WaitGroup
 
 	// Start a fixed pool of workers
 	slog.Info("starting workers", "count", numWorkers)
 	for i := 0; i < numWorkers; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for path := range jobs {
 				slog.Debug("Reading file", "worker", i, "file", path)
 				info, err := os.Stat(path)
@@ -212,7 +210,7 @@ func processFiles(paths []string) []FileInfo {
 					Hash:      hash,
 				}
 			}
-		}()
+		})
 	}
 
 	// Feeder: send every path, then close jobs
