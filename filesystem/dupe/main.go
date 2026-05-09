@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strings"
 	"sync"
 
 	flag "github.com/spf13/pflag"
@@ -119,31 +120,42 @@ func printDuplicates(files []FileInfo, minSize int64) {
 	}
 }
 
-// collectFiles builds a slice of absolute paths to all the files under root
-func collectFiles(root string) ([]string, error) {
+// collectFiles builds a slice of absolute paths to all the files under the
+// given roots. Files reachable via more than one root are returned once.
+func collectFiles(roots ...string) ([]string, error) {
+	seen := make(map[string]struct{})
 	var paths []string
-	absRoot, err := filepath.Abs(root)
-	if err != nil {
-		return nil, err
-	}
 
-	err = filepath.WalkDir(absRoot, func(path string, d fs.DirEntry, err error) error {
+	for _, root := range roots {
+		absRoot, err := filepath.Abs(root)
 		if err != nil {
-			// Missing root?
-			if path == absRoot {
-				return err
+			return nil, err
+		}
+
+		err = filepath.WalkDir(absRoot, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				// Missing root?
+				if path == absRoot {
+					return err
+				}
+
+				// skip files we can't read
+				return nil
 			}
 
-			// skip files we can't read
+			if d.Type().IsRegular() {
+				if _, dup := seen[path]; !dup {
+					seen[path] = struct{}{}
+					paths = append(paths, path)
+				}
+			}
 			return nil
+		})
+		if err != nil {
+			return nil, err
 		}
-
-		if d.Type().IsRegular() {
-			paths = append(paths, path)
-		}
-		return nil
-	})
-	return paths, err
+	}
+	return paths, nil
 }
 
 // formatSize produces human-formatted file size string
@@ -263,14 +275,14 @@ func main() {
 	setupLogging(level)
 
 	if flag.NArg() < 1 {
-		fmt.Fprintln(os.Stderr, "Usage: filescan [-v|-q] [-m bytes] <directory>")
+		fmt.Fprintln(os.Stderr, "Usage: filescan [-v|-q] [-m bytes] FOLDER(S)...")
 		os.Exit(1)
 	}
 
-	root := flag.Arg(0)
-	fmt.Printf("Scanning: %s\n", root)
+	roots := flag.Args()
+	fmt.Printf("Scanning: %s\n", strings.Join(roots, ", "))
 
-	paths, err := collectFiles(root)
+	paths, err := collectFiles(roots...)
 	fmt.Printf("Found %d files\n", len(paths))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)

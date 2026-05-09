@@ -86,6 +86,38 @@ func TestCollectFiles(t *testing.T) {
 		assert.Contains(t, paths, readable[0], "readable file should still be returned")
 	})
 
+	t.Run("multiple roots are combined", func(t *testing.T) {
+		rootA := t.TempDir()
+		rootB := t.TempDir()
+		wantA := writeFiles(t, rootA, "a.txt", "sub/b.txt")
+		wantB := writeFiles(t, rootB, "c.txt")
+
+		paths, err := collectFiles(rootA, rootB)
+
+		require.NoError(t, err)
+		assert.ElementsMatch(t, append(wantA, wantB...), paths)
+	})
+
+	t.Run("overlapping roots produce no duplicates", func(t *testing.T) {
+		root := t.TempDir()
+		want := writeFiles(t, root, "top.txt", "sub/inner.txt")
+
+		paths, err := collectFiles(root, filepath.Join(root, "sub"))
+
+		require.NoError(t, err)
+		assert.ElementsMatch(t, want, paths)
+	})
+
+	t.Run("missing root among others returns error", func(t *testing.T) {
+		good := t.TempDir()
+		writeFiles(t, good, "a.txt")
+		missing := filepath.Join(t.TempDir(), "does-not-exist")
+
+		_, err := collectFiles(good, missing)
+
+		assert.Error(t, err)
+	})
+
 	t.Run("symlinks are excluded", func(t *testing.T) {
 		if runtime.GOOS == "windows" {
 			t.Skip("symlink creation requires privileges on Windows")
