@@ -120,39 +120,69 @@ func printDuplicates(files []FileInfo, minSize int64) {
 	}
 }
 
-// collectFiles builds a slice of absolute paths to all the files under the
-// given roots. Files reachable via more than one root are returned once.
-func collectFiles(roots ...string) ([]string, error) {
-	seen := make(map[string]struct{})
-	var paths []string
+// collectRoot returns absolute paths to every regular file under root.
+// Symlinks and unreadable subtrees are skipped; an unreadable root errors.
+func collectRoot(root string) ([]string, error) {
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		return nil, err
+	}
 
-	for _, root := range roots {
-		absRoot, err := filepath.Abs(root)
-		if err != nil {
-			return nil, err
+	var paths []string
+	err = filepath.WalkDir(absRoot, func(path string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			// Missing root?
+			if path == absRoot {
+				return walkErr
+			}
+
+			// skip files we can't read
+			return nil
 		}
 
-		err = filepath.WalkDir(absRoot, func(path string, d fs.DirEntry, err error) error {
-			if err != nil {
-				// Missing root?
-				if path == absRoot {
-					return err
-				}
+		if d.Type().IsRegular() {
+			paths = append(paths, path)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return paths, nil
+}
 
-				// skip files we can't read
-				return nil
-			}
+// collectRoots walks each root concurrently and returns deduplicated absolute
+// paths to every regular file found. Files reachable via more than one root
+// are returned once.
+func collectRoots(roots ...string) ([]string, error) {
+	type result struct {
+		paths []string
+		err   error
+	}
+	results := make([]result, len(roots))
 
-			if d.Type().IsRegular() {
-				if _, dup := seen[path]; !dup {
-					seen[path] = struct{}{}
-					paths = append(paths, path)
-				}
-			}
-			return nil
+	var wg sync.WaitGroup
+	for i, root := range roots {
+		wg.Go(func() {
+			results[i].paths, results[i].err = collectRoot(root)
 		})
-		if err != nil {
-			return nil, err
+	}
+	wg.Wait()
+
+	for _, r := range results {
+		if r.err != nil {
+			return nil, r.err
+		}
+	}
+
+	seen := make(map[string]struct{})
+	var paths []string
+	for _, r := range results {
+		for _, p := range r.paths {
+			if _, dup := seen[p]; !dup {
+				seen[p] = struct{}{}
+				paths = append(paths, p)
+			}
 		}
 	}
 	return paths, nil
@@ -282,7 +312,7 @@ func main() {
 	roots := flag.Args()
 	fmt.Printf("Scanning: %s\n", strings.Join(roots, ", "))
 
-	paths, err := collectFiles(roots...)
+	paths, err := collectRoots(roots...)
 	fmt.Printf("Found %d files\n", len(paths))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)

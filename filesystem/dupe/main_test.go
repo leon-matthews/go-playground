@@ -10,11 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCollectFiles(t *testing.T) {
+func TestCollectRoots(t *testing.T) {
 	t.Run("empty directory", func(t *testing.T) {
 		root := t.TempDir()
 
-		paths, err := collectFiles(root)
+		paths, err := collectRoots(root)
 
 		require.NoError(t, err)
 		assert.Empty(t, paths)
@@ -24,7 +24,7 @@ func TestCollectFiles(t *testing.T) {
 		root := t.TempDir()
 		want := writeFiles(t, root, "a.txt", "b.txt", "c.log")
 
-		paths, err := collectFiles(root)
+		paths, err := collectRoots(root)
 
 		require.NoError(t, err)
 		assert.ElementsMatch(t, want, paths)
@@ -39,7 +39,7 @@ func TestCollectFiles(t *testing.T) {
 			"sub/deep/three.txt",
 		)
 
-		paths, err := collectFiles(root)
+		paths, err := collectRoots(root)
 
 		require.NoError(t, err)
 		assert.ElementsMatch(t, want, paths)
@@ -50,7 +50,7 @@ func TestCollectFiles(t *testing.T) {
 		require.NoError(t, os.MkdirAll(filepath.Join(root, "empty-dir"), 0o755))
 		want := writeFiles(t, root, "only.txt")
 
-		paths, err := collectFiles(root)
+		paths, err := collectRoots(root)
 
 		require.NoError(t, err)
 		assert.ElementsMatch(t, want, paths)
@@ -59,7 +59,7 @@ func TestCollectFiles(t *testing.T) {
 	t.Run("missing root returns error", func(t *testing.T) {
 		missing := filepath.Join(t.TempDir(), "does-not-exist")
 
-		paths, err := collectFiles(missing)
+		paths, err := collectRoots(missing)
 
 		assert.Error(t, err)
 		assert.Empty(t, paths)
@@ -80,7 +80,7 @@ func TestCollectFiles(t *testing.T) {
 		require.NoError(t, os.Chmod(locked, 0o000))
 		t.Cleanup(func() { _ = os.Chmod(locked, 0o755) })
 
-		paths, err := collectFiles(root)
+		paths, err := collectRoots(root)
 
 		require.NoError(t, err)
 		assert.Contains(t, paths, readable[0], "readable file should still be returned")
@@ -92,7 +92,7 @@ func TestCollectFiles(t *testing.T) {
 		wantA := writeFiles(t, rootA, "a.txt", "sub/b.txt")
 		wantB := writeFiles(t, rootB, "c.txt")
 
-		paths, err := collectFiles(rootA, rootB)
+		paths, err := collectRoots(rootA, rootB)
 
 		require.NoError(t, err)
 		assert.ElementsMatch(t, append(wantA, wantB...), paths)
@@ -102,7 +102,7 @@ func TestCollectFiles(t *testing.T) {
 		root := t.TempDir()
 		want := writeFiles(t, root, "top.txt", "sub/inner.txt")
 
-		paths, err := collectFiles(root, filepath.Join(root, "sub"))
+		paths, err := collectRoots(root, filepath.Join(root, "sub"))
 
 		require.NoError(t, err)
 		assert.ElementsMatch(t, want, paths)
@@ -113,7 +113,7 @@ func TestCollectFiles(t *testing.T) {
 		writeFiles(t, good, "a.txt")
 		missing := filepath.Join(t.TempDir(), "does-not-exist")
 
-		_, err := collectFiles(good, missing)
+		_, err := collectRoots(good, missing)
 
 		assert.Error(t, err)
 	})
@@ -132,7 +132,7 @@ func TestCollectFiles(t *testing.T) {
 		dirLink := filepath.Join(root, "dir-link")
 		require.NoError(t, os.Symlink(filepath.Join(root, "sub"), dirLink))
 
-		paths, err := collectFiles(root)
+		paths, err := collectRoots(root)
 
 		require.NoError(t, err)
 		assert.ElementsMatch(t, want, paths)
