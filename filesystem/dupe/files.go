@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sync"
 	"time"
 )
@@ -127,10 +126,14 @@ func processFile(path string, cache *Cache) (FileInfo, error) {
 		ModTime:   info.ModTime(),
 		Extension: filepath.Ext(path),
 	}
+
+	// Found in cache?
 	if e, ok := cache.Get(path); ok && e.Size == fi.Size && e.ModTime.Equal(fi.ModTime) {
 		fi.Hash = e.Hash
 		return fi, nil
 	}
+
+	// Calculate hash, save to cache.
 	hash, err := hashFile(path)
 	if err != nil {
 		return fi, err
@@ -145,8 +148,8 @@ func processFile(path string, cache *Cache) (FileInfo, error) {
 // processFiles stats and hashes every path using a fixed pool of workers.
 // Workers consult cache concurrently; cache writes are coalesced internally
 // via bbolt's Batch.
-func processFiles(paths []string, cache *Cache) []FileInfo {
-	numWorkers := min(len(paths), runtime.NumCPU())
+func processFiles(paths []string, cache *Cache, maxWorkers int) []FileInfo {
+	numWorkers := min(len(paths), maxWorkers)
 	jobs := make(chan string, numWorkers)
 	results := make(chan FileInfo, numWorkers)
 	var wg sync.WaitGroup

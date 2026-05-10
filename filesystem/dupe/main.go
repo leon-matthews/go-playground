@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	flag "github.com/spf13/pflag"
@@ -15,6 +16,7 @@ var (
 	verbose = flag.BoolP("verbose", "v", false, "verbose output (debug-level logging)")
 	quiet   = flag.BoolP("quiet", "q", false, "quiet output (warnings and errors only)")
 	minSize = flag.Int64P("min-size", "m", 1024, "ignore duplicates smaller than this many bytes")
+	jobs    = flag.IntP("jobs", "j", runtime.NumCPU(), "number of concurrent worker goroutines")
 )
 
 // setupLogging installs a slog default logger that writes to stderr at the
@@ -46,8 +48,13 @@ func main() {
 	setupLogging(level)
 
 	if flag.NArg() < 1 {
-		fmt.Fprintln(os.Stderr, "Usage: filescan [-v|-q] [-m bytes] FOLDER(S)...")
+		fmt.Fprintln(os.Stderr, "Usage: filescan [-v|-q] [-m bytes] [-j N] FOLDER(S)...")
 		os.Exit(1)
+	}
+
+	if *jobs < 1 {
+		slog.Warn("invalid --jobs value; clamping to 1", "value", *jobs)
+		*jobs = 1
 	}
 
 	roots := flag.Args()
@@ -75,7 +82,7 @@ func main() {
 	}
 	defer cache.Close()
 
-	files := processFiles(paths, cache)
+	files := processFiles(paths, cache, *jobs)
 
 	seen := make(map[string]struct{}, len(paths))
 	for _, p := range paths {
