@@ -30,20 +30,15 @@ func cachePath() (string, error) {
 	return filepath.Join(dir, "dupe", "cache.gob"), nil
 }
 
-// loadCache reads the persistent hash cache. A missing file yields an empty
-// cache without error; a corrupt file is logged and replaced with an empty
-// cache so a single bad write never blocks future runs.
-func loadCache() map[string]CacheEntry {
+// loadCache reads the persistent hash cache from path. A missing file yields
+// an empty cache without error; a corrupt file is logged and replaced with an
+// empty cache so a single bad write never blocks future runs.
+func loadCache(path string) map[string]CacheEntry {
 	empty := map[string]CacheEntry{}
-	p, err := cachePath()
-	if err != nil {
-		slog.Warn("cache disabled: cannot resolve path", "err", err)
-		return empty
-	}
-	f, err := os.Open(p)
+	f, err := os.Open(path)
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
-			slog.Warn("cache disabled: cannot open file", "path", p, "err", err)
+			slog.Warn("cache disabled: cannot open file", "path", path, "err", err)
 		}
 		return empty
 	}
@@ -51,24 +46,21 @@ func loadCache() map[string]CacheEntry {
 
 	var m map[string]CacheEntry
 	if err := gob.NewDecoder(f).Decode(&m); err != nil {
-		slog.Warn("cache corrupt; starting empty", "path", p, "err", err)
+		slog.Warn("cache corrupt; starting empty", "path", path, "err", err)
 		return empty
 	}
-	slog.Debug("cache loaded", "path", p, "entries", len(m))
+	slog.Debug("cache loaded", "path", path, "entries", len(m))
 	return m
 }
 
-// saveCache writes the cache atomically via temp file + rename, so a crash
-// mid-write cannot leave a half-written file in place of the previous good one.
-func saveCache(m map[string]CacheEntry) error {
-	p, err := cachePath()
-	if err != nil {
+// saveCache writes the cache to path atomically via temp file + rename, so a
+// crash mid-write cannot leave a half-written file in place of the previous
+// good one.
+func saveCache(path string, m map[string]CacheEntry) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
-		return err
-	}
-	tmp, err := os.CreateTemp(filepath.Dir(p), "cache-*.gob")
+	tmp, err := os.CreateTemp(filepath.Dir(path), "cache-*.gob")
 	if err != nil {
 		return err
 	}
@@ -82,7 +74,7 @@ func saveCache(m map[string]CacheEntry) error {
 		os.Remove(tmpName)
 		return err
 	}
-	return os.Rename(tmpName, p)
+	return os.Rename(tmpName, path)
 }
 
 // pathInRoots reports whether path is equal to, or nested under, any of roots.

@@ -64,11 +64,23 @@ func main() {
 		return
 	}
 
-	cache := loadCache()
+	cacheFile, err := cachePath()
+	if err != nil {
+		slog.Warn("cache disabled: cannot resolve path", "err", err)
+	}
+
+	cache := map[string]CacheEntry{}
+	if cacheFile != "" {
+		cache = loadCache(cacheFile)
+	}
+
 	files := processFiles(paths, cache)
 	updateCache(cache, files, paths, roots)
-	if err := saveCache(cache); err != nil {
-		slog.Warn("failed to save cache", "err", err)
+
+	if cacheFile != "" {
+		if err := saveCache(cacheFile, cache); err != nil {
+			slog.Warn("failed to save cache", "err", err)
+		}
 	}
 
 	analyse(files, *minSize)
