@@ -222,6 +222,30 @@ func hashFile(path string) (string, error) {
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }
 
+// processFile stats and hashes a single path. A stat failure returns a zero
+// FileInfo and the error, signalling the caller to skip the file. A hash
+// failure returns a populated FileInfo with an empty Hash AND the error: the
+// FileInfo still feeds summary stats, while the empty Hash excludes the file
+// from duplicate detection. Callers distinguish the two cases by inspecting
+// info.Path: empty means stat failed.
+func processFile(path string) (FileInfo, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return FileInfo{}, err
+	}
+	fi := FileInfo{
+		Path:      path,
+		Size:      info.Size(),
+		Extension: filepath.Ext(path),
+	}
+	hash, err := hashFile(path)
+	if err != nil {
+		return fi, err
+	}
+	fi.Hash = hash
+	return fi, nil
+}
+
 // processFiles stats and hashes every path using a fixed pool of workers
 func processFiles(paths []string) []FileInfo {
 	numWorkers := min(len(paths), runtime.NumCPU())
@@ -235,22 +259,15 @@ func processFiles(paths []string) []FileInfo {
 		wg.Go(func() {
 			for path := range jobs {
 				slog.Debug("Reading file", "worker", i, "file", path)
-				info, err := os.Stat(path)
+				info, err := processFile(path)
 				if err != nil {
-					slog.Warn("stat failed; skipping file", "path", path, "err", err)
-					continue
-				}
-				hash, err := hashFile(path)
-				if err != nil {
-					// Empty hash value will exclude value from duplicate detection
+					if info.Path == "" {
+						slog.Warn("stat failed; skipping file", "path", path, "err", err)
+						continue
+					}
 					slog.Warn("hash failed; excluding from duplicates", "path", path, "err", err)
 				}
-				results <- FileInfo{
-					Path:      path,
-					Size:      info.Size(),
-					Extension: filepath.Ext(path),
-					Hash:      hash,
-				}
+				results <- info
 			}
 		})
 	}
