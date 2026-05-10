@@ -19,10 +19,8 @@ var (
 	jobs    = flag.IntP("jobs", "j", runtime.NumCPU(), "number of concurrent worker goroutines")
 )
 
-// setupLogging installs a slog default logger that writes to stderr at the
-// given level. The time attribute is stripped because this CLI is short-lived
-// and the per-line timestamp is noise rather than signal.
-func setupLogging(level slog.Level) {
+// newLogger returns a stderr text logger at level, stripping the noisy timestamp.
+func newLogger(level slog.Level) *slog.Logger {
 	opts := &slog.HandlerOptions{
 		Level: level,
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
@@ -32,7 +30,7 @@ func setupLogging(level slog.Level) {
 			return a
 		},
 	}
-	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, opts)))
+	return slog.New(slog.NewTextHandler(os.Stderr, opts))
 }
 
 func main() {
@@ -45,7 +43,7 @@ func main() {
 	case *quiet:
 		level = slog.LevelWarn
 	}
-	setupLogging(level)
+	log := newLogger(level)
 
 	if flag.NArg() < 1 {
 		fmt.Fprintln(os.Stderr, "Usage: filescan [-v|-q] [-m bytes] [-j N] FOLDER(S)...")
@@ -53,7 +51,7 @@ func main() {
 	}
 
 	if *jobs < 1 {
-		slog.Warn("invalid --jobs value; clamping to 1", "value", *jobs)
+		log.Warn("invalid --jobs value; clamping to 1", "value", *jobs)
 		*jobs = 1
 	}
 
@@ -74,15 +72,16 @@ func main() {
 
 	cacheFile, err := cachePath()
 	if err != nil {
-		slog.Warn("cache disabled: cannot resolve path", "err", err)
+		log.Warn("cache disabled: cannot resolve path", "err", err)
 	}
-	cache, err := openCache(cacheFile)
+	cache, err := openCache(cacheFile, log)
 	if err != nil {
-		slog.Warn("cache disabled", "path", cacheFile, "err", err)
+		log.Warn("cache disabled", "path", cacheFile, "err", err)
 	}
 	defer cache.Close()
 
-	files := processFiles(paths, cache, *jobs)
+	scanner := newScanner(cache, *jobs, log)
+	files := scanner.Process(paths)
 
 	seen := make(map[string]struct{}, len(paths))
 	for _, p := range paths {
@@ -92,13 +91,13 @@ func main() {
 	for _, r := range roots {
 		a, absErr := filepath.Abs(r)
 		if absErr != nil {
-			slog.Warn("cannot resolve absolute root for cache sweep", "root", r, "err", absErr)
+			log.Warn("cannot resolve absolute root for cache sweep", "root", r, "err", absErr)
 			continue
 		}
 		absRoots = append(absRoots, a)
 	}
 	if err := cache.Sweep(seen, absRoots); err != nil {
-		slog.Warn("cache sweep failed", "err", err)
+		log.Warn("cache sweep failed", "err", err)
 	}
 
 	analyse(files, *minSize)

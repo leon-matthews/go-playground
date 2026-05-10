@@ -104,18 +104,23 @@ func hashFile(path string) (string, error) {
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }
 
-// processFile stats and hashes a single path. A stat failure returns a zero
-// FileInfo and the error, signalling the caller to skip the file. A hash
-// failure returns a populated FileInfo with an empty Hash AND the error: the
-// FileInfo still feeds summary stats, while the empty Hash excludes the file
-// from duplicate detection. Callers distinguish the two cases by inspecting
-// info.Path: empty means stat failed.
-//
-// A cache hit (matching Size and ModTime) skips the hash read entirely. On a
-// fresh hash the entry is written back via cache.Set so the work is durable
-// before the function returns; a Set error is logged at warn level but does
-// not fail the file.
-func processFile(path string, cache *Cache) (FileInfo, error) {
+// Scanner owns the worker pool and per-scan dependencies (cache, logger).
+type Scanner struct {
+	cache      *Cache
+	log        *slog.Logger
+	maxWorkers int
+}
+
+// newScanner returns a Scanner; a nil logger is replaced with a discard logger.
+func newScanner(cache *Cache, maxWorkers int, log *slog.Logger) *Scanner {
+	if log == nil {
+		log = slog.New(slog.DiscardHandler)
+	}
+	return &Scanner{cache: cache, log: log, maxWorkers: maxWorkers}
+}
+
+// processFile stats and hashes a single path; see Process for the contract.
+func (s *Scanner) processFile(path string) (FileInfo, error) {
 	info, err := os.Stat(path)
 	if err != nil {
 		return FileInfo{}, err
@@ -127,53 +132,47 @@ func processFile(path string, cache *Cache) (FileInfo, error) {
 		Extension: filepath.Ext(path),
 	}
 
-	// Found in cache?
-	if e, ok := cache.Get(path); ok && e.Size == fi.Size && e.ModTime.Equal(fi.ModTime) {
+	if e, ok := s.cache.Get(path); ok && e.Size == fi.Size && e.ModTime.Equal(fi.ModTime) {
 		fi.Hash = e.Hash
 		return fi, nil
 	}
 
-	// Calculate hash, save to cache.
 	hash, err := hashFile(path)
 	if err != nil {
 		return fi, err
 	}
 	fi.Hash = hash
-	if err := cache.Set(path, CacheEntry{Size: fi.Size, ModTime: fi.ModTime, Hash: fi.Hash}); err != nil {
-		slog.Warn("cache: failed to write entry", "path", path, "err", err)
+	if err := s.cache.Set(path, CacheEntry{Size: fi.Size, ModTime: fi.ModTime, Hash: fi.Hash}); err != nil {
+		s.log.Warn("cache: failed to write entry", "path", path, "err", err)
 	}
 	return fi, nil
 }
 
-// processFiles stats and hashes every path using a fixed pool of workers.
-// Workers consult cache concurrently; cache writes are coalesced internally
-// via bbolt's Batch.
-func processFiles(paths []string, cache *Cache, maxWorkers int) []FileInfo {
-	numWorkers := min(len(paths), maxWorkers)
+// Process stats and hashes every path using a fixed pool of workers.
+func (s *Scanner) Process(paths []string) []FileInfo {
+	numWorkers := min(len(paths), s.maxWorkers)
 	jobs := make(chan string, numWorkers)
 	results := make(chan FileInfo, numWorkers)
 	var wg sync.WaitGroup
 
-	// Start a fixed pool of workers
-	slog.Info("starting workers", "count", numWorkers)
+	s.log.Info("starting workers", "count", numWorkers)
 	for i := 0; i < numWorkers; i++ {
 		wg.Go(func() {
 			for path := range jobs {
-				slog.Debug("Reading file", "worker", i, "file", path)
-				info, err := processFile(path, cache)
+				s.log.Debug("Reading file", "worker", i, "file", path)
+				info, err := s.processFile(path)
 				if err != nil {
 					if info.Path == "" {
-						slog.Warn("stat failed; skipping file", "path", path, "err", err)
+						s.log.Warn("stat failed; skipping file", "path", path, "err", err)
 						continue
 					}
-					slog.Warn("hash failed; excluding from duplicates", "path", path, "err", err)
+					s.log.Warn("hash failed; excluding from duplicates", "path", path, "err", err)
 				}
 				results <- info
 			}
 		})
 	}
 
-	// Feeder: send every path, then close jobs
 	go func() {
 		for _, p := range paths {
 			jobs <- p
@@ -181,7 +180,6 @@ func processFiles(paths []string, cache *Cache, maxWorkers int) []FileInfo {
 		close(jobs)
 	}()
 
-	// Closer: when all workers exit, close results
 	go func() {
 		wg.Wait()
 		close(results)
