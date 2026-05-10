@@ -23,10 +23,18 @@ func makeHash(seed byte) string {
 func newCache(t *testing.T) (*Cache, string) {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "cache.db")
-	c, err := openCache(path)
+	c, err := openCache(path, nil)
 	require.NoError(t, err)
+	tuneForTest(c)
 	t.Cleanup(func() { _ = c.Close() })
 	return c, path
+}
+
+// tuneForTest drops MaxBatchDelay to keep isolated Set→Get tests fast.
+func tuneForTest(c *Cache) {
+	if c != nil && c.db != nil {
+		c.db.MaxBatchDelay = time.Millisecond
+	}
 }
 
 func TestPathInRoots(t *testing.T) {
@@ -66,7 +74,7 @@ func TestPathInRoots(t *testing.T) {
 func TestOpenCache(t *testing.T) {
 	t.Run("missing file is created", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "nested", "deeper", "cache.db")
-		c, err := openCache(path)
+		c, err := openCache(path, nil)
 		require.NoError(t, err)
 		t.Cleanup(func() { _ = c.Close() })
 
@@ -74,7 +82,7 @@ func TestOpenCache(t *testing.T) {
 	})
 
 	t.Run("empty path returns no-op cache", func(t *testing.T) {
-		c, err := openCache("")
+		c, err := openCache("", nil)
 		require.NoError(t, err)
 		t.Cleanup(func() { _ = c.Close() })
 
@@ -86,20 +94,51 @@ func TestOpenCache(t *testing.T) {
 
 	t.Run("concurrent open times out", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "cache.db")
-		first, err := openCache(path)
+		first, err := openCache(path, nil)
 		require.NoError(t, err)
 		t.Cleanup(func() { _ = first.Close() })
 
 		// Use a short timeout so the test doesn't sit idle for the production
 		// default. The behaviour we care about is that opening a locked file
 		// returns an error and a usable no-op cache, not the exact wait length.
-		second, err := openCacheWithTimeout(path, 100*time.Millisecond)
+		second, err := openCacheWithTimeout(path, 100*time.Millisecond, nil)
 		t.Cleanup(func() { _ = second.Close() })
 
 		assert.Error(t, err)
 		assert.NotNil(t, second, "should return a usable no-op cache even on error")
 		_, ok := second.Get("/anything")
 		assert.False(t, ok)
+	})
+}
+
+func TestCacheEntryBinary(t *testing.T) {
+	t.Run("round-trips", func(t *testing.T) {
+		want := CacheEntry{Size: 12345, ModTime: time.Unix(1700000000, 42).UTC(), Hash: makeHash(0xab)}
+		blob, err := want.MarshalBinary()
+		require.NoError(t, err)
+		assert.Len(t, blob, entrySize)
+
+		var got CacheEntry
+		require.NoError(t, got.UnmarshalBinary(blob))
+		assert.Equal(t, want.Size, got.Size)
+		assert.Equal(t, want.Hash, got.Hash)
+		assert.True(t, want.ModTime.Equal(got.ModTime))
+	})
+
+	t.Run("marshal rejects non-hex hash", func(t *testing.T) {
+		_, err := CacheEntry{Hash: "not-hex"}.MarshalBinary()
+		assert.Error(t, err)
+	})
+
+	t.Run("marshal rejects wrong-length hash", func(t *testing.T) {
+		_, err := CacheEntry{Hash: "abcd"}.MarshalBinary()
+		assert.Error(t, err)
+	})
+
+	t.Run("unmarshal rejects wrong-length input", func(t *testing.T) {
+		var got CacheEntry
+		assert.Error(t, got.UnmarshalBinary(make([]byte, entrySize-1)))
+		assert.Error(t, got.UnmarshalBinary(make([]byte, entrySize+1)))
 	})
 }
 
@@ -142,8 +181,9 @@ func TestCacheSet(t *testing.T) {
 		require.NoError(t, c.Set("/foo/a", want))
 		require.NoError(t, c.Close())
 
-		reopened, err := openCache(path)
+		reopened, err := openCache(path, nil)
 		require.NoError(t, err)
+		tuneForTest(reopened)
 		t.Cleanup(func() { _ = reopened.Close() })
 
 		got, ok := reopened.Get("/foo/a")
