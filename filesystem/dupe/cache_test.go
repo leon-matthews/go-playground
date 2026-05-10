@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -17,24 +18,14 @@ func makeHash(seed byte) string {
 	return strings.Repeat(fmt.Sprintf("%02x", seed), sha256.Size)
 }
 
-// newCache opens a Cache backed by a fresh DB inside a per-test temp dir and
-// schedules its closure via t.Cleanup. Returns the path so individual subtests
-// can reopen it to verify persistence.
+// newCache opens a Cache backed by a fresh DB inside a per-test temp dir.
 func newCache(t *testing.T) (*Cache, string) {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "cache.db")
 	c, err := openCache(path, nil)
 	require.NoError(t, err)
-	tuneForTest(c)
 	t.Cleanup(func() { _ = c.Close() })
 	return c, path
-}
-
-// tuneForTest drops MaxBatchDelay to keep isolated Set→Get tests fast.
-func tuneForTest(c *Cache) {
-	if c != nil && c.db != nil {
-		c.db.MaxBatchDelay = time.Millisecond
-	}
 }
 
 func TestPathInRoots(t *testing.T) {
@@ -52,8 +43,7 @@ func TestPathInRoots(t *testing.T) {
 	})
 
 	t.Run("sibling with shared prefix is excluded", func(t *testing.T) {
-		// The separator-suffix check exists for this case: /foo must not match
-		// /foobar.
+		// The separator-suffix check exists for this case: /foo must not match /foobar.
 		assert.False(t, pathInRoots("/foobar", []string{"/foo"}))
 		assert.False(t, pathInRoots("/foobar/baz", []string{"/foo"}))
 	})
@@ -92,53 +82,24 @@ func TestOpenCache(t *testing.T) {
 		assert.NoError(t, c.Sweep(nil, nil))
 	})
 
-	t.Run("concurrent open times out", func(t *testing.T) {
+	t.Run("non-sqlite file is replaced", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "cache.db")
-		first, err := openCache(path, nil)
+		require.NoError(t, os.WriteFile(path, []byte("not-a-sqlite-file\n"), 0o644))
+
+		c, err := openCache(path, nil)
 		require.NoError(t, err)
-		t.Cleanup(func() { _ = first.Close() })
+		t.Cleanup(func() { _ = c.Close() })
 
-		// Use a short timeout so the test doesn't sit idle for the production
-		// default. The behaviour we care about is that opening a locked file
-		// returns an error and a usable no-op cache, not the exact wait length.
-		second, err := openCacheWithTimeout(path, 100*time.Millisecond, nil)
-		t.Cleanup(func() { _ = second.Close() })
-
-		assert.Error(t, err)
-		assert.NotNil(t, second, "should return a usable no-op cache even on error")
-		_, ok := second.Get("/anything")
-		assert.False(t, ok)
-	})
-}
-
-func TestCacheEntryBinary(t *testing.T) {
-	t.Run("round-trips", func(t *testing.T) {
-		want := CacheEntry{Size: 12345, ModTime: time.Unix(1700000000, 42).UTC(), Hash: makeHash(0xab)}
-		blob, err := want.MarshalBinary()
+		header, err := os.ReadFile(path)
 		require.NoError(t, err)
-		assert.Len(t, blob, entrySize)
+		require.GreaterOrEqual(t, len(header), len(sqliteMagic))
+		assert.Equal(t, sqliteMagic, string(header[:len(sqliteMagic)]))
 
-		var got CacheEntry
-		require.NoError(t, got.UnmarshalBinary(blob))
-		assert.Equal(t, want.Size, got.Size)
-		assert.Equal(t, want.Hash, got.Hash)
-		assert.True(t, want.ModTime.Equal(got.ModTime))
-	})
-
-	t.Run("marshal rejects non-hex hash", func(t *testing.T) {
-		_, err := CacheEntry{Hash: "not-hex"}.MarshalBinary()
-		assert.Error(t, err)
-	})
-
-	t.Run("marshal rejects wrong-length hash", func(t *testing.T) {
-		_, err := CacheEntry{Hash: "abcd"}.MarshalBinary()
-		assert.Error(t, err)
-	})
-
-	t.Run("unmarshal rejects wrong-length input", func(t *testing.T) {
-		var got CacheEntry
-		assert.Error(t, got.UnmarshalBinary(make([]byte, entrySize-1)))
-		assert.Error(t, got.UnmarshalBinary(make([]byte, entrySize+1)))
+		want := CacheEntry{Size: 1, ModTime: time.Unix(1, 0).UTC(), Hash: makeHash(0x42)}
+		require.NoError(t, c.Set("/a", want))
+		require.NoError(t, c.Flush())
+		_, ok := c.Get("/a")
+		assert.True(t, ok, "recreated cache should be usable")
 	})
 }
 
@@ -151,6 +112,7 @@ func TestCacheSet(t *testing.T) {
 		want := CacheEntry{Size: 100, ModTime: t1, Hash: makeHash(0x01)}
 
 		require.NoError(t, c.Set("/foo/a", want))
+		require.NoError(t, c.Flush())
 		got, ok := c.Get("/foo/a")
 
 		require.True(t, ok)
@@ -167,6 +129,7 @@ func TestCacheSet(t *testing.T) {
 		c, _ := newCache(t)
 		require.NoError(t, c.Set("/foo/a", CacheEntry{Size: 50, ModTime: t1, Hash: makeHash(0x01)}))
 		require.NoError(t, c.Set("/foo/a", CacheEntry{Size: 100, ModTime: t2, Hash: makeHash(0x02)}))
+		require.NoError(t, c.Flush())
 
 		got, ok := c.Get("/foo/a")
 
@@ -183,7 +146,6 @@ func TestCacheSet(t *testing.T) {
 
 		reopened, err := openCache(path, nil)
 		require.NoError(t, err)
-		tuneForTest(reopened)
 		t.Cleanup(func() { _ = reopened.Close() })
 
 		got, ok := reopened.Get("/foo/a")
@@ -224,9 +186,8 @@ func TestCacheSweep(t *testing.T) {
 	})
 
 	t.Run("seen-but-stat-failed path keeps its entry", func(t *testing.T) {
-		// collectRoots saw the path so it's in `seen`, but processFile got a
-		// stat error and never produced a fresh result. The entry must not be
-		// swept just because no Set was made for it this scan.
+		// collectRoots saw the path so it's in `seen`, but processFile got a stat
+		// error and never produced a fresh result. The entry must not be swept.
 		c, _ := newCache(t)
 		want := CacheEntry{Size: 50, Hash: makeHash(0x20)}
 		require.NoError(t, c.Set(scoped("transient"), want))
