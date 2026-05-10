@@ -1,13 +1,21 @@
 package main
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// makeHash returns a 64-char hex digest filled with seed; distinct seeds differ.
+func makeHash(seed byte) string {
+	return strings.Repeat(fmt.Sprintf("%02x", seed), sha256.Size)
+}
 
 // newCache opens a Cache backed by a fresh DB inside a per-test temp dir and
 // schedules its closure via t.Cleanup. Returns the path so individual subtests
@@ -101,7 +109,7 @@ func TestCacheSet(t *testing.T) {
 
 	t.Run("set then get round-trips", func(t *testing.T) {
 		c, _ := newCache(t)
-		want := CacheEntry{Size: 100, ModTime: t1, Hash: "abc"}
+		want := CacheEntry{Size: 100, ModTime: t1, Hash: makeHash(0x01)}
 
 		require.NoError(t, c.Set("/foo/a", want))
 		got, ok := c.Get("/foo/a")
@@ -118,19 +126,19 @@ func TestCacheSet(t *testing.T) {
 
 	t.Run("set overwrites previous value", func(t *testing.T) {
 		c, _ := newCache(t)
-		require.NoError(t, c.Set("/foo/a", CacheEntry{Size: 50, ModTime: t1, Hash: "old"}))
-		require.NoError(t, c.Set("/foo/a", CacheEntry{Size: 100, ModTime: t2, Hash: "new"}))
+		require.NoError(t, c.Set("/foo/a", CacheEntry{Size: 50, ModTime: t1, Hash: makeHash(0x01)}))
+		require.NoError(t, c.Set("/foo/a", CacheEntry{Size: 100, ModTime: t2, Hash: makeHash(0x02)}))
 
 		got, ok := c.Get("/foo/a")
 
 		require.True(t, ok)
-		assert.Equal(t, "new", got.Hash)
+		assert.Equal(t, makeHash(0x02), got.Hash)
 		assert.Equal(t, int64(100), got.Size)
 	})
 
 	t.Run("entries persist across reopen", func(t *testing.T) {
 		c, path := newCache(t)
-		want := CacheEntry{Size: 100, ModTime: t1, Hash: "persist"}
+		want := CacheEntry{Size: 100, ModTime: t1, Hash: makeHash(0x03)}
 		require.NoError(t, c.Set("/foo/a", want))
 		require.NoError(t, c.Close())
 
@@ -151,8 +159,8 @@ func TestCacheSweep(t *testing.T) {
 
 	t.Run("in-scope orphan is removed", func(t *testing.T) {
 		c, _ := newCache(t)
-		require.NoError(t, c.Set(scoped("present"), CacheEntry{Size: 1, Hash: "p"}))
-		require.NoError(t, c.Set(scoped("orphan"), CacheEntry{Size: 2, Hash: "o"}))
+		require.NoError(t, c.Set(scoped("present"), CacheEntry{Size: 1, Hash: makeHash(0x10)}))
+		require.NoError(t, c.Set(scoped("orphan"), CacheEntry{Size: 2, Hash: makeHash(0x11)}))
 
 		seen := map[string]struct{}{scoped("present"): {}}
 		require.NoError(t, c.Sweep(seen, roots))
@@ -165,8 +173,8 @@ func TestCacheSweep(t *testing.T) {
 
 	t.Run("out-of-scope orphan is preserved", func(t *testing.T) {
 		c, _ := newCache(t)
-		require.NoError(t, c.Set(scoped("present"), CacheEntry{Size: 1, Hash: "p"}))
-		require.NoError(t, c.Set(external("elsewhere"), CacheEntry{Size: 99, Hash: "e"}))
+		require.NoError(t, c.Set(scoped("present"), CacheEntry{Size: 1, Hash: makeHash(0x10)}))
+		require.NoError(t, c.Set(external("elsewhere"), CacheEntry{Size: 99, Hash: makeHash(0x12)}))
 
 		seen := map[string]struct{}{scoped("present"): {}}
 		require.NoError(t, c.Sweep(seen, roots))
@@ -180,7 +188,7 @@ func TestCacheSweep(t *testing.T) {
 		// stat error and never produced a fresh result. The entry must not be
 		// swept just because no Set was made for it this scan.
 		c, _ := newCache(t)
-		want := CacheEntry{Size: 50, Hash: "keep"}
+		want := CacheEntry{Size: 50, Hash: makeHash(0x20)}
 		require.NoError(t, c.Set(scoped("transient"), want))
 
 		seen := map[string]struct{}{scoped("transient"): {}}
@@ -197,9 +205,7 @@ func TestCacheSweep(t *testing.T) {
 	})
 }
 
-// assertEntryEqual compares CacheEntry values, using time.Time.Equal for the
-// ModTime field — gob round-trips can leave Location pointers different even
-// when the instants match.
+// assertEntryEqual compares CacheEntry values; ModTime uses Equal (location-agnostic).
 func assertEntryEqual(t *testing.T, want, got CacheEntry) {
 	t.Helper()
 	assert.Equal(t, want.Size, got.Size)

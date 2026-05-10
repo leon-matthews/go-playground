@@ -1,8 +1,9 @@
 package main
 
 import (
-	"bytes"
-	"encoding/gob"
+	"crypto/sha256"
+	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -14,10 +15,11 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-// bucketName is versioned so a future schema change can introduce a new bucket
-// (e.g. "hashes-v2") and migrate or drop the old one without breaking older
-// caches in the field.
-const bucketName = "hashes-v1"
+// bucketName is versioned so schema changes can land without breaking old caches.
+const bucketName = "hashes-v2"
+
+// entrySize: 8B Size + 8B ModTime unix-nanos + 32B raw SHA-256 digest, big-endian.
+const entrySize = 8 + 8 + sha256.Size
 
 // openTimeout bounds bbolt.Open so a second concurrent dupe instance fails
 // fast with a clear error instead of blocking on the file lock indefinitely.
@@ -112,32 +114,41 @@ func (c *Cache) Get(path string) (CacheEntry, bool) {
 		if raw == nil {
 			return nil
 		}
-		if err := gob.NewDecoder(bytes.NewReader(raw)).Decode(&entry); err != nil {
-			slog.Warn("cache: failed to decode entry; treating as miss", "path", path, "err", err)
+		if len(raw) != entrySize {
+			slog.Warn("cache: unexpected entry length; treating as miss", "path", path, "len", len(raw))
 			return nil
 		}
+		entry.Size = int64(binary.BigEndian.Uint64(raw[0:8]))
+		entry.ModTime = time.Unix(0, int64(binary.BigEndian.Uint64(raw[8:16]))).UTC()
+		entry.Hash = hex.EncodeToString(raw[16:entrySize])
 		found = true
 		return nil
 	})
 	return entry, found
 }
 
-// Set persists entry under path. Concurrent calls from worker goroutines
-// coalesce into shared bbolt transactions via Batch (one fsync per batch).
+// Set persists entry under path; Hash must be hex of a 32-byte SHA-256 digest.
 func (c *Cache) Set(path string, entry CacheEntry) error {
 	if c == nil || c.db == nil {
 		return nil
 	}
-	var buf bytes.Buffer
-	if err := gob.NewEncoder(&buf).Encode(entry); err != nil {
-		return fmt.Errorf("encode cache entry: %w", err)
+	digest, err := hex.DecodeString(entry.Hash)
+	if err != nil {
+		return fmt.Errorf("decode hash: %w", err)
 	}
+	if len(digest) != sha256.Size {
+		return fmt.Errorf("hash length %d, want %d", len(digest), sha256.Size)
+	}
+	var buf [entrySize]byte
+	binary.BigEndian.PutUint64(buf[0:8], uint64(entry.Size))
+	binary.BigEndian.PutUint64(buf[8:16], uint64(entry.ModTime.UnixNano()))
+	copy(buf[16:entrySize], digest)
 	return c.db.Batch(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucketName))
 		if b == nil {
 			return errors.New("cache bucket missing")
 		}
-		return b.Put([]byte(path), buf.Bytes())
+		return b.Put([]byte(path), buf[:])
 	})
 }
 
