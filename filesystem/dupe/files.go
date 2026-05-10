@@ -112,9 +112,11 @@ func hashFile(path string) (string, error) {
 // from duplicate detection. Callers distinguish the two cases by inspecting
 // info.Path: empty means stat failed.
 //
-// A cache hit (matching Size and ModTime) skips the hash read entirely. The
-// cache map must not be mutated during the scan; concurrent reads are safe.
-func processFile(path string, cache map[string]CacheEntry) (FileInfo, error) {
+// A cache hit (matching Size and ModTime) skips the hash read entirely. On a
+// fresh hash the entry is written back via cache.Set so the work is durable
+// before the function returns; a Set error is logged at warn level but does
+// not fail the file.
+func processFile(path string, cache *Cache) (FileInfo, error) {
 	info, err := os.Stat(path)
 	if err != nil {
 		return FileInfo{}, err
@@ -125,7 +127,7 @@ func processFile(path string, cache map[string]CacheEntry) (FileInfo, error) {
 		ModTime:   info.ModTime(),
 		Extension: filepath.Ext(path),
 	}
-	if e, ok := cache[path]; ok && e.Size == fi.Size && e.ModTime.Equal(fi.ModTime) {
+	if e, ok := cache.Get(path); ok && e.Size == fi.Size && e.ModTime.Equal(fi.ModTime) {
 		fi.Hash = e.Hash
 		return fi, nil
 	}
@@ -134,13 +136,16 @@ func processFile(path string, cache map[string]CacheEntry) (FileInfo, error) {
 		return fi, err
 	}
 	fi.Hash = hash
+	if err := cache.Set(path, CacheEntry{Size: fi.Size, ModTime: fi.ModTime, Hash: fi.Hash}); err != nil {
+		slog.Warn("cache: failed to write entry", "path", path, "err", err)
+	}
 	return fi, nil
 }
 
 // processFiles stats and hashes every path using a fixed pool of workers.
-// Workers consult cache concurrently; the map must not be mutated while the
-// scan runs.
-func processFiles(paths []string, cache map[string]CacheEntry) []FileInfo {
+// Workers consult cache concurrently; cache writes are coalesced internally
+// via bbolt's Batch.
+func processFiles(paths []string, cache *Cache) []FileInfo {
 	numWorkers := min(len(paths), runtime.NumCPU())
 	jobs := make(chan string, numWorkers)
 	results := make(chan FileInfo, numWorkers)

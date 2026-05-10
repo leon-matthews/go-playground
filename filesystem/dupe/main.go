@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strings"
 
 	flag "github.com/spf13/pflag"
@@ -68,19 +69,29 @@ func main() {
 	if err != nil {
 		slog.Warn("cache disabled: cannot resolve path", "err", err)
 	}
-
-	cache := map[string]CacheEntry{}
-	if cacheFile != "" {
-		cache = loadCache(cacheFile)
+	cache, err := openCache(cacheFile)
+	if err != nil {
+		slog.Warn("cache disabled", "path", cacheFile, "err", err)
 	}
+	defer cache.Close()
 
 	files := processFiles(paths, cache)
-	updateCache(cache, files, paths, roots)
 
-	if cacheFile != "" {
-		if err := saveCache(cacheFile, cache); err != nil {
-			slog.Warn("failed to save cache", "err", err)
+	seen := make(map[string]struct{}, len(paths))
+	for _, p := range paths {
+		seen[p] = struct{}{}
+	}
+	absRoots := make([]string, 0, len(roots))
+	for _, r := range roots {
+		a, absErr := filepath.Abs(r)
+		if absErr != nil {
+			slog.Warn("cannot resolve absolute root for cache sweep", "root", r, "err", absErr)
+			continue
 		}
+		absRoots = append(absRoots, a)
+	}
+	if err := cache.Sweep(seen, absRoots); err != nil {
+		slog.Warn("cache sweep failed", "err", err)
 	}
 
 	analyse(files, *minSize)
