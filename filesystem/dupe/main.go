@@ -7,8 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
+	"time"
 
+	charminglog "github.com/charmbracelet/log"
 	flag "github.com/spf13/pflag"
 )
 
@@ -17,24 +18,54 @@ var (
 	quiet   = flag.BoolP("quiet", "q", false, "quiet output (warnings and errors only)")
 	minSize = flag.Int64P("min-size", "m", 1024, "ignore duplicates smaller than this many bytes")
 	jobs    = flag.IntP("jobs", "j", runtime.NumCPU(), "number of concurrent worker goroutines")
+	force   = flag.BoolP("force", "f", false, "stat every file, ignoring the folder-mtime cache")
 )
 
-// newLogger returns a stderr text logger at level, stripping the noisy timestamp.
-func newLogger(level slog.Level) *slog.Logger {
-	opts := &slog.HandlerOptions{
-		Level: level,
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-			if len(groups) == 0 && a.Key == slog.TimeKey {
-				return slog.Attr{}
-			}
-			return a
-		},
+// setupLogger returns a logger that writes pretty output to stderr (level-filtered by `level`)
+// and JSON to logFilePath (always at Debug). If the log file can't be opened the returned file
+// is nil and a warn is emitted via the console handler; logging still works.
+func setupLogger(level slog.Level, logFilePath string) (*slog.Logger, *os.File) {
+	console := charminglog.NewWithOptions(os.Stderr, charminglog.Options{
+		Level:           slogToCharm(level),
+		ReportTimestamp: true,
+		TimeFormat:      time.Kitchen,
+	})
+
+	f, err := os.Create(logFilePath)
+	if err != nil {
+		consoleOnly := slog.New(console)
+		consoleOnly.Warn("could not open log file; console-only logging", "path", logFilePath, "err", err)
+		return consoleOnly, nil
 	}
-	return slog.New(slog.NewTextHandler(os.Stderr, opts))
+
+	file := slog.NewJSONHandler(f, &slog.HandlerOptions{
+		Level:     slog.LevelDebug,
+		AddSource: true,
+	})
+	return slog.New(MultiHandler{console, file}), f
+}
+
+// slogToCharm maps slog levels onto charmbracelet/log's level enum.
+func slogToCharm(level slog.Level) charminglog.Level {
+	switch level {
+	case slog.LevelDebug:
+		return charminglog.DebugLevel
+	case slog.LevelWarn:
+		return charminglog.WarnLevel
+	case slog.LevelError:
+		return charminglog.ErrorLevel
+	default:
+		return charminglog.InfoLevel
+	}
 }
 
 func main() {
 	flag.Parse()
+
+	if flag.NArg() < 1 {
+		fmt.Fprintln(os.Stderr, "Usage: dupe [-v|-q] [-m bytes] [-j N] [-f] FOLDER(S)...")
+		os.Exit(1)
+	}
 
 	level := slog.LevelInfo
 	switch {
@@ -43,11 +74,15 @@ func main() {
 	case *quiet:
 		level = slog.LevelWarn
 	}
-	log := newLogger(level)
 
-	if flag.NArg() < 1 {
-		fmt.Fprintln(os.Stderr, "Usage: filescan [-v|-q] [-m bytes] [-j N] FOLDER(S)...")
+	cacheFile, err := cachePath()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: cannot resolve cache path: %v\n", err)
 		os.Exit(1)
+	}
+	log, logHandle := setupLogger(level, filepath.Join(filepath.Dir(cacheFile), "dupe.log"))
+	if logHandle != nil {
+		defer logHandle.Close()
 	}
 
 	if *jobs < 1 {
@@ -55,50 +90,33 @@ func main() {
 		*jobs = 1
 	}
 
+	// Collect paths under given roots
 	roots := flag.Args()
-	fmt.Printf("Scanning: %s\n", strings.Join(roots, ", "))
-
-	paths, err := collectRoots(roots...)
-	fmt.Printf("Found %d files\n", len(paths))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+	log.Info("scanning", "roots", roots)
+	collector := newCollector(log)
+	if err := collector.Walk(roots...); err != nil {
+		log.Error("collect roots failed", "err", err)
 		os.Exit(1)
 	}
-
-	if len(paths) == 0 {
-		fmt.Println("No files found.")
+	if collector.TotalFiles() == 0 {
+		log.Warn("no files found")
 		return
 	}
 
-	cacheFile, err := cachePath()
-	if err != nil {
-		log.Warn("cache disabled: cannot resolve path", "err", err)
-	}
 	cache, err := openCache(cacheFile, log)
 	if err != nil {
 		log.Warn("cache disabled", "path", cacheFile, "err", err)
 	}
 	defer cache.Close()
 
-	scanner := newScanner(cache, *jobs, log)
-	files := scanner.Process(paths)
+	scanner := newScanner(cache, *jobs, log, *force)
+	files := scanner.Process(collector.Folders)
+	log.Info("scanner finished", "files", len(files))
 
-	seen := make(map[string]struct{}, len(paths))
-	for _, p := range paths {
-		seen[p] = struct{}{}
-	}
-	absRoots := make([]string, 0, len(roots))
-	for _, r := range roots {
-		a, absErr := filepath.Abs(r)
-		if absErr != nil {
-			log.Warn("cannot resolve absolute root for cache sweep", "root", r, "err", absErr)
-			continue
-		}
-		absRoots = append(absRoots, a)
-	}
-	if err := cache.Sweep(seen, absRoots); err != nil {
+	if err := cache.Sweep(collector.Folders, collector.AbsRoots); err != nil {
 		log.Warn("cache sweep failed", "err", err)
 	}
 
-	analyse(files, *minSize)
+	// Skip analyse while tuning collector & scanner
+	// analyse(files, *minSize)
 }
