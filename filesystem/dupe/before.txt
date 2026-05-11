@@ -1,0 +1,216 @@
+goos: linux
+goarch: amd64
+pkg: dupe
+cpu: AMD Ryzen 9 7950X3D 16-Core Processor          
+BenchmarkCacheGetSequential-32    	 2206842	      5505 ns/op	     816 B/op	      25 allocs/op
+--- BENCH: BenchmarkCacheGetSequential-32
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetSequential-32    	 2204620	      5412 ns/op	     816 B/op	      25 allocs/op
+--- BENCH: BenchmarkCacheGetSequential-32
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetSequential-32    	 2194030	      5414 ns/op	     816 B/op	      25 allocs/op
+--- BENCH: BenchmarkCacheGetSequential-32
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetSequential-32    	 2215425	      5427 ns/op	     816 B/op	      25 allocs/op
+--- BENCH: BenchmarkCacheGetSequential-32
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetSequential-32    	 2199438	      5411 ns/op	     816 B/op	      25 allocs/op
+--- BENCH: BenchmarkCacheGetSequential-32
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetSequential-32    	 2214787	      5392 ns/op	     816 B/op	      25 allocs/op
+--- BENCH: BenchmarkCacheGetSequential-32
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetSequential-32    	 2141373	      5467 ns/op	     816 B/op	      25 allocs/op
+--- BENCH: BenchmarkCacheGetSequential-32
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetSequential-32    	 2178492	      5435 ns/op	     816 B/op	      25 allocs/op
+--- BENCH: BenchmarkCacheGetSequential-32
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetSequential-32    	 2207930	      5403 ns/op	     816 B/op	      25 allocs/op
+--- BENCH: BenchmarkCacheGetSequential-32
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetSequential-32    	 2214680	      5422 ns/op	     816 B/op	      25 allocs/op
+--- BENCH: BenchmarkCacheGetSequential-32
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:72: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetRandom-32        	 1645963	      7293 ns/op	     816 B/op	      25 allocs/op
+--- BENCH: BenchmarkCacheGetRandom-32
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetRandom-32        	 1643074	      7356 ns/op	     816 B/op	      25 allocs/op
+--- BENCH: BenchmarkCacheGetRandom-32
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetRandom-32        	 1647554	      7326 ns/op	     816 B/op	      25 allocs/op
+--- BENCH: BenchmarkCacheGetRandom-32
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetRandom-32        	 1630592	      7380 ns/op	     816 B/op	      25 allocs/op
+--- BENCH: BenchmarkCacheGetRandom-32
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetRandom-32        	 1595648	      7285 ns/op	     816 B/op	      25 allocs/op
+--- BENCH: BenchmarkCacheGetRandom-32
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetRandom-32        	 1640517	      7259 ns/op	     816 B/op	      25 allocs/op
+--- BENCH: BenchmarkCacheGetRandom-32
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetRandom-32        	 1643562	      7251 ns/op	     816 B/op	      25 allocs/op
+--- BENCH: BenchmarkCacheGetRandom-32
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetRandom-32        	 1650876	      7303 ns/op	     816 B/op	      25 allocs/op
+--- BENCH: BenchmarkCacheGetRandom-32
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetRandom-32        	 1645837	      7298 ns/op	     816 B/op	      25 allocs/op
+--- BENCH: BenchmarkCacheGetRandom-32
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetRandom-32        	 1648657	      7280 ns/op	     816 B/op	      25 allocs/op
+--- BENCH: BenchmarkCacheGetRandom-32
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:83: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetParallel-32      	 1211641	     10634 ns/op	     901 B/op	      27 allocs/op
+--- BENCH: BenchmarkCacheGetParallel-32
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetParallel-32      	 1138838	     10527 ns/op	     893 B/op	      27 allocs/op
+--- BENCH: BenchmarkCacheGetParallel-32
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetParallel-32      	 1148466	     10483 ns/op	     896 B/op	      27 allocs/op
+--- BENCH: BenchmarkCacheGetParallel-32
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetParallel-32      	 1166192	     10102 ns/op	     895 B/op	      27 allocs/op
+--- BENCH: BenchmarkCacheGetParallel-32
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetParallel-32      	 1167165	     10285 ns/op	     897 B/op	      27 allocs/op
+--- BENCH: BenchmarkCacheGetParallel-32
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetParallel-32      	 1161733	     10562 ns/op	     896 B/op	      27 allocs/op
+--- BENCH: BenchmarkCacheGetParallel-32
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetParallel-32      	 1144694	     10690 ns/op	     890 B/op	      27 allocs/op
+--- BENCH: BenchmarkCacheGetParallel-32
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetParallel-32      	 1161766	     10520 ns/op	     893 B/op	      27 allocs/op
+--- BENCH: BenchmarkCacheGetParallel-32
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetParallel-32      	 1139227	     10350 ns/op	     896 B/op	      27 allocs/op
+--- BENCH: BenchmarkCacheGetParallel-32
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+BenchmarkCacheGetParallel-32      	 1112695	     10369 ns/op	     901 B/op	      27 allocs/op
+--- BENCH: BenchmarkCacheGetParallel-32
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+    cache_bench_test.go:95: loaded 1068512 paths from /home/leon/.cache/dupe/cache.db
+PASS
+ok  	dupe	654.866s

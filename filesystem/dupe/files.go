@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/sha256"
-	"fmt"
 	"io"
 	"io/fs"
 	"log/slog"
@@ -18,7 +17,7 @@ type FileInfo struct {
 	Size      int64
 	ModTime   time.Time
 	Extension string
-	Hash      string
+	Hash      [32]byte
 }
 
 // collectRoot returns absolute paths to every regular file under root.
@@ -89,19 +88,21 @@ func collectRoots(roots ...string) ([]string, error) {
 	return paths, nil
 }
 
-// hashFile calculates a SHA-256 hash for the file with the given path
-func hashFile(path string) (string, error) {
+// hashFile calculates a SHA-256 hash for the file with the given path.
+func hashFile(path string) ([32]byte, error) {
+	var out [32]byte
 	f, err := os.Open(path)
 	if err != nil {
-		return "", err
+		return out, err
 	}
 	defer f.Close()
 
 	h := sha256.New()
 	if _, err := io.Copy(h, f); err != nil {
-		return "", err
+		return out, err
 	}
-	return fmt.Sprintf("%x", h.Sum(nil)), nil
+	h.Sum(out[:0])
+	return out, nil
 }
 
 // Scanner owns the worker pool and per-scan dependencies (cache, logger).

@@ -1,11 +1,8 @@
 package main
 
 import (
-	"crypto/sha256"
-	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -13,9 +10,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// makeHash returns a 64-char hex digest filled with seed; distinct seeds differ.
-func makeHash(seed byte) string {
-	return strings.Repeat(fmt.Sprintf("%02x", seed), sha256.Size)
+// makeHash returns a 32-byte digest filled with seed; distinct seeds differ.
+func makeHash(seed byte) [32]byte {
+	var h [32]byte
+	for i := range h {
+		h[i] = seed
+	}
+	return h
 }
 
 // newCache opens a Cache backed by a fresh DB inside a per-test temp dir.
@@ -78,7 +79,7 @@ func TestOpenCache(t *testing.T) {
 
 		_, ok := c.Get("/anything")
 		assert.False(t, ok)
-		assert.NoError(t, c.Set("/anything", CacheEntry{Hash: "h"}))
+		assert.NoError(t, c.Set("/anything", CacheEntry{}))
 		assert.NoError(t, c.Sweep(nil, nil))
 	})
 

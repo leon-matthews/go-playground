@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -40,13 +39,14 @@ var errClosed = errors.New("cache closed")
 type CacheEntry struct {
 	Size    int64
 	ModTime time.Time
-	Hash    string
+	Hash    [32]byte
 }
 
 // Cache is a SQLite-backed hash cache with an async write pipeline. A Cache
 // with a nil db is a no-op: Get always misses, Set/Sweep/Flush silently succeed.
 type Cache struct {
 	db        *sql.DB
+	getStmt   *sql.Stmt
 	log       *slog.Logger
 	writes    chan cacheOp
 	done      chan struct{}
@@ -128,11 +128,18 @@ func openCacheWithTimeout(path string, timeout time.Duration, log *slog.Logger) 
 		return &Cache{log: log}, err
 	}
 
+	getStmt, err := db.Prepare("SELECT size, modtime, hash FROM hashes WHERE path = ?")
+	if err != nil {
+		db.Close()
+		return &Cache{log: log}, err
+	}
+
 	c := &Cache{
-		db:     db,
-		log:    log,
-		writes: make(chan cacheOp, writeChanBuffer),
-		done:   make(chan struct{}),
+		db:      db,
+		getStmt: getStmt,
+		log:     log,
+		writes:  make(chan cacheOp, writeChanBuffer),
+		done:    make(chan struct{}),
 	}
 	c.wg.Add(1)
 	go c.writer()
@@ -178,6 +185,7 @@ func (c *Cache) Close() error {
 	c.closeOnce.Do(func() {
 		close(c.done)
 		c.wg.Wait()
+		c.getStmt.Close()
 		err = c.db.Close()
 	})
 	return err
@@ -193,10 +201,7 @@ func (c *Cache) Get(path string) (CacheEntry, bool) {
 		modtime int64
 		digest  []byte
 	)
-	err := c.db.QueryRow(
-		"SELECT size, modtime, hash FROM hashes WHERE path = ?",
-		path,
-	).Scan(&size, &modtime, &digest)
+	err := c.getStmt.QueryRow(path).Scan(&size, &modtime, &digest)
 	if errors.Is(err, sql.ErrNoRows) {
 		return CacheEntry{}, false
 	}
@@ -204,11 +209,16 @@ func (c *Cache) Get(path string) (CacheEntry, bool) {
 		c.log.Warn("cache: select failed; treating as miss", "path", path, "err", err)
 		return CacheEntry{}, false
 	}
-	return CacheEntry{
+	if len(digest) != sha256.Size {
+		c.log.Warn("cache: unexpected hash length; treating as miss", "path", path, "len", len(digest))
+		return CacheEntry{}, false
+	}
+	entry := CacheEntry{
 		Size:    size,
 		ModTime: time.Unix(0, modtime).UTC(),
-		Hash:    hex.EncodeToString(digest),
-	}, true
+	}
+	copy(entry.Hash[:], digest)
+	return entry, true
 }
 
 // Set queues an entry for asynchronous persistence. Returns nil on the happy
@@ -303,18 +313,13 @@ func (c *Cache) writer() {
 	}
 
 	handleWrite := func(p *writePayload) {
-		digest, err := hex.DecodeString(p.entry.Hash)
-		if err != nil || len(digest) != sha256.Size {
-			c.log.Warn("cache: invalid hash; skipping", "path", p.path, "err", err)
-			return
-		}
 		if tx == nil {
 			if err := openTx(); err != nil {
 				c.log.Warn("cache: begin failed", "err", err)
 				return
 			}
 		}
-		if _, err := stmt.Exec(p.path, p.entry.Size, p.entry.ModTime.UnixNano(), digest); err != nil {
+		if _, err := stmt.Exec(p.path, p.entry.Size, p.entry.ModTime.UnixNano(), p.entry.Hash[:]); err != nil {
 			c.log.Warn("cache: insert failed", "path", p.path, "err", err)
 			return
 		}

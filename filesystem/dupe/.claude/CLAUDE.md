@@ -50,7 +50,7 @@ when `openCache` errors but the caller still wants to keep running without persi
       path     TEXT    PRIMARY KEY,
       size     INTEGER NOT NULL,
       modtime  INTEGER NOT NULL,  -- unix nanoseconds
-      hash     BLOB    NOT NULL   -- 32 raw bytes
+      hash     BLOB    NOT NULL   -- 32 raw bytes; exposed in Go as [32]byte
   ) WITHOUT ROWID;
   ```
 - No indexes (yet). Add them as query needs emerge.

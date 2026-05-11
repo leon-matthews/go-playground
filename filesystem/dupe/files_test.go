@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -9,6 +10,17 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// mustHash decodes a 64-char hex string into a [32]byte; for canonical test fixtures.
+func mustHash(t *testing.T, s string) [32]byte {
+	t.Helper()
+	raw, err := hex.DecodeString(s)
+	require.NoError(t, err)
+	require.Len(t, raw, 32)
+	var h [32]byte
+	copy(h[:], raw)
+	return h
+}
 
 func TestCollectRoots(t *testing.T) {
 	t.Run("empty directory", func(t *testing.T) {
@@ -154,7 +166,7 @@ func TestHashFile(t *testing.T) {
 		got, err := hashFile(path)
 
 		require.NoError(t, err)
-		assert.Equal(t, sha256Empty, got)
+		assert.Equal(t, mustHash(t, sha256Empty), got)
 	})
 
 	t.Run("known content matches canonical SHA256", func(t *testing.T) {
@@ -164,7 +176,7 @@ func TestHashFile(t *testing.T) {
 		got, err := hashFile(path)
 
 		require.NoError(t, err)
-		assert.Equal(t, sha256Hello, got)
+		assert.Equal(t, mustHash(t, sha256Hello), got)
 	})
 
 	t.Run("identical content produces identical hashes", func(t *testing.T) {
@@ -203,14 +215,14 @@ func TestHashFile(t *testing.T) {
 		got, err := hashFile(missing)
 
 		assert.Error(t, err)
-		assert.Empty(t, got)
+		assert.Equal(t, [32]byte{}, got)
 	})
 
 	t.Run("directory path returns error", func(t *testing.T) {
 		got, err := hashFile(t.TempDir())
 
 		assert.Error(t, err)
-		assert.Empty(t, got)
+		assert.Equal(t, [32]byte{}, got)
 	})
 }
 

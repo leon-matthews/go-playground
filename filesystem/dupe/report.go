@@ -63,9 +63,9 @@ func printByExtension(files []FileInfo) {
 
 // printDuplicates writes duplicate groups at or above minSize, largest first.
 func printDuplicates(files []FileInfo, minSize int64) {
-	groups := make(map[string][]FileInfo)
+	groups := make(map[[32]byte][]FileInfo)
 	for _, f := range files {
-		if f.Hash != "" {
+		if f.Hash != ([32]byte{}) {
 			groups[f.Hash] = append(groups[f.Hash], f)
 		}
 	}
