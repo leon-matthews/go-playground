@@ -39,8 +39,7 @@ func setupLogger(level slog.Level, logFilePath string) (*slog.Logger, *os.File) 
 	}
 
 	file := slog.NewJSONHandler(f, &slog.HandlerOptions{
-		Level:     slog.LevelDebug,
-		AddSource: true,
+		Level: slog.LevelDebug,
 	})
 	return slog.New(MultiHandler{console, file}), f
 }
@@ -111,7 +110,7 @@ func main() {
 
 	scanner := newScanner(cache, *jobs, log, *force)
 	files := scanner.Process(collector.Folders)
-	log.Info("scanner finished", "files", len(files))
+	_ = files
 
 	if err := cache.Sweep(collector.Folders, collector.AbsRoots); err != nil {
 		log.Warn("cache sweep failed", "err", err)

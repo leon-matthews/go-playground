@@ -20,15 +20,15 @@ func makeHash(seed byte) [32]byte {
 }
 
 // sweepInputs synthesises the FolderScans Sweep expects from a flat list of file paths.
-func sweepInputs(paths []string) []FolderScan {
+func sweepInputs(paths []string) []FolderInfo {
 	byFolder := make(map[string][]string)
 	for _, p := range paths {
 		folder, name := splitFolderPath(p)
 		byFolder[folder] = append(byFolder[folder], name)
 	}
-	folders := make([]FolderScan, 0, len(byFolder))
+	folders := make([]FolderInfo, 0, len(byFolder))
 	for folder, names := range byFolder {
-		folders = append(folders, FolderScan{Path: folder, Children: names})
+		folders = append(folders, FolderInfo{Path: folder, Children: names})
 	}
 	return folders
 }
@@ -41,39 +41,6 @@ func newCache(t *testing.T) (*Cache, string) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = c.Close() })
 	return c, path
-}
-
-func TestPathInRoots(t *testing.T) {
-	t.Run("path equal to root", func(t *testing.T) {
-		assert.True(t, pathInRoots("/foo", []string{"/foo"}))
-	})
-
-	t.Run("path nested under root", func(t *testing.T) {
-		assert.True(t, pathInRoots("/foo/bar", []string{"/foo"}))
-		assert.True(t, pathInRoots("/foo/bar/baz/qux", []string{"/foo"}))
-	})
-
-	t.Run("path not under root", func(t *testing.T) {
-		assert.False(t, pathInRoots("/baz", []string{"/foo"}))
-	})
-
-	t.Run("sibling with shared prefix is excluded", func(t *testing.T) {
-		// The separator-suffix check exists for this case: /foo must not match /foobar.
-		assert.False(t, pathInRoots("/foobar", []string{"/foo"}))
-		assert.False(t, pathInRoots("/foobar/baz", []string{"/foo"}))
-	})
-
-	t.Run("matches any of multiple roots", func(t *testing.T) {
-		roots := []string{"/foo", "/bar"}
-		assert.True(t, pathInRoots("/foo/x", roots))
-		assert.True(t, pathInRoots("/bar/y", roots))
-		assert.False(t, pathInRoots("/baz/z", roots))
-	})
-
-	t.Run("empty roots never match", func(t *testing.T) {
-		assert.False(t, pathInRoots("/anything", nil))
-		assert.False(t, pathInRoots("/anything", []string{}))
-	})
 }
 
 func TestOpenCache(t *testing.T) {

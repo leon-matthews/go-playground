@@ -108,7 +108,6 @@ func openCacheWithTimeout(path string, timeout time.Duration, log *slog.Logger) 
 	if path == "" {
 		return &Cache{log: log}, nil
 	}
-	log.Debug("openCache: starting", "path", path, "timeout", timeout)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return &Cache{log: log}, err
 	}
@@ -118,7 +117,6 @@ func openCacheWithTimeout(path string, timeout time.Duration, log *slog.Logger) 
 
 	_, statErr := os.Stat(path)
 	freshFile := errors.Is(statErr, os.ErrNotExist)
-	log.Debug("openCache: file existence checked", "fresh", freshFile)
 
 	db, err := sql.Open("sqlite", sqliteDSN(path))
 	if err != nil {
@@ -131,15 +129,10 @@ func openCacheWithTimeout(path string, timeout time.Duration, log *slog.Logger) 
 		db.Close()
 		return &Cache{log: log}, err
 	}
-	log.Debug("openCache: db connected")
 
 	if err := ensureSchema(db, log); err != nil {
 		db.Close()
 		return &Cache{log: log}, err
-	}
-	log.Debug("openCache: schema ensured")
-	if freshFile {
-		log.Info("new cache file created", "path", path)
 	}
 
 	getStmt, err := db.Prepare(`SELECT f.size, f.modtime, f.hash
@@ -164,7 +157,6 @@ func openCacheWithTimeout(path string, timeout time.Duration, log *slog.Logger) 
 		db.Close()
 		return &Cache{log: log}, err
 	}
-	log.Debug("openCache: statements prepared")
 
 	c := &Cache{
 		db:                   db,
@@ -177,8 +169,11 @@ func openCacheWithTimeout(path string, timeout time.Duration, log *slog.Logger) 
 	}
 	c.wg.Add(1)
 	go c.writer()
-	log.Debug("openCache: ready", "path", path)
-	log.Debug("cache opened", "path", path)
+	if freshFile {
+		log.Info("new cache file created", "path", path)
+	} else {
+		log.Debug("cache opened", "path", path)
+	}
 	return c, nil
 }
 
@@ -336,7 +331,7 @@ func (c *Cache) Flush() error {
 // Sweep removes folders under any root that weren't visited (CASCADE drops their files), and
 // drops files under visited folders whose basename isn't in the per-folder seen set. Builds
 // the seen sets internally from the scanner's FolderScans.
-func (c *Cache) Sweep(folderScans []FolderScan, roots []string) error {
+func (c *Cache) Sweep(folderScans []FolderInfo, roots []string) error {
 	if c == nil || c.db == nil {
 		return nil
 	}
@@ -363,7 +358,7 @@ func (c *Cache) Sweep(folderScans []FolderScan, roots []string) error {
 
 // buildSweepSets folds FolderScans into the seenFolders/seenFiles map shape Sweep's internal
 // SQL expects.
-func buildSweepSets(folderScans []FolderScan) (map[string]struct{}, map[string]map[string]struct{}) {
+func buildSweepSets(folderScans []FolderInfo) (map[string]struct{}, map[string]map[string]struct{}) {
 	seenFolders := make(map[string]struct{}, len(folderScans))
 	seenFiles := make(map[string]map[string]struct{}, len(folderScans))
 	for _, fs := range folderScans {
@@ -449,13 +444,13 @@ func (c *Cache) writer() {
 	c.log.Debug("writer: started")
 
 	var (
-		tx                *sql.Tx
-		folderEnsureStmt  *sql.Stmt
-		folderMtimeStmt   *sql.Stmt
-		fileStmt          *sql.Stmt
-		pending           int
-		idCache           = make(map[string]int64)
-		commitCount       int
+		tx               *sql.Tx
+		folderEnsureStmt *sql.Stmt
+		folderMtimeStmt  *sql.Stmt
+		fileStmt         *sql.Stmt
+		pending          int
+		idCache          = make(map[string]int64)
+		commitCount      int
 	)
 
 	openTx := func() error {
@@ -488,7 +483,6 @@ func (c *Cache) writer() {
 			return err
 		}
 		tx, folderEnsureStmt, folderMtimeStmt, fileStmt, pending = t, fe, fm, fls, 0
-		c.log.Debug("writer: tx opened")
 		return nil
 	}
 
@@ -609,11 +603,7 @@ func (c *Cache) writer() {
 
 // runSweep drops orphan folders (CASCADE drops files) and then orphan files within seen folders.
 func (c *Cache) runSweep(seenFolders map[string]struct{}, seenFiles map[string]map[string]struct{}, roots []string) error {
-	var totalSeenFiles int
-	for _, names := range seenFiles {
-		totalSeenFiles += len(names)
-	}
-	c.log.Debug("sweep: start", "seen_folders", len(seenFolders), "seen_files", totalSeenFiles, "roots", len(roots))
+	start := time.Now()
 
 	tx, err := c.db.Begin()
 	if err != nil {
@@ -627,7 +617,6 @@ func (c *Cache) runSweep(seenFolders map[string]struct{}, seenFiles map[string]m
 	if _, err := tx.Exec("CREATE TEMP TABLE sweep_seen_files(folder_path TEXT, name TEXT, PRIMARY KEY (folder_path, name))"); err != nil {
 		return fmt.Errorf("create temp files: %w", err)
 	}
-	c.log.Debug("sweep: temp tables created")
 
 	insF, err := tx.Prepare("INSERT INTO sweep_seen_folders(path) VALUES (?)")
 	if err != nil {
@@ -654,7 +643,6 @@ func (c *Cache) runSweep(seenFolders map[string]struct{}, seenFiles map[string]m
 		}
 	}
 	insFL.Close()
-	c.log.Debug("sweep: seen sets loaded")
 
 	// Count files that will be cascade-removed when their orphan folder is dropped.
 	countCascade, err := tx.Prepare(`SELECT COUNT(*) FROM files
@@ -676,7 +664,6 @@ func (c *Cache) runSweep(seenFolders map[string]struct{}, seenFiles map[string]m
 		cascadeFiles += n
 	}
 	countCascade.Close()
-	c.log.Debug("sweep: cascade counted", "cascade_files", cascadeFiles)
 
 	delFolders, err := tx.Prepare(`DELETE FROM folders
 		WHERE (path = ?1 OR substr(path, 1, length(?1)+1) = ?1 || '/')
@@ -696,7 +683,6 @@ func (c *Cache) runSweep(seenFolders map[string]struct{}, seenFiles map[string]m
 		}
 	}
 	delFolders.Close()
-	c.log.Debug("sweep: folders deleted", "count", foldersDeleted)
 
 	res, err := tx.Exec(`DELETE FROM files
 		WHERE folder_id IN (SELECT id FROM folders WHERE path IN (SELECT path FROM sweep_seen_folders))
@@ -707,7 +693,6 @@ func (c *Cache) runSweep(seenFolders map[string]struct{}, seenFiles map[string]m
 		return fmt.Errorf("delete files: %w", err)
 	}
 	directFilesDeleted, _ := res.RowsAffected()
-	c.log.Debug("sweep: direct files deleted", "count", directFilesDeleted)
 
 	if _, err := tx.Exec("DROP TABLE sweep_seen_files"); err != nil {
 		return fmt.Errorf("drop temp files: %w", err)
@@ -718,10 +703,10 @@ func (c *Cache) runSweep(seenFolders map[string]struct{}, seenFiles map[string]m
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-	c.log.Debug("sweep: committed")
 	c.log.Info("cache sweep complete",
 		"folders_deleted", foldersDeleted,
 		"files_deleted", cascadeFiles+directFilesDeleted,
+		slog.Duration("elapsed", time.Since(start)),
 	)
 	return nil
 }
@@ -734,15 +719,4 @@ func splitFolderPath(p string) (folder, name string) {
 		folder = string(filepath.Separator)
 	}
 	return folder, name
-}
-
-// pathInRoots reports whether path is equal to, or nested under, any of roots.
-func pathInRoots(path string, roots []string) bool {
-	sep := string(filepath.Separator)
-	for _, r := range roots {
-		if path == r || strings.HasPrefix(path, r+sep) {
-			return true
-		}
-	}
-	return false
 }

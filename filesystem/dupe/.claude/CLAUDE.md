@@ -9,7 +9,7 @@ are near-instant when files are unchanged.
 - `main.go` — flag parsing, logger construction, wires everything together.
 - `files.go` — `Scanner` owns the worker pool. `newScanner(cache, maxWorkers, log, force)`
   returns one; `Scanner.Process(folderScans, looseFiles)` runs the hash pipeline.
-  `collectRoot` / `collectRoots` walk concurrently and emit `FolderScan` values (path, mtime,
+  `collectRoot` / `collectRoots` walk concurrently and emit `FolderInfo` values (path, mtime,
   child basenames) plus a slice of "loose" paths (roots that are themselves regular files).
   `hashFile` is a pure SHA-256 helper. `Scanner.verifyDuplicates` re-stats files from cache
   that appear in candidate duplicate groups (see Folder-mtime trust below).
@@ -109,7 +109,7 @@ On `Close`: `c.done` is closed; the writer drains any remaining ops using `selec
 
 ## Folder-mtime trust
 
-`Scanner.Process` consults `Cache.GetFolderMtime` on each `FolderScan`:
+`Scanner.Process` consults `Cache.GetFolderMtime` on each `FolderInfo`:
 
 - **Trusted** (cached mtime equals current folder mtime, and `--force` is off): bulk-fetch
   every cached file in the folder via `GetFilesInFolder`. For each child name in the walk,

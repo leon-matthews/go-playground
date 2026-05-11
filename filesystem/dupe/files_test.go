@@ -23,8 +23,8 @@ func mustHash(t *testing.T, s string) [32]byte {
 	return h
 }
 
-// allPaths flattens FolderScan children into full absolute paths.
-func allPaths(folders []FolderScan) []string {
+// allPaths flattens FolderInfo children into full absolute paths.
+func allPaths(folders []FolderInfo) []string {
 	paths := make([]string, 0)
 	for _, fs := range folders {
 		for _, name := range fs.Children {
@@ -462,12 +462,12 @@ func TestScannerVerifyFailureDrops(t *testing.T) {
 	// Now simulate "I saw 2 files in this folder last scan, but only 1 is here now."
 	// We can't reproduce that via collectRoots (which sees current state); instead we
 	// craft a FolderScan that claims both children still exist.
-	scan := FolderScan{
+	scan := FolderInfo{
 		Path:     scans[0].Path,
 		Mtime:    folderInfo.ModTime(),
 		Children: []string{filepath.Base(pathA), filepath.Base(pathB)},
 	}
-	files := scanner.Process([]FolderScan{scan})
+	files := scanner.Process([]FolderInfo{scan})
 
 	// b.txt should survive; a.txt's claim is no longer verifiable.
 	var bSeen, aSeen bool
