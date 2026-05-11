@@ -371,6 +371,7 @@ func (s *Scanner) verifyDuplicates(infos []FileInfo, fromCache map[string]bool) 
 		return infos
 	}
 
+	start := time.Now()
 	groups := make(map[[32]byte][]int)
 	for i, fi := range infos {
 		if fi.Hash == ([32]byte{}) {
@@ -420,5 +421,6 @@ func (s *Scanner) verifyDuplicates(infos []FileInfo, fromCache map[string]bool) 
 			cleaned = append(cleaned, fi)
 		}
 	}
+	s.log.Info("verifying duplicates finished", slog.Duration("elapsed", time.Since(start)))
 	return cleaned
 }

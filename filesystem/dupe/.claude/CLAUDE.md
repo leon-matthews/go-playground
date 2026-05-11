@@ -101,8 +101,10 @@ Op handling:
 - **setFolderMtime** — execute `folderMtimeStmt`; refresh `idCache`.
 - **flush** — commit current tx, ack the caller's channel.
 - **sweep** — commit current tx, run `runSweep`, ack the caller's error channel. Two-step:
-  drop orphan folders under any root (CASCADE drops files); then drop files inside seen
-  folders whose basename isn't in the per-folder seen set.
+  drop orphan folders under any root (CASCADE drops their files), then for each seen folder
+  fetch its current file names, diff against the seen-names set in Go, and batch-delete the
+  difference (`DELETE FROM files WHERE folder_id = ? AND name IN (...)`, chunked at
+  `sweepDeleteChunk`).
 
 On `Close`: `c.done` is closed; the writer drains any remaining ops using `select { default:
 }`, commits, and exits. `Close` blocks on `wg.Wait()` so all queued work is persisted.

@@ -34,6 +34,10 @@ const sqliteMagic = "SQLite format 3\x00"
 // schemaVersion is bumped whenever the on-disk schema changes; mismatch triggers a rebuild.
 const schemaVersion = 2
 
+// sweepDeleteChunk caps the number of names in a single `DELETE FROM files ... IN (...)`
+// during sweep, staying well clear of SQLite's parameter limit.
+const sweepDeleteChunk = 500
+
 // errClosed signals that the cache shut down before an op was accepted.
 var errClosed = errors.New("cache closed")
 
@@ -358,16 +362,16 @@ func (c *Cache) Sweep(folderScans []FolderInfo, roots []string) error {
 
 // buildSweepSets folds FolderScans into the seenFolders/seenFiles map shape Sweep's internal
 // SQL expects.
-func buildSweepSets(folderScans []FolderInfo) (map[string]struct{}, map[string]map[string]struct{}) {
-	seenFolders := make(map[string]struct{}, len(folderScans))
-	seenFiles := make(map[string]map[string]struct{}, len(folderScans))
-	for _, fs := range folderScans {
-		seenFolders[fs.Path] = struct{}{}
-		names := make(map[string]struct{}, len(fs.Children))
-		for _, name := range fs.Children {
+func buildSweepSets(folderInfos []FolderInfo) (map[string]struct{}, map[string]map[string]struct{}) {
+	seenFolders := make(map[string]struct{}, len(folderInfos))
+	seenFiles := make(map[string]map[string]struct{}, len(folderInfos))
+	for _, f := range folderInfos {
+		seenFolders[f.Path] = struct{}{}
+		names := make(map[string]struct{}, len(f.Children))
+		for _, name := range f.Children {
 			names[name] = struct{}{}
 		}
-		seenFiles[fs.Path] = names
+		seenFiles[f.Path] = names
 	}
 	return seenFolders, seenFiles
 }
@@ -601,7 +605,9 @@ func (c *Cache) writer() {
 	}
 }
 
-// runSweep drops orphan folders (CASCADE drops files) and then orphan files within seen folders.
+// runSweep drops orphan folders (CASCADE drops their files), then drops files inside seen
+// folders that no longer exist on disk. The seen-folders set lives in a temp table so the
+// folder DELETE can join against it; the seen-files diff happens Go-side per folder.
 func (c *Cache) runSweep(seenFolders map[string]struct{}, seenFiles map[string]map[string]struct{}, roots []string) error {
 	start := time.Now()
 
@@ -614,10 +620,6 @@ func (c *Cache) runSweep(seenFolders map[string]struct{}, seenFiles map[string]m
 	if _, err := tx.Exec("CREATE TEMP TABLE sweep_seen_folders(path TEXT PRIMARY KEY)"); err != nil {
 		return fmt.Errorf("create temp folders: %w", err)
 	}
-	if _, err := tx.Exec("CREATE TEMP TABLE sweep_seen_files(folder_path TEXT, name TEXT, PRIMARY KEY (folder_path, name))"); err != nil {
-		return fmt.Errorf("create temp files: %w", err)
-	}
-
 	insF, err := tx.Prepare("INSERT INTO sweep_seen_folders(path) VALUES (?)")
 	if err != nil {
 		return fmt.Errorf("prepare seen folders insert: %w", err)
@@ -629,41 +631,6 @@ func (c *Cache) runSweep(seenFolders map[string]struct{}, seenFiles map[string]m
 		}
 	}
 	insF.Close()
-
-	insFL, err := tx.Prepare("INSERT INTO sweep_seen_files(folder_path, name) VALUES (?, ?)")
-	if err != nil {
-		return fmt.Errorf("prepare seen files insert: %w", err)
-	}
-	for folder, names := range seenFiles {
-		for name := range names {
-			if _, err := insFL.Exec(folder, name); err != nil {
-				insFL.Close()
-				return fmt.Errorf("insert seen file: %w", err)
-			}
-		}
-	}
-	insFL.Close()
-
-	// Count files that will be cascade-removed when their orphan folder is dropped.
-	countCascade, err := tx.Prepare(`SELECT COUNT(*) FROM files
-		WHERE folder_id IN (
-			SELECT id FROM folders
-			 WHERE (path = ?1 OR substr(path, 1, length(?1)+1) = ?1 || '/')
-			   AND path NOT IN (SELECT path FROM sweep_seen_folders)
-		)`)
-	if err != nil {
-		return fmt.Errorf("prepare cascade count: %w", err)
-	}
-	var cascadeFiles int64
-	for _, root := range roots {
-		var n int64
-		if err := countCascade.QueryRow(root).Scan(&n); err != nil {
-			countCascade.Close()
-			return fmt.Errorf("count cascade files: %w", err)
-		}
-		cascadeFiles += n
-	}
-	countCascade.Close()
 
 	delFolders, err := tx.Prepare(`DELETE FROM folders
 		WHERE (path = ?1 OR substr(path, 1, length(?1)+1) = ?1 || '/')
@@ -684,19 +651,11 @@ func (c *Cache) runSweep(seenFolders map[string]struct{}, seenFiles map[string]m
 	}
 	delFolders.Close()
 
-	res, err := tx.Exec(`DELETE FROM files
-		WHERE folder_id IN (SELECT id FROM folders WHERE path IN (SELECT path FROM sweep_seen_folders))
-		  AND (folder_id, name) NOT IN (
-		      SELECT d.id, sf.name FROM sweep_seen_files sf JOIN folders d ON d.path = sf.folder_path
-		  )`)
+	filesDeleted, err := sweepOrphanFiles(tx, seenFiles)
 	if err != nil {
-		return fmt.Errorf("delete files: %w", err)
+		return err
 	}
-	directFilesDeleted, _ := res.RowsAffected()
 
-	if _, err := tx.Exec("DROP TABLE sweep_seen_files"); err != nil {
-		return fmt.Errorf("drop temp files: %w", err)
-	}
 	if _, err := tx.Exec("DROP TABLE sweep_seen_folders"); err != nil {
 		return fmt.Errorf("drop temp folders: %w", err)
 	}
@@ -705,10 +664,101 @@ func (c *Cache) runSweep(seenFolders map[string]struct{}, seenFiles map[string]m
 	}
 	c.log.Info("cache sweep complete",
 		"folders_deleted", foldersDeleted,
-		"files_deleted", cascadeFiles+directFilesDeleted,
+		"files_deleted", filesDeleted,
 		slog.Duration("elapsed", time.Since(start)),
 	)
 	return nil
+}
+
+// sweepOrphanFiles deletes file rows in each seen folder whose name no longer appears in the
+// folder's seen-names set. For each folder it fetches current names, computes the diff in Go,
+// and batch-deletes the orphans. Returns the total rows deleted.
+func sweepOrphanFiles(tx *sql.Tx, seenFiles map[string]map[string]struct{}) (int64, error) {
+	folderIDStmt, err := tx.Prepare("SELECT id FROM folders WHERE path = ?")
+	if err != nil {
+		return 0, fmt.Errorf("prepare folder id lookup: %w", err)
+	}
+	defer folderIDStmt.Close()
+
+	namesStmt, err := tx.Prepare("SELECT name FROM files WHERE folder_id = ?")
+	if err != nil {
+		return 0, fmt.Errorf("prepare names lookup: %w", err)
+	}
+	defer namesStmt.Close()
+
+	var total int64
+	for folder, seenNames := range seenFiles {
+		var folderID int64
+		switch err := folderIDStmt.QueryRow(folder).Scan(&folderID); {
+		case errors.Is(err, sql.ErrNoRows):
+			continue
+		case err != nil:
+			return total, fmt.Errorf("lookup folder id: %w", err)
+		}
+
+		orphans, err := collectOrphanNames(namesStmt, folderID, seenNames)
+		if err != nil {
+			return total, err
+		}
+		if len(orphans) == 0 {
+			continue
+		}
+		n, err := deleteOrphanFiles(tx, folderID, orphans)
+		if err != nil {
+			return total, err
+		}
+		total += n
+	}
+	return total, nil
+}
+
+// collectOrphanNames returns the names currently in `files` for folderID that aren't in seen.
+func collectOrphanNames(stmt *sql.Stmt, folderID int64, seen map[string]struct{}) ([]string, error) {
+	rows, err := stmt.Query(folderID)
+	if err != nil {
+		return nil, fmt.Errorf("query names: %w", err)
+	}
+	defer rows.Close()
+	var orphans []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, fmt.Errorf("scan name: %w", err)
+		}
+		if _, ok := seen[name]; !ok {
+			orphans = append(orphans, name)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate names: %w", err)
+	}
+	return orphans, nil
+}
+
+// deleteOrphanFiles removes (folderID, name) rows in chunks of sweepDeleteChunk.
+func deleteOrphanFiles(tx *sql.Tx, folderID int64, names []string) (int64, error) {
+	var total int64
+	for begin := 0; begin < len(names); begin += sweepDeleteChunk {
+		end := begin + sweepDeleteChunk
+		if end > len(names) {
+			end = len(names)
+		}
+		chunk := names[begin:end]
+		placeholders := strings.TrimSuffix(strings.Repeat("?,", len(chunk)), ",")
+		args := make([]any, 0, len(chunk)+1)
+		args = append(args, folderID)
+		for _, n := range chunk {
+			args = append(args, n)
+		}
+		res, err := tx.Exec("DELETE FROM files WHERE folder_id = ? AND name IN ("+placeholders+")", args...)
+		if err != nil {
+			return total, fmt.Errorf("delete orphan files: %w", err)
+		}
+		if n, err := res.RowsAffected(); err == nil {
+			total += n
+		}
+	}
+	return total, nil
 }
 
 // splitFolderPath splits an absolute file path into (folder, basename).
