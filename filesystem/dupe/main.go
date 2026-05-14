@@ -115,6 +115,6 @@ func main() {
 	if err := cache.Sweep(collector.Folders, collector.AbsRoots); err != nil {
 		log.Warn("cache sweep failed", "err", err)
 	}
-	
+
 	analyse(files, *minSize)
 }
