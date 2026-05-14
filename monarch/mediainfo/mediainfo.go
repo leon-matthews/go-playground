@@ -195,7 +195,10 @@ func run(ctx context.Context, args ...string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, Binary, args...)
 	log.Debug(cmd.String())
 
-	out, err := cmd.CombinedOutput()
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
 	if ctx.Err() == context.DeadlineExceeded {
 		return nil, fmt.Errorf("command timed out after %v", time.Since(start))
 	}
@@ -205,8 +208,8 @@ func run(ctx context.Context, args ...string) ([]byte, error) {
 			return nil, fmt.Errorf("%s binary not found, please see installation instructions", Binary)
 		}
 
-		return nil, fmt.Errorf("mediainfo: %w: %s", err, out)
+		return nil, fmt.Errorf("mediainfo: %w: %s", err, bytes.TrimSpace(stderr.Bytes()))
 	}
 	log.Debug("Command completed", "elapsed", time.Since(start))
-	return out, nil
+	return stdout.Bytes(), nil
 }
