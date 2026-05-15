@@ -18,6 +18,11 @@ import (
 // Binary is the name of the CLI program used
 const Binary = "mediainfo"
 
+const timeout = 10 * time.Second
+
+// ErrTimeout is returned when mediainfo exceeds the per-file timeout.
+var ErrTimeout = errors.New("timed out")
+
 // Media collects the most interesting fields from mediainfo's extensive output
 type Media struct {
 	Name           string
@@ -58,7 +63,7 @@ func Info(name string) (*Media, error) {
 	}
 
 	// Run command
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	out, err := run(ctx, "--Output=JSON", name)
 	if err != nil {
@@ -76,7 +81,7 @@ func Info(name string) (*Media, error) {
 // Version runs the binary and returns its version string
 // Intended to be used to check that the binary can be found and run successfully.
 func Version() (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	out, err := run(ctx, "--version")
@@ -221,7 +226,7 @@ func run(ctx context.Context, args ...string) ([]byte, error) {
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if ctx.Err() == context.DeadlineExceeded {
-		return nil, fmt.Errorf("command timed out after %v", time.Since(start))
+		return nil, fmt.Errorf("mediainfo: %w after %v", ErrTimeout, time.Since(start))
 	}
 
 	if err != nil {

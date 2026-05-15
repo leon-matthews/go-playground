@@ -2,33 +2,45 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
+	"sync"
 	"time"
 
+	"github.com/spf13/pflag"
 	"golang.org/x/term"
 
 	"go-playground/monarch/mediainfo"
 )
 
 func main() {
-	slog.SetLogLoggerLevel(slog.LevelInfo)
+	jobs := pflag.IntP("jobs", "j", runtime.NumCPU()/2, "number of parallel mediainfo processes")
+	kbs := pflag.IntP("kbs", "k", 0, "minimum overall bitrate in kb/s (default: no filter)")
+	verbose := pflag.BoolP("verbose", "v", false, "enable debug logging")
+	pflag.Parse()
 
-	if len(os.Args) != 2 {
-		fmt.Fprintf(os.Stderr, "usage: %s <folder>\n", os.Args[0])
+	if *verbose {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+	}
+
+	if pflag.NArg() != 1 {
+		fmt.Fprintf(os.Stderr, "usage: %s [flags] <folder>\n", os.Args[0])
+		pflag.PrintDefaults()
 		os.Exit(1)
 	}
-	folder := os.Args[1]
+	folder := pflag.Arg(0)
 
 	if _, err := mediainfo.Version(); err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
 
-	media, err := scan(folder)
+	media, s, err := scan(folder, *jobs)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
@@ -38,6 +50,12 @@ func main() {
 		return b.OverallBitrate - a.OverallBitrate
 	})
 
+	if *kbs > 0 {
+		media = slices.DeleteFunc(media, func(m *mediainfo.Media) bool {
+			return m.OverallBitrate < *kbs*1_000
+		})
+	}
+
 	width := terminalWidth()
 	if len(media) > 0 {
 		printHeader(width)
@@ -45,6 +63,7 @@ func main() {
 	for _, m := range media {
 		printLine(m, width)
 	}
+	printSummary(s, width)
 }
 
 // terminalWidth returns the current terminal width, or 80 as a fallback.
@@ -70,28 +89,79 @@ func printHeader(width int) {
 	fmt.Println(truncate(line, width))
 }
 
+type stats struct {
+	Total    int
+	NonMedia int
+	Errors   int
+}
+
+type result struct {
+	media *mediainfo.Media
+	err   error
+}
+
 // scan reads the folder (non-recursive) and returns media info for each file
 // that mediainfo can parse; unparseable files are skipped.
-func scan(folder string) ([]*mediainfo.Media, error) {
+func scan(folder string, jobs int) ([]*mediainfo.Media, stats, error) {
 	entries, err := os.ReadDir(folder)
 	if err != nil {
-		return nil, err
+		return nil, stats{}, err
 	}
 
-	var media []*mediainfo.Media
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		path := filepath.Join(folder, e.Name())
-		info, err := mediainfo.Info(path)
-		if err != nil {
-			slog.Debug("skipping", "path", path, "err", err)
-			continue
-		}
-		media = append(media, info)
+	paths := make(chan string)
+	results := make(chan result)
+
+	var wg sync.WaitGroup
+	for range jobs {
+		wg.Go(func() {
+			for path := range paths {
+				info, err := mediainfo.Info(path)
+				if err != nil {
+					slog.Warn("skipping", "path", path, "err", err)
+					results <- result{err: err}
+					continue
+				}
+				results <- result{media: info}
+			}
+		})
 	}
-	return media, nil
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	var total int
+	go func() {
+		for _, e := range entries {
+			if !e.IsDir() {
+				total++
+				paths <- filepath.Join(folder, e.Name())
+			}
+		}
+		close(paths)
+	}()
+
+	var media []*mediainfo.Media
+	var s stats
+	for r := range results {
+		if r.err != nil {
+			if errors.Is(r.err, mediainfo.ErrTimeout) {
+				s.Errors++
+			} else {
+				s.NonMedia++
+			}
+		} else {
+			media = append(media, r.media)
+		}
+	}
+	s.Total = total
+	return media, s, nil
+}
+
+func printSummary(s stats, width int) {
+	line := fmt.Sprintf("%d files  %d non-media  %d errors", s.Total, s.NonMedia, s.Errors)
+	fmt.Println(truncate(line, width))
 }
 
 func printLine(m *mediainfo.Media, width int) {
