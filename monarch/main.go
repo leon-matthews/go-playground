@@ -9,11 +9,13 @@ import (
 	"slices"
 	"time"
 
+	"golang.org/x/term"
+
 	"go-playground/monarch/mediainfo"
 )
 
 func main() {
-	slog.SetLogLoggerLevel(slog.LevelDebug)
+	slog.SetLogLoggerLevel(slog.LevelInfo)
 
 	if len(os.Args) != 2 {
 		fmt.Fprintf(os.Stderr, "usage: %s <folder>\n", os.Args[0])
@@ -33,20 +35,39 @@ func main() {
 	}
 
 	slices.SortFunc(media, func(a, b *mediainfo.Media) int {
-		return b.Bitrate - a.Bitrate
+		return b.OverallBitrate - a.OverallBitrate
 	})
 
+	width := terminalWidth()
 	if len(media) > 0 {
-		printHeader()
+		printHeader(width)
 	}
 	for _, m := range media {
-		printLine(m)
+		printLine(m, width)
 	}
 }
 
-func printHeader() {
-	fmt.Printf("%13s  %8s  %9s  %-6s %-6s  %s\n",
-		"Bitrate", "Duration", "Size", "Video", "Audio", "Name")
+// terminalWidth returns the current terminal width, or 80 as a fallback.
+func terminalWidth() int {
+	width, _, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil || width <= 0 {
+		return 80
+	}
+	return width
+}
+
+// truncate cuts s to at most width characters, appending "..." if truncated.
+func truncate(s string, width int) string {
+	if len(s) > width {
+		return s[:width-3] + "..."
+	}
+	return s
+}
+
+func printHeader(width int) {
+	line := fmt.Sprintf("%13s  %8s  %9s  %-6s %-6s  %4s  %s",
+		"Bitrate", "Duration", "Size", "Video", "Audio", "Text", "Name")
+	fmt.Println(truncate(line, width))
 }
 
 // scan reads the folder (non-recursive) and returns media info for each file
@@ -73,12 +94,36 @@ func scan(folder string) ([]*mediainfo.Media, error) {
 	return media, nil
 }
 
-func printLine(m *mediainfo.Media) {
-	fmt.Printf("%8d kb/s  %8s  %4dx%-4d  %-6s %-6s  %s\n",
-		m.Bitrate/1_000,
+func printLine(m *mediainfo.Media, width int) {
+	var dimensions, videoFormat, audioFormat string
+	if len(m.Video) > 0 {
+		v := m.Video[0]
+		dimensions = fmt.Sprintf("%dx%d", v.Width, v.Height)
+		videoFormat = v.Format
+		if len(m.Video) > 1 {
+			videoFormat = fmt.Sprintf("%s+%d", v.Format, len(m.Video)-1)
+		}
+	}
+	if len(m.Audio) > 0 {
+		a := m.Audio[0]
+		audioFormat = a.Format
+		if len(m.Audio) > 1 {
+			audioFormat = fmt.Sprintf("%s+%d", a.Format, len(m.Audio)-1)
+		}
+	}
+
+	textCount := ""
+	if len(m.Text) > 0 {
+		textCount = fmt.Sprintf("x%d", len(m.Text))
+	}
+
+	line := fmt.Sprintf("%8d kb/s  %8s  %9s  %-6s %-6s  %4s  %s",
+		m.OverallBitrate/1_000,
 		m.Duration.Round(time.Second),
-		m.Width, m.Height,
-		m.VideoFormat, m.AudioFormat,
+		dimensions,
+		videoFormat, audioFormat,
+		textCount,
 		filepath.Base(m.Name),
 	)
+	fmt.Println(truncate(line, width))
 }

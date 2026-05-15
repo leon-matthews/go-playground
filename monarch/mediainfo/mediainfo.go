@@ -20,18 +20,34 @@ const Binary = "mediainfo"
 
 // Media collects the most interesting fields from mediainfo's extensive output
 type Media struct {
-	Name          string
-	Size          int
-	Format        string
-	Bitrate       int
-	Duration      time.Duration
-	Height        int
-	Width         int
-	AudioBitrate  int
-	AudioChannels int
-	AudioFormat   string
-	VideoBitrate  int
-	VideoFormat   string
+	Name           string
+	Size           int
+	Format         string
+	OverallBitrate int
+	Duration       time.Duration
+	Video          []VideoTrack
+	Audio          []AudioTrack
+	Text           []TextTrack
+}
+
+// VideoTrack describes a single video stream
+type VideoTrack struct {
+	Format  string
+	Bitrate int
+	Width   int
+	Height  int
+}
+
+// AudioTrack describes a single audio stream
+type AudioTrack struct {
+	Format   string
+	Bitrate  int
+	Channels int
+}
+
+// TextTrack describes a single subtitle or caption stream
+type TextTrack struct {
+	Format string
 }
 
 // Info attempts to read metadata for the given media file
@@ -145,35 +161,40 @@ func extractInfo(name string, raw []byte) (*Media, error) {
 		Name: name,
 	}
 
-	// Combine data from different track types
-	var numVideo, numAudio int
-	for idx, t := range data.Media.Track {
+	// Collect tracks by type; Text and Menu tracks are ignored.
+	var numGeneral int
+	for _, t := range data.Media.Track {
 		switch t.Type {
-		case "Audio":
-			info.AudioBitrate = int(t.BitRate)
-			info.AudioChannels = int(t.Channels)
-			info.AudioFormat = t.Format
-			numAudio++
 		case "General":
-			info.Bitrate = int(t.OverallBitRate)
+			info.OverallBitrate = int(t.OverallBitRate)
 			info.Duration = time.Duration(float64(t.Duration) * float64(time.Second))
 			info.Format = t.Format
 			info.Size = int(t.FileSize)
+			numGeneral++
 		case "Video":
-			info.Height = int(t.Height)
-			info.Width = int(t.Width)
-			info.VideoBitrate = int(t.BitRate)
-			info.VideoFormat = t.Format
-			numVideo++
-		default:
-			return nil, fmt.Errorf("unexpected track #%v %q in %s", idx, t.Type, name)
+			info.Video = append(info.Video, VideoTrack{
+				Format:  t.Format,
+				Bitrate: int(t.BitRate),
+				Width:   int(t.Width),
+				Height:  int(t.Height),
+			})
+		case "Audio":
+			info.Audio = append(info.Audio, AudioTrack{
+				Format:   t.Format,
+				Bitrate:  int(t.BitRate),
+				Channels: int(t.Channels),
+			})
+		case "Text":
+			info.Text = append(info.Text, TextTrack{Format: t.Format})
+		case "Menu":
+			// ignore chapter/menu tracks
 		}
 	}
-	if numVideo != 1 {
-		return nil, fmt.Errorf("expected one video track in %q, found %v", name, numVideo)
+	if numGeneral != 1 {
+		return nil, fmt.Errorf("expected one General track in %q, found %v", name, numGeneral)
 	}
-	if numAudio != 1 {
-		return nil, fmt.Errorf("expected one audio track in %q, found %v", name, numAudio)
+	if len(info.Video) == 0 && len(info.Audio) == 0 {
+		return nil, fmt.Errorf("no audio or video tracks in %q", name)
 	}
 
 	return &info, nil
