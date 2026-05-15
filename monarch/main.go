@@ -2,6 +2,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -20,6 +21,7 @@ import (
 
 func main() {
 	jobs := pflag.IntP("jobs", "j", runtime.NumCPU()/2, "number of parallel mediainfo processes")
+	jsonOutput := pflag.Bool("json", false, "output JSON instead of table")
 	kbs := pflag.IntP("kbs", "k", 0, "minimum overall bitrate in kb/s (default: no filter)")
 	verbose := pflag.BoolP("verbose", "v", false, "enable debug logging")
 	pflag.Parse()
@@ -54,6 +56,16 @@ func main() {
 		media = slices.DeleteFunc(media, func(m *mediainfo.Media) bool {
 			return m.OverallBitrate < *kbs*1_000
 		})
+	}
+
+	if *jsonOutput {
+		out, err := json.MarshalIndent(media, "", "  ")
+		if err != nil {
+			slog.Error(err.Error())
+			os.Exit(1)
+		}
+		fmt.Println(string(out))
+		return
 	}
 
 	width := terminalWidth()
@@ -189,11 +201,11 @@ func printLine(m *mediainfo.Media, width int) {
 
 	line := fmt.Sprintf("%8d kb/s  %8s  %9s  %-6s %-6s  %4s  %s",
 		m.OverallBitrate/1_000,
-		m.Duration.Round(time.Second),
+		time.Duration(m.Duration).Round(time.Second),
 		dimensions,
 		videoFormat, audioFormat,
 		textCount,
-		filepath.Base(m.Name),
+		m.Name,
 	)
 	fmt.Println(truncate(line, width))
 }

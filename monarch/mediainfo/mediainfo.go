@@ -10,6 +10,7 @@ import (
 	log "log/slog"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -23,36 +24,52 @@ const timeout = 10 * time.Second
 // ErrTimeout is returned when mediainfo exceeds the per-file timeout.
 var ErrTimeout = errors.New("timed out")
 
+// Duration wraps time.Duration with JSON serialization as fractional seconds.
+type Duration time.Duration
+
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Duration(d).Seconds())
+}
+
+func (d *Duration) UnmarshalJSON(raw []byte) error {
+	var seconds float64
+	if err := json.Unmarshal(raw, &seconds); err != nil {
+		return err
+	}
+	*d = Duration(time.Duration(seconds * float64(time.Second)))
+	return nil
+}
+
 // Media collects the most interesting fields from mediainfo's extensive output
 type Media struct {
-	Name           string
-	Size           int
-	Format         string
-	OverallBitrate int
-	Duration       time.Duration
-	Video          []VideoTrack
-	Audio          []AudioTrack
-	Text           []TextTrack
+	Name           string       `json:"name"`
+	Size           int          `json:"size"`
+	Format         string       `json:"format"`
+	OverallBitrate int          `json:"overall_bitrate"`
+	Duration       Duration     `json:"duration"`
+	Video          []VideoTrack `json:"video"`
+	Audio          []AudioTrack `json:"audio"`
+	Text           []TextTrack  `json:"text"`
 }
 
 // VideoTrack describes a single video stream
 type VideoTrack struct {
-	Format  string
-	Bitrate int
-	Width   int
-	Height  int
+	Format  string `json:"format"`
+	Bitrate int    `json:"bitrate"`
+	Width   int    `json:"width"`
+	Height  int    `json:"height"`
 }
 
 // AudioTrack describes a single audio stream
 type AudioTrack struct {
-	Format   string
-	Bitrate  int
-	Channels int
+	Format   string `json:"format"`
+	Bitrate  int    `json:"bitrate"`
+	Channels int    `json:"channels"`
 }
 
 // TextTrack describes a single subtitle or caption stream
 type TextTrack struct {
-	Format string
+	Format string `json:"format"`
 }
 
 // Info attempts to read metadata for the given media file
@@ -163,7 +180,10 @@ func extractInfo(name string, raw []byte) (*Media, error) {
 
 	// Start output struct
 	info := Media{
-		Name: name,
+		Name:  filepath.Base(name),
+		Video: []VideoTrack{},
+		Audio: []AudioTrack{},
+		Text:  []TextTrack{},
 	}
 
 	// Collect tracks by type; Text and Menu tracks are ignored.
@@ -172,7 +192,7 @@ func extractInfo(name string, raw []byte) (*Media, error) {
 		switch t.Type {
 		case "General":
 			info.OverallBitrate = int(t.OverallBitRate)
-			info.Duration = time.Duration(float64(t.Duration) * float64(time.Second))
+			info.Duration = Duration(float64(t.Duration) * float64(time.Second))
 			info.Format = t.Format
 			info.Size = int(t.FileSize)
 			numGeneral++

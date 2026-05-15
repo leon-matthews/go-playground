@@ -24,13 +24,14 @@ func TestExtractInfo(t *testing.T) {
 			Size:           483210,
 			Format:         "MPEG-4",
 			OverallBitrate: 962570,
-			Duration:       time.Duration(4.016 * float64(time.Second)),
+			Duration:       Duration(4.016 * float64(time.Second)),
 			Video: []VideoTrack{
 				{Format: "HEVC", Bitrate: 819440, Width: 480, Height: 848},
 			},
 			Audio: []AudioTrack{
 				{Format: "AAC", Bitrate: 132300, Channels: 2},
 			},
+			Text: []TextTrack{},
 		}
 		assert.Equal(t, expected, got)
 	})
