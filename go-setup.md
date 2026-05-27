@@ -74,6 +74,13 @@ Browse and read markdown documentation under current folder:
 	$ go install github.com/charmbracelet/glow@latest
 
 
+### gofupmt
+
+A stricter gofmt
+
+    $ go install mvdan.cc/gofumpt@latest
+
+
 ### goimports
 
 Command goimports updates your Go import lines, adding missing ones and removing unreferenced ones.
