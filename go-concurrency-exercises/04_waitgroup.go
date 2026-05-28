@@ -1,6 +1,8 @@
 package concurrency
 
 import (
+	"fmt"
+	"slices"
 	"sync"
 )
 
@@ -25,25 +27,35 @@ import (
 
 // ConcurrentSum computes sum of applying fn to each element concurrently.
 //
-// TODO: Implement this function to:
 // 1. Create a WaitGroup
 // 2. For each element in nums, launch a goroutine that:
-//    - Calls fn(num)
-//    - Safely adds result to a shared sum (you'll need a mutex!)
-//    - Calls Done() when finished
+//   - Calls fn(num)
+//   - Safely adds result to a shared sum (you'll need a mutex!)
+//   - Calls Done() when finished
+//
 // 3. Wait for all goroutines to complete
 // 4. Return the sum
 //
 // QUESTION: What happens if you call wg.Add(1) inside the goroutine instead of before?
 func ConcurrentSum(nums []int, fn func(int) int) int {
-	// YOUR CODE HERE
-	return 0
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	sum := 0
+	for _, num := range nums {
+		wg.Go(func() {
+			n := fn(num)
+			mu.Lock()
+			sum += n
+			mu.Unlock()
+		})
+	}
+	wg.Wait()
+	return sum
 }
 
 // FetchAll simulates fetching data from multiple URLs concurrently.
 // Returns a map of url -> result.
 //
-// TODO: Implement this to:
 // 1. Launch a goroutine for each URL
 // 2. Each goroutine calls fetcher(url) and stores result
 // 3. Wait for all fetches to complete
@@ -51,8 +63,21 @@ func ConcurrentSum(nums []int, fn func(int) int) int {
 //
 // HINT: Maps are not goroutine-safe, protect with mutex or use sync.Map
 func FetchAll(urls []string, fetcher func(string) string) map[string]string {
-	// YOUR CODE HERE
-	return nil
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	results := make(map[string]string, len(urls))
+	for _, url := range urls {
+		wg.Go(func() {
+			resp := fetcher(url)
+
+			mu.Lock()
+			results[url] = resp
+			mu.Unlock()
+		})
+	}
+	wg.Wait()
+	return results
 }
 
 // =============================================================================
@@ -61,21 +86,29 @@ func FetchAll(urls []string, fetcher func(string) string) map[string]string {
 
 // ProcessBatches processes items in batches with limited concurrency.
 //
-// TODO: Implement this to:
 // 1. Process items in batches of batchSize
 // 2. Each batch runs concurrently (all items in batch run at same time)
 // 3. Wait for batch to complete before starting next batch
 // 4. Return slice of all results in original order
 //
 // QUESTION: Why process in batches instead of all at once?
+// ANSWER: To limit resource use, limit in-flight requests, collect results for batched DB transaction.
 func ProcessBatches(items []int, batchSize int, process func(int) int) []int {
-	// YOUR CODE HERE
-	return nil
+	results := make([]int, 0, len(items))
+	wg := sync.WaitGroup{}
+	for batch := range slices.Chunk(items, batchSize) {
+		batchResults := make([]int, len(batch))
+		for i, b := range batch {
+			wg.Go(func() { batchResults[i] = process(b) })
+		}
+		wg.Wait()
+		results = append(results, batchResults...)
+	}
+	return results
 }
 
 // WaitGroupReuse demonstrates proper WaitGroup reuse.
 //
-// TODO: Implement this to:
 // 1. Use the SAME WaitGroup for two separate rounds of goroutines
 // 2. First round: launch n goroutines, each appending "round1" to results
 // 3. Wait for first round to complete
@@ -85,8 +118,22 @@ func ProcessBatches(items []int, batchSize int, process func(int) int) []int {
 //
 // QUESTION: What would happen if you started round 2 before round 1 finished?
 func WaitGroupReuse(n int) []string {
-	// YOUR CODE HERE
-	return nil
+	numRounds := 2
+	results := make([]string, 0, n*numRounds)
+	batchResults := make([]string, n)
+	wg := sync.WaitGroup{}
+
+	for round := range numRounds {
+		for i := range n {
+			wg.Go(func() {
+				batchResults[i] = fmt.Sprintf("round%d", round+1)
+			})
+		}
+		wg.Wait()
+		results = append(results, batchResults...)
+	}
+
+	return results
 }
 
 // =============================================================================
@@ -96,7 +143,6 @@ func WaitGroupReuse(n int) []string {
 // FirstError runs functions concurrently and returns the first error encountered.
 // Returns nil if all functions succeed.
 //
-// TODO: Implement this to:
 // 1. Run all functions concurrently
 // 2. If any function returns an error, capture it
 // 3. Return the first error (any error if multiple occur)
