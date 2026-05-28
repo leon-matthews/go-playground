@@ -10,6 +10,7 @@ import (
 	log "log/slog"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -18,20 +19,57 @@ import (
 // Binary is the name of the CLI program used
 const Binary = "mediainfo"
 
+const timeout = 10 * time.Second
+
+// ErrTimeout is returned when mediainfo exceeds the per-file timeout.
+var ErrTimeout = errors.New("timed out")
+
+// Duration wraps time.Duration with JSON serialization as fractional seconds.
+type Duration time.Duration
+
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Duration(d).Seconds())
+}
+
+func (d *Duration) UnmarshalJSON(raw []byte) error {
+	var seconds float64
+	if err := json.Unmarshal(raw, &seconds); err != nil {
+		return err
+	}
+	*d = Duration(time.Duration(seconds * float64(time.Second)))
+	return nil
+}
+
 // Media collects the most interesting fields from mediainfo's extensive output
 type Media struct {
-	Name          string
-	Size          int
-	Format        string
-	Bitrate       int
-	Duration      time.Duration
-	Height        int
-	Width         int
-	AudioBitrate  int
-	AudioChannels int
-	AudioFormat   string
-	VideoBitrate  int
-	VideoFormat   string
+	Name           string       `json:"name"`
+	Size           int          `json:"size"`
+	Format         string       `json:"format"`
+	OverallBitrate int          `json:"overall_bitrate"`
+	Duration       Duration     `json:"duration"`
+	Video          []VideoTrack `json:"video"`
+	Audio          []AudioTrack `json:"audio"`
+	Text           []TextTrack  `json:"text"`
+}
+
+// VideoTrack describes a single video stream
+type VideoTrack struct {
+	Format  string `json:"format"`
+	Bitrate int    `json:"bitrate"`
+	Width   int    `json:"width"`
+	Height  int    `json:"height"`
+}
+
+// AudioTrack describes a single audio stream
+type AudioTrack struct {
+	Format   string `json:"format"`
+	Bitrate  int    `json:"bitrate"`
+	Channels int    `json:"channels"`
+}
+
+// TextTrack describes a single subtitle or caption stream
+type TextTrack struct {
+	Format string `json:"format"`
 }
 
 // Info attempts to read metadata for the given media file
@@ -42,7 +80,7 @@ func Info(name string) (*Media, error) {
 	}
 
 	// Run command
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	out, err := run(ctx, "--Output=JSON", name)
 	if err != nil {
@@ -60,7 +98,7 @@ func Info(name string) (*Media, error) {
 // Version runs the binary and returns its version string
 // Intended to be used to check that the binary can be found and run successfully.
 func Version() (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	out, err := run(ctx, "--version")
@@ -142,38 +180,46 @@ func extractInfo(name string, raw []byte) (*Media, error) {
 
 	// Start output struct
 	info := Media{
-		Name: name,
+		Name:  filepath.Base(name),
+		Video: []VideoTrack{},
+		Audio: []AudioTrack{},
+		Text:  []TextTrack{},
 	}
 
-	// Combine data from different track types
-	var numVideo, numAudio int
-	for idx, t := range data.Media.Track {
+	// Collect tracks by type; Text and Menu tracks are ignored.
+	var numGeneral int
+	for _, t := range data.Media.Track {
 		switch t.Type {
-		case "Audio":
-			info.AudioBitrate = int(t.BitRate)
-			info.AudioChannels = int(t.Channels)
-			info.AudioFormat = t.Format
-			numAudio++
 		case "General":
-			info.Bitrate = int(t.OverallBitRate)
-			info.Duration = time.Duration(float64(t.Duration) * float64(time.Second))
+			info.OverallBitrate = int(t.OverallBitRate)
+			info.Duration = Duration(float64(t.Duration) * float64(time.Second))
 			info.Format = t.Format
 			info.Size = int(t.FileSize)
+			numGeneral++
 		case "Video":
-			info.Height = int(t.Height)
-			info.Width = int(t.Width)
-			info.VideoBitrate = int(t.BitRate)
-			info.VideoFormat = t.Format
-			numVideo++
-		default:
-			return nil, fmt.Errorf("unexpected track #%v %q in %s", idx, t.Type, name)
+			info.Video = append(info.Video, VideoTrack{
+				Format:  t.Format,
+				Bitrate: int(t.BitRate),
+				Width:   int(t.Width),
+				Height:  int(t.Height),
+			})
+		case "Audio":
+			info.Audio = append(info.Audio, AudioTrack{
+				Format:   t.Format,
+				Bitrate:  int(t.BitRate),
+				Channels: int(t.Channels),
+			})
+		case "Text":
+			info.Text = append(info.Text, TextTrack{Format: t.Format})
+		case "Menu":
+			// ignore chapter/menu tracks
 		}
 	}
-	if numVideo != 1 {
-		return nil, fmt.Errorf("expected one video track in %q, found %v", name, numVideo)
+	if numGeneral != 1 {
+		return nil, fmt.Errorf("expected one General track in %q, found %v", name, numGeneral)
 	}
-	if numAudio != 1 {
-		return nil, fmt.Errorf("expected one audio track in %q, found %v", name, numAudio)
+	if len(info.Video) == 0 && len(info.Audio) == 0 {
+		return nil, fmt.Errorf("no audio or video tracks in %q", name)
 	}
 
 	return &info, nil
@@ -195,9 +241,12 @@ func run(ctx context.Context, args ...string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, Binary, args...)
 	log.Debug(cmd.String())
 
-	out, err := cmd.CombinedOutput()
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
 	if ctx.Err() == context.DeadlineExceeded {
-		return nil, fmt.Errorf("command timed out after %v", time.Since(start))
+		return nil, fmt.Errorf("mediainfo: %w after %v", ErrTimeout, time.Since(start))
 	}
 
 	if err != nil {
@@ -205,8 +254,8 @@ func run(ctx context.Context, args ...string) ([]byte, error) {
 			return nil, fmt.Errorf("%s binary not found, please see installation instructions", Binary)
 		}
 
-		return nil, fmt.Errorf("mediainfo: %w: %s", err, out)
+		return nil, fmt.Errorf("mediainfo: %w: %s", err, bytes.TrimSpace(stderr.Bytes()))
 	}
 	log.Debug("Command completed", "elapsed", time.Since(start))
-	return out, nil
+	return stdout.Bytes(), nil
 }

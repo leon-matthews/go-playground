@@ -20,18 +20,18 @@ func TestExtractInfo(t *testing.T) {
 		require.NoError(t, err)
 
 		expected := &Media{
-			Name:          "cow.mp4",
-			Size:          483210,
-			Format:        "MPEG-4",
-			Bitrate:       962570,
-			Duration:      time.Duration(4.016 * float64(time.Second)),
-			Height:        848,
-			Width:         480,
-			AudioBitrate:  132300,
-			AudioChannels: 2,
-			AudioFormat:   "AAC",
-			VideoBitrate:  819440,
-			VideoFormat:   "HEVC",
+			Name:           "cow.mp4",
+			Size:           483210,
+			Format:         "MPEG-4",
+			OverallBitrate: 962570,
+			Duration:       Duration(4.016 * float64(time.Second)),
+			Video: []VideoTrack{
+				{Format: "HEVC", Bitrate: 819440, Width: 480, Height: 848},
+			},
+			Audio: []AudioTrack{
+				{Format: "AAC", Bitrate: 132300, Channels: 2},
+			},
+			Text: []TextTrack{},
 		}
 		assert.Equal(t, expected, got)
 	})
@@ -48,9 +48,8 @@ func TestExtractInfo(t *testing.T) {
 		raw, err := os.ReadFile("testdata/invalid.json")
 		require.NoError(t, err)
 
-		info, err := extractInfo("invalid.file", raw)
-		fmt.Printf("[%T]%+[1]v\n", info)
-		assert.ErrorContains(t, err, `expected one video track in "invalid.file", found 0`)
+		_, err = extractInfo("invalid.file", raw)
+		assert.ErrorContains(t, err, `expected one General track in "invalid.file", found 0`)
 	})
 }
 
