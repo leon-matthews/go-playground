@@ -88,6 +88,16 @@ func TestRunPipeline(t *testing.T) {
 	}
 }
 
+func BenchmarkRunPipeline(b *testing.B) {
+	want := 332_833_500
+	for b.Loop() {
+		got := RunPipeline(1, 1_000)
+		if got != want {
+			b.Fatalf("Got %d; want %d", got, want)
+		}
+	}
+}
+
 func TestFilter(t *testing.T) {
 	input := Generate(1, 6) // 1, 2, 3, 4, 5
 	isEven := func(n int) bool { return n%2 == 0 }
