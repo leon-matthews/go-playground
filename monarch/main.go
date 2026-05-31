@@ -19,15 +19,17 @@ import (
 	"github.com/spf13/pflag"
 	"golang.org/x/term"
 
+	"go-playground/monarch/cache"
 	"go-playground/monarch/mediainfo"
 )
 
 func main() {
 	validSortKeys := slices.Sorted(maps.Keys(sortColumns))
 
-	jobs := pflag.IntP("jobs", "j", runtime.NumCPU()/2, "number of parallel mediainfo processes")
+	jobs := pflag.IntP("jobs", "j", max(1, runtime.NumCPU()/2), "number of parallel mediainfo processes")
 	jsonOutput := pflag.Bool("json", false, "output JSON instead of table")
 	kbs := pflag.IntP("kbs", "k", 0, "minimum overall bitrate in kb/s (default: no filter)")
+	noCache := pflag.Bool("no-cache", false, "disable the per-folder metadata cache")
 	sortKey := pflag.StringP("sort", "s", "bitrate", "column to sort by: "+strings.Join(validSortKeys, ", "))
 	reverse := pflag.BoolP("reverse", "r", false, "reverse the sort direction")
 	verbose := pflag.BoolP("verbose", "v", false, "enable debug logging")
@@ -51,15 +53,31 @@ func main() {
 	}
 	folder := pflag.Arg(0)
 
-	if _, err := mediainfo.Version(); err != nil {
+	version, err := mediainfo.Version()
+	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
 
-	media, s, err := scan(folder, *jobs)
+	var c *cache.Cache
+	if !*noCache {
+		c, err = cache.Load(folder, version)
+		if err != nil {
+			slog.Warn("ignoring cache", "err", err)
+			c = nil
+		}
+	}
+
+	media, s, err := scan(folder, *jobs, c)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
+	}
+
+	if c != nil {
+		if err := c.Save(); err != nil {
+			slog.Warn("failed to write cache", "err", err)
+		}
 	}
 
 	slices.SortFunc(media, func(a, b *mediainfo.Media) int {
@@ -202,7 +220,7 @@ type result struct {
 
 // scan reads the folder (non-recursive) and returns media info for each file
 // that mediainfo can parse; unparseable files are skipped.
-func scan(folder string, jobs int) ([]*mediainfo.Media, stats, error) {
+func scan(folder string, jobs int, c *cache.Cache) ([]*mediainfo.Media, stats, error) {
 	entries, err := os.ReadDir(folder)
 	if err != nil {
 		return nil, stats{}, err
@@ -212,14 +230,32 @@ func scan(folder string, jobs int) ([]*mediainfo.Media, stats, error) {
 	results := make(chan result)
 
 	var wg sync.WaitGroup
-	for range jobs {
+	// Always run at least one worker, or the producer below blocks forever.
+	for range max(1, jobs) {
 		wg.Go(func() {
 			for path := range paths {
+				name := filepath.Base(path)
+				fi, err := os.Stat(path)
+				if err != nil {
+					slog.Warn("skipping", "path", path, "err", err)
+					results <- result{err: err}
+					continue
+				}
+				if c != nil {
+					if media, ok := c.Get(name, fi.Size(), fi.ModTime()); ok {
+						slog.Debug("cache hit", "path", path)
+						results <- result{media: media}
+						continue
+					}
+				}
 				info, err := mediainfo.Info(path)
 				if err != nil {
 					slog.Warn("skipping", "path", path, "err", err)
 					results <- result{err: err}
 					continue
+				}
+				if c != nil {
+					c.Put(name, fi.Size(), fi.ModTime(), info)
 				}
 				results <- result{media: info}
 			}
@@ -234,10 +270,11 @@ func scan(folder string, jobs int) ([]*mediainfo.Media, stats, error) {
 	var total int
 	go func() {
 		for _, e := range entries {
-			if !e.IsDir() {
-				total++
-				paths <- filepath.Join(folder, e.Name())
+			if e.IsDir() || e.Name() == cache.FileName {
+				continue
 			}
+			total++
+			paths <- filepath.Join(folder, e.Name())
 		}
 		close(paths)
 	}()
