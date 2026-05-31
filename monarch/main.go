@@ -2,14 +2,17 @@
 package main
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"os"
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -20,15 +23,26 @@ import (
 )
 
 func main() {
+	validSortKeys := slices.Sorted(maps.Keys(sortColumns))
+
 	jobs := pflag.IntP("jobs", "j", runtime.NumCPU()/2, "number of parallel mediainfo processes")
 	jsonOutput := pflag.Bool("json", false, "output JSON instead of table")
 	kbs := pflag.IntP("kbs", "k", 0, "minimum overall bitrate in kb/s (default: no filter)")
+	sortKey := pflag.StringP("sort", "s", "bitrate", "column to sort by: "+strings.Join(validSortKeys, ", "))
+	reverse := pflag.BoolP("reverse", "r", false, "reverse the sort direction")
 	verbose := pflag.BoolP("verbose", "v", false, "enable debug logging")
 	pflag.Parse()
 
 	if *verbose {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
+
+	col, ok := sortColumns[*sortKey]
+	if !ok {
+		fmt.Fprintf(os.Stderr, "unknown sort column %q (valid: %s)\n", *sortKey, strings.Join(validSortKeys, ", "))
+		os.Exit(1)
+	}
+	descending := col.descending != *reverse
 
 	if pflag.NArg() != 1 {
 		fmt.Fprintf(os.Stderr, "usage: %s [flags] <folder>\n", os.Args[0])
@@ -49,7 +63,14 @@ func main() {
 	}
 
 	slices.SortFunc(media, func(a, b *mediainfo.Media) int {
-		return b.OverallBitrate - a.OverallBitrate
+		c := col.cmp(a, b)
+		if descending {
+			c = -c
+		}
+		if c != 0 {
+			return c
+		}
+		return cmp.Compare(a.Name, b.Name)
 	})
 
 	if *kbs > 0 {
@@ -70,7 +91,7 @@ func main() {
 
 	width := terminalWidth()
 	if len(media) > 0 {
-		printHeader(width)
+		printHeader(width, *sortKey, descending)
 	}
 	for _, m := range media {
 		printLine(m, width)
@@ -95,9 +116,76 @@ func truncate(s string, width int) string {
 	return s
 }
 
-func printHeader(width int) {
-	line := fmt.Sprintf("%13s  %8s  %9s  %-6s %-6s  %4s  %s",
-		"Bitrate", "Duration", "Size", "Video", "Audio", "Text", "Name")
+// sortColumns maps each --sort key to its comparison and default direction.
+// Each cmp orders ascending; descending columns are negated when sorting.
+var sortColumns = map[string]struct {
+	descending bool
+	cmp        func(a, b *mediainfo.Media) int
+}{
+	"bitrate":    {true, func(a, b *mediainfo.Media) int { return cmp.Compare(a.OverallBitrate, b.OverallBitrate) }},
+	"duration":   {true, func(a, b *mediainfo.Media) int { return cmp.Compare(a.Duration, b.Duration) }},
+	"size":       {true, func(a, b *mediainfo.Media) int { return cmp.Compare(a.Size, b.Size) }},
+	"dimensions": {true, cmpDimensions},
+	"video":      {false, func(a, b *mediainfo.Media) int { return cmp.Compare(firstVideoFormat(a), firstVideoFormat(b)) }},
+	"audio":      {false, func(a, b *mediainfo.Media) int { return cmp.Compare(firstAudioFormat(a), firstAudioFormat(b)) }},
+	"text":       {true, func(a, b *mediainfo.Media) int { return cmp.Compare(len(a.Text), len(b.Text)) }},
+	"name":       {false, func(a, b *mediainfo.Media) int { return cmp.Compare(a.Name, b.Name) }},
+}
+
+// cmpDimensions orders by width, then height, of the first video track.
+func cmpDimensions(a, b *mediainfo.Media) int {
+	aw, ah := dimensions(a)
+	bw, bh := dimensions(b)
+	if c := cmp.Compare(aw, bw); c != 0 {
+		return c
+	}
+	return cmp.Compare(ah, bh)
+}
+
+// dimensions returns the width and height of the first video track, or 0, 0.
+func dimensions(m *mediainfo.Media) (int, int) {
+	if len(m.Video) > 0 {
+		return m.Video[0].Width, m.Video[0].Height
+	}
+	return 0, 0
+}
+
+// firstVideoFormat returns the format of the first video track, or "".
+func firstVideoFormat(m *mediainfo.Media) string {
+	if len(m.Video) > 0 {
+		return m.Video[0].Format
+	}
+	return ""
+}
+
+// firstAudioFormat returns the format of the first audio track, or "".
+func firstAudioFormat(m *mediainfo.Media) string {
+	if len(m.Audio) > 0 {
+		return m.Audio[0].Format
+	}
+	return ""
+}
+
+func printHeader(width int, sortKey string, descending bool) {
+	label := func(key, text string) string {
+		if key != sortKey {
+			return text
+		}
+		if descending {
+			return text + " ▼"
+		}
+		return text + " ▲"
+	}
+	line := fmt.Sprintf(
+		"%13s  %10s  %12s  %-7s %-7s  %6s  %s",
+		label("bitrate", "Bitrate"),
+		label("duration", "Duration"),
+		label("dimensions", "Dimensions"),
+		label("video", "Video"),
+		label("audio", "Audio"),
+		label("text", "Text"),
+		label("name", "Name"),
+	)
 	fmt.Println(truncate(line, width))
 }
 
@@ -199,7 +287,8 @@ func printLine(m *mediainfo.Media, width int) {
 		textCount = fmt.Sprintf("x%d", len(m.Text))
 	}
 
-	line := fmt.Sprintf("%8d kb/s  %8s  %9s  %-6s %-6s  %4s  %s",
+	line := fmt.Sprintf(
+		"%8d kb/s  %10s  %12s  %-7s %-7s  %6s  %s",
 		m.OverallBitrate/1_000,
 		time.Duration(m.Duration).Round(time.Second),
 		dimensions,
