@@ -1,0 +1,27 @@
+{
+  "areader": [
+    "2026-06-02T09:30:49.97644645+12:00"
+  ],
+  "bcounter": [
+    "2026-06-02T09:39:02.255433116+12:00"
+  ],
+  "books": null,
+  "boring": null,
+  "clock": null,
+  "direction": null,
+  "dup": null,
+  "err": null,
+  "fetch": null,
+  "findgo": null,
+  "findlinks": null,
+  "google": null,
+  "lognb": null,
+  "lookup": null,
+  "netcat": null,
+  "parselogs": null,
+  "pipeline": null,
+  "proxy": null,
+  "shift": null,
+  "shop": null,
+  "tcpscanner": null
+}
