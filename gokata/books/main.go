@@ -1,16 +1,20 @@
 // Books sorts and prints a collection of books.
-// For more see
-//   - https://pkg.go.dev/sort#pkg-examples
-//   - https://github.com/adonovan/gopl.io/blob/master/ch7/sorting
 package main
 
 import (
+	"cmp"
 	"fmt"
 	"os"
-	"sort"
+	"slices"
 	"strings"
 	"text/tabwriter"
 )
+
+type Authors []string
+
+func (authors Authors) String() string {
+	return strings.Join(authors, ", ")
+}
 
 type Book struct {
 	Authors
@@ -29,20 +33,14 @@ func printBooks(books []Book) {
 	}
 }
 
-type Authors []string
-
-func (authors Authors) String() string {
-	return strings.Join(authors, ", ")
-}
-
 func main() {
 	books := []Book{
 		{Authors{"Tolkien"}, "The Lord of the Rings", 1954},
 		{Authors{"Kernighan", "Donovan"}, "The Go Programming Language", 2015},
 		{Authors{"Kim", "Behr", "Spafford"}, "The Phoenix Project", 2013},
 	}
-	sort.Slice(books, func(i, j int) bool {
-		return books[i].Year < books[j].Year
+	slices.SortFunc(books, func(a, b Book) int {
+		return cmp.Compare(a.Year, b.Year)
 	})
 	printBooks(books)
 }

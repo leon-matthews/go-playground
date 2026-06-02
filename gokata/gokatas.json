@@ -5,7 +5,9 @@
   "bcounter": [
     "2026-06-02T09:39:02.255433116+12:00"
   ],
-  "books": null,
+  "books": [
+    "2026-06-02T14:24:48.989072576+12:00"
+  ],
   "boring": null,
   "clock": null,
   "direction": null,
