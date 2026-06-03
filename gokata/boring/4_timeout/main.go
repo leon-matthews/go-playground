@@ -23,7 +23,7 @@ func main() {
 		select {
 		case s := <-c:
 			fmt.Println(s)
-		case <-time.After(time.Millisecond * 600):
+		case <-time.After(time.Millisecond * 900):
 			fmt.Println("timeout")
 			return
 		}
@@ -32,16 +32,11 @@ func main() {
 
 func fanIn(c1, c2 <-chan string) <-chan string {
 	c := make(chan string)
-	go func() { // only one goroutine is needed now
+	go func() {
 		for {
 			select {
-			case s := <-c1:
-				c <- s
-			case s := <-c2:
-				c <- s
-				// Can be simplified to:
-				// case c <- <-c1:
-				// case c <- <-c2:
+			case c <- <-c1:	// Read from c1, then write to c
+			case c <- <-c2:
 			}
 		}
 	}()

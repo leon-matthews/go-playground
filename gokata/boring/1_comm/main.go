@@ -11,7 +11,7 @@ import (
 
 func main() {
 	c := boring.Person("Joe")
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		fmt.Println(<-c)
 	}
 }

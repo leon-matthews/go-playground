@@ -11,7 +11,7 @@ package boring
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"time"
 )
 
@@ -24,7 +24,7 @@ func Person(name string) <-chan string {
 	go func() {
 		for i := 0; ; i++ {
 			c <- fmt.Sprintf(Format, name, i)
-			time.Sleep(time.Millisecond * time.Duration(rand.Intn(1e3)))
+			time.Sleep(rand.N(1e3 * time.Millisecond))
 		}
 	}()
 	return c

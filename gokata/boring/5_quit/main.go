@@ -4,7 +4,7 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"time"
 
 	"github.com/gokatas/boring"
@@ -13,14 +13,20 @@ import (
 func main() {
 	quit := make(chan bool)
 	c := quitter("Jack", quit)
-	for i := rand.Intn(10); i >= 0; i-- {
+	for range rand.N(10) {
 		fmt.Println(<-c)
 	}
+
+	// Send a quit signal
 	quit <- true
 	fmt.Println("quitting...")
+
+	// Wait for a single response on the same channel
 	<-quit
 }
 
+// quitter is like Person, but exits if the caller (or anybody) writes to quit
+// A value is written back to quit after cleanup has finished.
 func quitter(name string, quit chan bool) <-chan string {
 	c := make(chan string)
 	go func() {
@@ -32,10 +38,12 @@ func quitter(name string, quit chan bool) <-chan string {
 				quit <- true
 				return
 			}
-			time.Sleep(time.Millisecond * time.Duration(rand.Intn(1e3)))
+			time.Sleep(rand.N(1e3 * time.Millisecond))
 		}
 	}()
 	return c
 }
 
-func cleanup() { time.Sleep(time.Millisecond * time.Duration(rand.Intn(3e3))) }
+func cleanup() {
+	time.Sleep(rand.N(3e3 * time.Millisecond))
+}
