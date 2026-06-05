@@ -14,7 +14,9 @@
   "clock": [
     "2026-06-04T12:48:51.429180352+12:00"
   ],
-  "direction": null,
+  "direction": [
+    "2026-06-05T13:08:48.011251672+12:00"
+  ],
   "dup": null,
   "err": null,
   "fetch": null,
