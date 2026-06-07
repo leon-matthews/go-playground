@@ -1,4 +1,4 @@
-// In Go, errors are values. That means they are not special and you can program
+// In Go, errors are values. That means they are not special, and you can program
 // them. Here is one programming technique for avoiding repetitive error
 // handling. Adapted from https://go.dev/blog/errors-are-values.
 package main
