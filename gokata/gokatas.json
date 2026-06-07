@@ -23,7 +23,9 @@
   "err": [
     "2026-06-08T09:10:37.145032218+12:00"
   ],
-  "fetch": null,
+  "fetch": [
+    "2026-06-08T09:15:58.785202616+12:00"
+  ],
   "findgo": null,
   "findlinks": null,
   "google": null,
