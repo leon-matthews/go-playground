@@ -26,7 +26,9 @@
   "fetch": [
     "2026-06-08T09:15:58.785202616+12:00"
   ],
-  "findgo": null,
+  "findgo": [
+    "2026-06-08T14:01:30.544385167+12:00"
+  ],
   "findlinks": null,
   "google": null,
   "lognb": null,
