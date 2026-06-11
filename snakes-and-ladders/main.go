@@ -37,7 +37,7 @@ func parse(args []string) (options, error) {
 	flags := pflag.NewFlagSet("go_ladders", pflag.ExitOnError)
 	flags.SetOutput(os.Stderr)
 
-	// Multicore? Plain '-j' means all cores, but pflag needs exactly '-j=4' for a count.
+	// Multicore? Plain '-j' means all cores; normalizeJobs supports make-style counts.
 	numCores := runtime.NumCPU()
 	jobs := flags.IntP("jobs", "j", 1, fmt.Sprintf("Run on multiple cores (%d found)", numCores))
 	flags.Lookup("jobs").NoOptDefVal = strconv.Itoa(numCores)
@@ -49,17 +49,14 @@ func parse(args []string) (options, error) {
 	numGames := flags.Int64P("games", "n", 0, "Total number of games to play, eg. 100 or 1_000_000")
 	seconds := flags.IntP("seconds", "s", 10, "Seconds to play for")
 
-	if err := flags.Parse(args); err != nil {
+	if err := flags.Parse(normalizeJobs(args)); err != nil {
 		return options{}, err
 	}
 	if flags.Changed("games") && flags.Changed("seconds") {
 		return options{}, errors.New("only one of -n and -s may be given")
 	}
 	if flags.NArg() > 0 {
-		return options{}, fmt.Errorf(
-			"unrecognised arguments: %s (note that a core count needs '-j=4', not '-j 4')",
-			strings.Join(flags.Args(), " "),
-		)
+		return options{}, fmt.Errorf("unrecognised arguments: %s", strings.Join(flags.Args(), " "))
 	}
 	if *jobs < 1 {
 		return options{}, fmt.Errorf("number of jobs must be at least one, given: %d", *jobs)
@@ -80,6 +77,45 @@ func parse(args []string) (options, error) {
 		numGames: *numGames,
 		seconds:  *seconds,
 	}, nil
+}
+
+// normalizeJobs rewrites make-style job counts into the -j=4 form pflag needs.
+//
+// Mirrors GNU make, which accepts an attached count like -j4, a separate
+// all-digits argument like -j 4, or a bare -j meaning every core.
+func normalizeJobs(args []string) []string {
+	normalized := make([]string, 0, len(args))
+	for index := 0; index < len(args); index++ {
+		arg := args[index]
+		switch {
+		case arg == "--":
+			// Everything after the terminator is positional; pass it through untouched
+			return append(normalized, args[index:]...)
+		case strings.HasPrefix(arg, "-j") && isDigits(arg[2:]):
+			// Attached count, eg. -j4
+			normalized = append(normalized, "-j="+arg[2:])
+		case (arg == "-j" || arg == "--jobs") && index+1 < len(args) && isDigits(args[index+1]):
+			// Separate count, eg. -j 4; consume the digits, as GNU make does
+			index++
+			normalized = append(normalized, "-j="+args[index])
+		default:
+			normalized = append(normalized, arg)
+		}
+	}
+	return normalized
+}
+
+// isDigits reports whether s is entirely ASCII digits, with at least one.
+func isDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for index := 0; index < len(s); index++ {
+		if s[index] < '0' || s[index] > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // run plays the requested benchmark and prints its results.

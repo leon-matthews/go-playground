@@ -24,8 +24,7 @@ Spread one million games across every core, then dump detailed results to stdout
 
 Summaries are printed to stderr, so the JSON on stdout can be piped or redirected cleanly.
 
-There are two small departures from the Python interface. The game count is a plain
-integer, so exponent notation like `1e6` is not accepted, although Go literal forms such
-as `1_000_000` and `0x10` are. And pflag requires a core count to be attached to its flag
-with an equals sign, eg. `-j=4` rather than `-j 4` or `-j4`; a bare `-j` still means "use
-every core", as before.
+The only departure from the Python interface is that the game count is a plain integer,
+so exponent notation like `1e6` is not accepted, although Go literal forms such as
+`1_000_000` and `0x10` are. The `-j` flag follows the example set by `make`: a bare `-j`
+uses every core, while `-j4`, `-j 4`, and `-j=4` all set a count.

@@ -3,6 +3,7 @@ package main
 import (
 	"math"
 	"runtime"
+	"slices"
 	"testing"
 )
 
@@ -42,21 +43,61 @@ func TestParseGames(t *testing.T) {
 	}
 }
 
-// TestParseJobs checks the explicit count and the bare all-cores forms.
+// TestNormalizeJobs checks make-style job counts are rewritten to pflag's form.
+func TestNormalizeJobs(t *testing.T) {
+	tests := []struct {
+		args []string
+		want []string
+	}{
+		{nil, []string{}},
+		{[]string{"-j"}, []string{"-j"}},
+		{[]string{"-j4"}, []string{"-j=4"}},
+		{[]string{"-j", "4"}, []string{"-j=4"}},
+		{[]string{"-j=4"}, []string{"-j=4"}},
+		{[]string{"--jobs"}, []string{"--jobs"}},
+		{[]string{"--jobs", "16"}, []string{"-j=16"}},
+		{[]string{"--jobs=8"}, []string{"--jobs=8"}},
+		{[]string{"-j", "--json"}, []string{"-j", "--json"}},
+		{[]string{"-j4x"}, []string{"-j4x"}},
+		{[]string{"-j", "-4"}, []string{"-j", "-4"}},
+		{[]string{"-n", "100", "-j", "2"}, []string{"-n", "100", "-j=2"}},
+		{[]string{"--", "-j", "4"}, []string{"--", "-j", "4"}},
+		{[]string{"-j", "--", "4"}, []string{"-j", "--", "4"}},
+	}
+	for _, test := range tests {
+		if got := normalizeJobs(test.args); !slices.Equal(got, test.want) {
+			t.Errorf("normalizeJobs(%v) = %v, want %v", test.args, got, test.want)
+		}
+	}
+}
+
+// TestParseJobs checks every make-style spelling of the jobs flag.
 func TestParseJobs(t *testing.T) {
-	opts, err := parse([]string{"-j=2"})
-	if err != nil {
-		t.Fatalf("parse(-j=2) returned error: %v", err)
+	counted := [][]string{
+		{"-j=2"},
+		{"-j2"},
+		{"-j", "2"},
+		{"--jobs", "2"},
+		{"--jobs=2"},
 	}
-	if opts.jobs != 2 {
-		t.Errorf("parse(-j=2) jobs = %d, want 2", opts.jobs)
+	for _, args := range counted {
+		opts, err := parse(args)
+		if err != nil {
+			t.Fatalf("parse(%v) returned error: %v", args, err)
+		}
+		if opts.jobs != 2 {
+			t.Errorf("parse(%v) jobs = %d, want 2", args, opts.jobs)
+		}
 	}
-	opts, err = parse([]string{"-j"})
-	if err != nil {
-		t.Fatalf("parse(-j) returned error: %v", err)
-	}
-	if opts.jobs != runtime.NumCPU() {
-		t.Errorf("parse(-j) jobs = %d, want NumCPU (%d)", opts.jobs, runtime.NumCPU())
+
+	for _, args := range [][]string{{"-j"}, {"--jobs"}} {
+		opts, err := parse(args)
+		if err != nil {
+			t.Fatalf("parse(%v) returned error: %v", args, err)
+		}
+		if opts.jobs != runtime.NumCPU() {
+			t.Errorf("parse(%v) jobs = %d, want NumCPU (%d)", args, opts.jobs, runtime.NumCPU())
+		}
 	}
 }
 
@@ -66,6 +107,7 @@ func TestParseErrors(t *testing.T) {
 		{"-n", "100", "-s", "5"},
 		{"positional"},
 		{"-j=0"},
+		{"-j0"},
 		{"-s", "0"},
 		{"-s=-3"},
 		{"-n", "0"},
