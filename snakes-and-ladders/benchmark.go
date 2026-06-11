@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand/v2"
 	"slices"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -34,12 +36,38 @@ func (c gameCounts) MarshalJSON() ([]byte, error) {
 	return []byte(b.String()), nil
 }
 
+// UnmarshalJSON reads the length-keyed object form back into a counts slice.
+func (c *gameCounts) UnmarshalJSON(data []byte) error {
+	var byLength map[string]int64
+	if err := json.Unmarshal(data, &byLength); err != nil {
+		return err
+	}
+	var counts gameCounts
+	for key, count := range byLength {
+		length, err := strconv.Atoi(key)
+		if err != nil || length < 0 {
+			return fmt.Errorf("bad game length %q", key)
+		}
+		if count < 0 {
+			return fmt.Errorf("negative count for game length %d: %d", length, count)
+		}
+		if length >= len(counts) {
+			counts = append(counts, make(gameCounts, length+1-len(counts))...)
+		}
+		counts[length] = count
+	}
+	*c = counts
+	return nil
+}
+
 // BenchmarkResult holds the results for a benchmark run.
 type BenchmarkResult struct {
 	// Counts maps game length against number of games.
 	Counts gameCounts `json:"counts"`
 	// Elapsed is the seconds spent playing; combined results sum every worker's span.
 	Elapsed float64 `json:"elapsed"`
+	// Wall is the wall-clock seconds taken; combined results sum every run's wall.
+	Wall float64 `json:"wall"`
 	// NumGames is the total number of games played.
 	NumGames int64 `json:"num_games"`
 	// Shortest is the full roll and position history of the shortest game played.
@@ -58,6 +86,7 @@ func (r BenchmarkResult) Add(other BenchmarkResult) BenchmarkResult {
 	return BenchmarkResult{
 		Counts:   counts,
 		Elapsed:  r.Elapsed + other.Elapsed,
+		Wall:     r.Wall + other.Wall,
 		NumGames: r.NumGames + other.NumGames,
 		Shortest: shorterGame(r.Shortest, other.Shortest),
 		Longest:  longerGame(r.Longest, other.Longest),

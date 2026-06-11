@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"math"
 	"math/rand/v2"
+	"reflect"
 	"slices"
 	"sync/atomic"
 	"testing"
@@ -103,6 +105,7 @@ func TestBenchmarkResultAdd(t *testing.T) {
 	first := BenchmarkResult{
 		Counts:   gameCounts{7: 1, 30: 5},
 		Elapsed:  1.5,
+		Wall:     0.75,
 		NumGames: 6,
 		Shortest: make(Game, 7),
 		Longest:  make(Game, 30),
@@ -110,6 +113,7 @@ func TestBenchmarkResultAdd(t *testing.T) {
 	second := BenchmarkResult{
 		Counts:   gameCounts{30: 2, 90: 1},
 		Elapsed:  2.5,
+		Wall:     1.25,
 		NumGames: 3,
 		Shortest: make(Game, 9),
 		Longest:  make(Game, 90),
@@ -120,6 +124,9 @@ func TestBenchmarkResultAdd(t *testing.T) {
 	}
 	if combined.Elapsed != 4.0 {
 		t.Errorf("Elapsed = %v, want 4.0", combined.Elapsed)
+	}
+	if combined.Wall != 2.0 {
+		t.Errorf("Wall = %v, want 2.0", combined.Wall)
 	}
 	want := gameCounts{7: 1, 30: 7, 90: 1}
 	if !slices.Equal(combined.Counts, want) {
@@ -156,5 +163,45 @@ func TestGameCountsMarshalJSON(t *testing.T) {
 	want := `{"7":1,"20":2,"100":3}`
 	if string(encoded) != want {
 		t.Errorf("MarshalJSON = %s, want %s", encoded, want)
+	}
+}
+
+// TestGameCountsUnmarshalJSON checks the object form decodes, and bad input is rejected.
+func TestGameCountsUnmarshalJSON(t *testing.T) {
+	var counts gameCounts
+	if err := counts.UnmarshalJSON([]byte(`{"7":1,"20":2,"100":3}`)); err != nil {
+		t.Fatalf("UnmarshalJSON returned error: %v", err)
+	}
+	want := gameCounts{7: 1, 20: 2, 100: 3}
+	if !slices.Equal(counts, want) {
+		t.Errorf("UnmarshalJSON = %v, want %v", counts, want)
+	}
+	for _, bad := range []string{`{"x":1}`, `{"-1":1}`, `{"7":-2}`, `[1,2]`} {
+		if err := counts.UnmarshalJSON([]byte(bad)); err == nil {
+			t.Errorf("UnmarshalJSON(%s) expected an error, got none", bad)
+		}
+	}
+}
+
+// TestBenchmarkResultRoundTrip checks a result survives JSON encode and decode.
+func TestBenchmarkResultRoundTrip(t *testing.T) {
+	original := BenchmarkResult{
+		Counts:   gameCounts{7: 1, 9: 2},
+		Elapsed:  1.25,
+		Wall:     2.5,
+		NumGames: 3,
+		Shortest: Game{{4, 14}, {6, 100}},
+		Longest:  Game{{1, 38}, {6, 44}, {6, 100}},
+	}
+	encoded, err := json.Marshal(original)
+	if err != nil {
+		t.Fatalf("Marshal returned error: %v", err)
+	}
+	var decoded BenchmarkResult
+	if err := json.Unmarshal(encoded, &decoded); err != nil {
+		t.Fatalf("Unmarshal returned error: %v", err)
+	}
+	if !reflect.DeepEqual(original, decoded) {
+		t.Errorf("round trip = %+v, want %+v", decoded, original)
 	}
 }

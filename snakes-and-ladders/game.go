@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/bits"
 	"math/rand/v2"
@@ -18,6 +19,16 @@ type Move struct {
 // MarshalJSON writes a move as a two-element array, matching the Python tuples.
 func (m Move) MarshalJSON() ([]byte, error) {
 	return fmt.Appendf(nil, "[%d,%d]", m.Roll, m.Square), nil
+}
+
+// UnmarshalJSON reads the two-element array form back; json rejects values over 255.
+func (m *Move) UnmarshalJSON(data []byte) error {
+	var pair [2]uint8
+	if err := json.Unmarshal(data, &pair); err != nil {
+		return err
+	}
+	m.Roll, m.Square = pair[0], pair[1]
+	return nil
 }
 
 // Game is the full roll and position history of a single game.

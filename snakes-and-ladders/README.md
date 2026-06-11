@@ -18,13 +18,18 @@ Play for ten seconds (the default) using a single goroutine:
 
     ./go_ladders
 
-Spread one million games across every core, then dump detailed results to stdout as JSON:
+Spread one million games across every core, then write detailed results to a JSON file:
 
-    ./go_ladders -n 1_000_000 -j --json
+    ./go_ladders -n 1_000_000 -j results.json
 
-Summaries are printed to stderr, so the JSON on stdout can be piped or redirected cleanly.
+Results from every earlier run of this command accumulate in the named file, as it is
+read back, if it exists, before being rewritten. Naming several files skips the benchmark
+entirely: here the results in `A.json` and `B.json` are merged into `C.json`, leaving the
+first two files untouched, and no games are played at all:
 
-The only departure from the Python interface is that the game count is a plain integer,
-so exponent notation like `1e6` is not accepted, although Go literal forms such as
-`1_000_000` and `0x10` are. The `-j` flag follows the example set by `make`: a bare `-j`
-uses every core, while `-j4`, `-j 4`, and `-j=4` all set a count.
+    ./go_ladders A.json B.json C.json
+
+The game count departs from the Python interface in being a plain integer, so exponent
+notation like `1e6` is not accepted, although Go literal forms such as `1_000_000` and
+`0x10` are. The `-j` flag follows the example set by `make`: a bare `-j` uses every core,
+while `-j4`, `-j 4`, and `-j=4` all set a count.

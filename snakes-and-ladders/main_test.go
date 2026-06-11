@@ -1,7 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"math"
+	"os"
+	"path/filepath"
+	"reflect"
 	"runtime"
 	"slices"
 	"testing"
@@ -13,9 +17,34 @@ func TestParseDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse(nil) returned error: %v", err)
 	}
-	want := options{jobs: 1, json: false, numGames: 0, seconds: 10}
-	if opts != want {
-		t.Errorf("parse(nil) = %+v, want %+v", opts, want)
+	if opts.jobs != 1 || opts.numGames != 0 || opts.seconds != 10 {
+		t.Errorf("parse(nil) = %+v, want jobs 1, numGames 0, seconds 10", opts)
+	}
+	if len(opts.jsonPaths) != 0 {
+		t.Errorf("parse(nil) jsonPaths = %v, want none", opts.jsonPaths)
+	}
+}
+
+// TestParsePaths checks positional arguments are collected as JSON file paths.
+func TestParsePaths(t *testing.T) {
+	tests := []struct {
+		args []string
+		want []string
+	}{
+		{[]string{"A.json"}, []string{"A.json"}},
+		{[]string{"-j=2", "A.json"}, []string{"A.json"}},
+		{[]string{"A.json", "-n", "100"}, []string{"A.json"}},
+		{[]string{"A.json", "B.json", "C.json"}, []string{"A.json", "B.json", "C.json"}},
+	}
+	for _, test := range tests {
+		opts, err := parse(test.args)
+		if err != nil {
+			t.Errorf("parse(%v) returned error: %v", test.args, err)
+			continue
+		}
+		if !slices.Equal(opts.jsonPaths, test.want) {
+			t.Errorf("parse(%v) jsonPaths = %v, want %v", test.args, opts.jsonPaths, test.want)
+		}
 	}
 }
 
@@ -105,18 +134,101 @@ func TestParseJobs(t *testing.T) {
 func TestParseErrors(t *testing.T) {
 	tests := [][]string{
 		{"-n", "100", "-s", "5"},
-		{"positional"},
 		{"-j=0"},
 		{"-j0"},
 		{"-s", "0"},
 		{"-s=-3"},
 		{"-n", "0"},
 		{"-n=-100"},
+		{"-j2", "A.json", "B.json"},
+		{"-n", "100", "A.json", "B.json"},
+		{"-s", "5", "A.json", "B.json"},
+		{"A.json", "A.json"},
+		{"./A.json", "A.json"},
+		{"sub/../A.json", "B.json", "A.json"},
 	}
 	for _, args := range tests {
 		if _, err := parse(args); err == nil {
 			t.Errorf("parse(%v) expected an error, got none", args)
 		}
+	}
+}
+
+// TestReadResults checks file combining and the missing-output-target rule.
+func TestReadResults(t *testing.T) {
+	dir := t.TempDir()
+	first := filepath.Join(dir, "first.json")
+	second := filepath.Join(dir, "second.json")
+	content := `{"counts":{"8":2},"elapsed":1.5,"wall":2.5,"num_games":2,` +
+		`"shortest":[[4,14],[6,100]],"longest":[[4,14],[6,100]]}`
+	if err := os.WriteFile(first, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// The last file is the output target, so may be missing
+	combined, err := readResults([]string{first, second})
+	if err != nil {
+		t.Fatalf("readResults returned error: %v", err)
+	}
+	if combined.NumGames != 2 || combined.Wall != 2.5 {
+		t.Errorf("combined = %+v, want NumGames 2 and Wall 2.5", combined)
+	}
+
+	// Every readable file joins the combined result
+	if err := os.WriteFile(second, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	combined, err = readResults([]string{first, second})
+	if err != nil {
+		t.Fatalf("readResults returned error: %v", err)
+	}
+	if combined.NumGames != 4 || combined.Elapsed != 3.0 || combined.Wall != 5.0 {
+		t.Errorf("combined = %+v, want NumGames 4, Elapsed 3.0, Wall 5.0", combined)
+	}
+	if want := (gameCounts{8: 4}); !slices.Equal(combined.Counts, want) {
+		t.Errorf("Counts = %v, want %v", combined.Counts, want)
+	}
+
+	// A missing file anywhere else is an error
+	if _, err := readResults([]string{filepath.Join(dir, "missing.json"), second}); err == nil {
+		t.Error("expected an error for a missing input file")
+	}
+
+	// As is a file that does not parse
+	garbled := filepath.Join(dir, "garbled.json")
+	if err := os.WriteFile(garbled, []byte("not json"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := readResults([]string{garbled}); err == nil {
+		t.Error("expected an error for an unparseable file")
+	}
+}
+
+// TestMerge checks the combined result is written intact to the last named file.
+func TestMerge(t *testing.T) {
+	dir := t.TempDir()
+	target := filepath.Join(dir, "target.json")
+	combined := BenchmarkResult{
+		Counts:   gameCounts{8: 2},
+		Elapsed:  1.5,
+		Wall:     2.5,
+		NumGames: 2,
+		Shortest: Game{{4, 14}, {6, 100}},
+		Longest:  Game{{4, 14}, {6, 100}},
+	}
+	if code := merge(combined, []string{filepath.Join(dir, "source.json"), target}); code != 0 {
+		t.Fatalf("merge returned %d, want 0", code)
+	}
+	data, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var written BenchmarkResult
+	if err := json.Unmarshal(data, &written); err != nil {
+		t.Fatalf("written file does not parse: %v", err)
+	}
+	if !reflect.DeepEqual(written, combined) {
+		t.Errorf("written = %+v, want %+v", written, combined)
 	}
 }
 

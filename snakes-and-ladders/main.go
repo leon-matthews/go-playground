@@ -14,6 +14,7 @@ import (
 	"math"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -24,10 +25,10 @@ import (
 
 // options holds the parsed command-line arguments.
 type options struct {
-	jobs     int
-	json     bool
-	numGames int64
-	seconds  int
+	jobs      int
+	jsonPaths []string
+	numGames  int64
+	seconds   int
 }
 
 // parse builds the parsed options from the given command-line arguments.
@@ -37,14 +38,17 @@ type options struct {
 func parse(args []string) (options, error) {
 	flags := pflag.NewFlagSet("go_ladders", pflag.ExitOnError)
 	flags.SetOutput(os.Stderr)
+	flags.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Usage: go_ladders [flags] [results.json ... target.json]")
+		fmt.Fprintln(os.Stderr, "Benchmark results accumulate into a single named JSON file. Naming several")
+		fmt.Fprintln(os.Stderr, "files skips the benchmark, merging them into the last file instead.")
+		flags.PrintDefaults()
+	}
 
 	// Multicore? Plain '-j' means all cores; normalizeJobs supports make-style counts.
 	numCores := runtime.NumCPU()
 	jobs := flags.IntP("jobs", "j", 1, fmt.Sprintf("Run on multiple cores (%d found)", numCores))
 	flags.Lookup("jobs").NoOptDefVal = strconv.Itoa(numCores)
-
-	// JSON output?
-	jsonOut := flags.Bool("json", false, "Dump detailed results to stdout as JSON")
 
 	// Iterations or seconds?
 	numGames := flags.Int64P("games", "n", 0, "Total number of games to play, eg. 100 or 1_000_000")
@@ -56,8 +60,8 @@ func parse(args []string) (options, error) {
 	if flags.Changed("games") && flags.Changed("seconds") {
 		return options{}, errors.New("only one of -n and -s may be given")
 	}
-	if flags.NArg() > 0 {
-		return options{}, fmt.Errorf("unrecognised arguments: %s", strings.Join(flags.Args(), " "))
+	if flags.NArg() > 1 && (flags.Changed("jobs") || flags.Changed("games") || flags.Changed("seconds")) {
+		return options{}, errors.New("merging several files plays no games, so -j, -n, and -s may not be given")
 	}
 	if *jobs < 1 {
 		return options{}, fmt.Errorf("number of jobs must be at least one, given: %d", *jobs)
@@ -72,12 +76,48 @@ func parse(args []string) (options, error) {
 		return options{}, fmt.Errorf("number of games must be at least one, given: %d", *numGames)
 	}
 
+	// Reject the same file named twice; Abs catches spellings like ./A.json
+	seen := make(map[string]string, flags.NArg())
+	for _, path := range flags.Args() {
+		absolute, err := filepath.Abs(path)
+		if err != nil {
+			return options{}, err
+		}
+		if earlier, found := seen[absolute]; found {
+			return options{}, fmt.Errorf("file named twice: %s and %s", earlier, path)
+		}
+		seen[absolute] = path
+	}
+
 	return options{
-		jobs:     *jobs,
-		json:     *jsonOut,
-		numGames: *numGames,
-		seconds:  *seconds,
+		jobs:      *jobs,
+		jsonPaths: flags.Args(),
+		numGames:  *numGames,
+		seconds:   *seconds,
 	}, nil
+}
+
+// readResults loads and combines results from the given JSON files.
+//
+// Every file must exist and parse cleanly, except the last, which is the
+// output target and so is allowed to be missing.
+func readResults(paths []string) (BenchmarkResult, error) {
+	var combined BenchmarkResult
+	for index, path := range paths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			if index == len(paths)-1 && errors.Is(err, os.ErrNotExist) {
+				continue
+			}
+			return BenchmarkResult{}, err
+		}
+		var result BenchmarkResult
+		if err := json.Unmarshal(data, &result); err != nil {
+			return BenchmarkResult{}, fmt.Errorf("%s: %w", path, err)
+		}
+		combined = combined.Add(result)
+	}
+	return combined, nil
 }
 
 // normalizeJobs rewrites make-style job counts into the -j=4 form pflag needs.
@@ -121,8 +161,21 @@ func isDigits(s string) bool {
 
 // run plays the requested benchmark and prints its results.
 //
-// Summaries are printed to stderr, detailed JSON results to stdout.
+// Summaries are printed to stderr. Detailed results accumulate into a named
+// JSON file; naming several files skips the benchmark and merges instead.
 func run(opts options) int {
+	// Read earlier results up front, so a bad path fails before a long run
+	prior, err := readResults(opts.jsonPaths)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		return 1
+	}
+
+	// Several files? Merge them into the last, playing no games at all.
+	if len(opts.jsonPaths) > 1 {
+		return merge(prior, opts.jsonPaths)
+	}
+
 	// A game-count target plays from a finite pool; a time limit plays an
 	// effectively unbounded pool until the context deadline stops the workers.
 	// An interrupt cancels either mode early, reporting the games played so far.
@@ -149,6 +202,7 @@ func run(opts options) int {
 	start := time.Now()
 	result := benchmarkParallel(ctx, opts.jobs, totalGames)
 	wall := time.Since(start).Seconds()
+	result.Wall = wall
 
 	// Note interruption before calling stop, as stop itself cancels the context
 	interrupted := ctx.Err() == context.Canceled
@@ -164,11 +218,54 @@ func run(opts options) int {
 		}
 	}
 
-	rate := float64(result.NumGames) / wall
+	if code := printSummary(result); code != 0 {
+		return code
+	}
+
+	// Merge this run with any earlier results and write back to the file
+	if len(opts.jsonPaths) == 1 {
+		if err := writeResults(prior.Add(result), opts.jsonPaths[0]); err != nil {
+			fmt.Fprintln(os.Stderr, "error:", err)
+			return 1
+		}
+	}
+
+	// Exit 130 mimics the shell's 128 plus signal number convention for SIGINT
+	if interrupted {
+		return 130
+	}
+	return 0
+}
+
+// merge reports the combined results from several files, writing them to the last.
+//
+// The combining itself happens as the files are read; here the totals are
+// presented just as a benchmark run's would be.
+func merge(combined BenchmarkResult, paths []string) int {
+	target := paths[len(paths)-1]
+	sources := strings.Join(paths[:len(paths)-1], ", ")
+	fmt.Fprintf(os.Stderr, "Merging results from %s into %s\n", sources, target)
+	if code := printSummary(combined); code != 0 {
+		return code
+	}
+	if err := writeResults(combined, target); err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		return 1
+	}
+	return 0
+}
+
+// printSummary prints a result's game count, timings, and move records to stderr.
+func printSummary(result BenchmarkResult) int {
+	// Guard the rate against a zero wall, as comes from merging empty results
+	var rate float64
+	if result.Wall > 0 {
+		rate = float64(result.NumGames) / result.Wall
+	}
 	fmt.Fprintf(
 		os.Stderr,
 		"%s games finished in %.2f seconds (%.2fs worker time) = %s games per second\n",
-		comma(result.NumGames), wall, result.Elapsed, comma(int64(math.Round(rate))),
+		comma(result.NumGames), result.Wall, result.Elapsed, comma(int64(math.Round(rate))),
 	)
 
 	// An interrupt can arrive before any games at all; skip the empty statistics
@@ -184,28 +281,16 @@ func run(opts options) int {
 			len(result.Shortest), len(result.Longest), int(median),
 		)
 	}
-
-	// JSON?
-	if opts.json {
-		// Run-level facts live here, not in the mergeable per-worker results
-		detailed := struct {
-			BenchmarkResult
-			Wall        float64 `json:"wall"`
-			Interrupted bool    `json:"interrupted"`
-		}{result, wall, interrupted}
-		encoded, err := json.MarshalIndent(detailed, "", "    ")
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "error:", err)
-			return 1
-		}
-		fmt.Println(string(encoded))
-	}
-
-	// Exit 130 mimics the shell's 128 plus signal number convention for SIGINT
-	if interrupted {
-		return 130
-	}
 	return 0
+}
+
+// writeResults writes a result to the given path as indented JSON.
+func writeResults(result BenchmarkResult, path string) error {
+	encoded, err := json.MarshalIndent(result, "", "    ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, append(encoded, '\n'), 0o644)
 }
 
 // comma formats an integer with thousands separators, eg. 1234567 becomes "1,234,567".
