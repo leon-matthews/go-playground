@@ -85,7 +85,7 @@ func TestPlayGamesDeadline(t *testing.T) {
 
 // TestBenchmarkParallelExactCount checks workers sharing the pool play exactly the total.
 func TestBenchmarkParallelExactCount(t *testing.T) {
-	result := benchmarkParallel(context.Background(), 4, 10_000, func(int64) {})
+	result := benchmarkParallel(context.Background(), 4, 10_000)
 	if result.NumGames != 10_000 {
 		t.Errorf("NumGames = %d, want 10000", result.NumGames)
 	}

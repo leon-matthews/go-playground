@@ -147,19 +147,7 @@ func run(opts options) int {
 
 	// Run benchmark
 	start := time.Now()
-	progress := func(played int64) {
-		elapsed := time.Since(start).Seconds()
-		rate := comma(int64(math.Round(float64(played) / elapsed)))
-		if opts.numGames > 0 {
-			percent := 100 * float64(played) / float64(opts.numGames)
-			fmt.Fprintf(os.Stderr, "%s of %s games (%.1f%%) at %s games per second\n",
-				comma(played), comma(opts.numGames), percent, rate)
-		} else {
-			fmt.Fprintf(os.Stderr, "%s games after %.0f of %d seconds, at %s games per second\n",
-				comma(played), elapsed, opts.seconds, rate)
-		}
-	}
-	result := benchmarkParallel(ctx, opts.jobs, totalGames, progress)
+	result := benchmarkParallel(ctx, opts.jobs, totalGames)
 	wall := time.Since(start).Seconds()
 
 	// Note interruption before calling stop, as stop itself cancels the context

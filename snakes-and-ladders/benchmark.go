@@ -86,9 +86,6 @@ func longerGame(a, b Game) Game {
 // chunkGames is how many games a worker claims at once, bounding deadline overshoot and imbalance.
 const chunkGames = 1024
 
-// progressInterval is how often benchmarkParallel reports progress on long runs.
-const progressInterval = 10 * time.Second
-
 // playGames plays solo games of snakes and ladders until the work runs out.
 //
 // Games are claimed from the shared remaining counter, one chunk at a time,
@@ -147,9 +144,7 @@ func playGames(ctx context.Context, rng *rand.PCG, remaining *atomic.Int64) Benc
 //
 // Workers claim work in small chunks from a single pool, so they all finish
 // within one chunk of each other, and of the context deadline if one is set.
-// While the run is going, the progress callback is given the games claimed
-// so far, once every progressInterval.
-func benchmarkParallel(ctx context.Context, numJobs int, totalGames int64, progress func(played int64)) BenchmarkResult {
+func benchmarkParallel(ctx context.Context, numJobs int, totalGames int64) BenchmarkResult {
 	var remaining atomic.Int64
 	remaining.Store(totalGames)
 
@@ -162,19 +157,10 @@ func benchmarkParallel(ctx context.Context, numJobs int, totalGames int64, progr
 		}()
 	}
 
-	// Merge results as workers finish, reporting progress in between
-	ticker := time.NewTicker(progressInterval)
-	defer ticker.Stop()
+	// Wait for, and combine results
 	var combined BenchmarkResult
-	for finished := 0; finished < numJobs; {
-		select {
-		case result := <-results:
-			combined = combined.Add(result)
-			finished++
-		case <-ticker.C:
-			// Claimed work trails actual play by at most one chunk per worker
-			progress(min(totalGames, totalGames-remaining.Load()))
-		}
+	for range numJobs {
+		combined = combined.Add(<-results)
 	}
 	return combined
 }
