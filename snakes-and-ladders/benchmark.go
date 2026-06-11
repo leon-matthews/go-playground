@@ -1,12 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"iter"
 	"maps"
 	"math/rand/v2"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -80,110 +81,74 @@ func longerGame(a, b Game) Game {
 	return a
 }
 
-// playCount plays the given number of solo games of snakes and ladders.
+// chunkGames is how many games a worker claims at once, bounding deadline overshoot and imbalance.
+const chunkGames = 1024
+
+// playGames plays solo games of snakes and ladders until the work runs out.
 //
-// Returns a BenchmarkResult containing the shortest and longest games.
-func playCount(rng *rand.PCG, numGames int64) BenchmarkResult {
+// Games are claimed from the shared remaining counter, one chunk at a time,
+// until the counter is exhausted or the context is cancelled. Returns the
+// games actually played, including the shortest and longest seen.
+func playGames(ctx context.Context, rng *rand.PCG, remaining *atomic.Int64) BenchmarkResult {
 	counts := make(gameCounts)
 	var shortest, longest Game
+	var played int64
 
 	// Reuse one buffer for every game, keeping copies of record-breaking games only
 	moves := make(Game, 0, 512)
 
 	start := time.Now()
-	for range numGames {
-		moves = snakesAndLadders(rng, moves)
-		numMoves := len(moves)
-		counts[numMoves]++
-		if shortest == nil || numMoves < len(shortest) {
-			shortest = slices.Clone(moves)
+	for ctx.Err() == nil {
+		// Claim the next chunk; the counter goes negative once the work runs out
+		games := min(chunkGames, remaining.Add(-chunkGames)+chunkGames)
+		if games <= 0 {
+			break
 		}
-		if numMoves > len(longest) {
-			longest = slices.Clone(moves)
+		for range games {
+			moves = snakesAndLadders(rng, moves)
+			numMoves := len(moves)
+			counts[numMoves]++
+			if shortest == nil || numMoves < len(shortest) {
+				shortest = slices.Clone(moves)
+			}
+			if numMoves > len(longest) {
+				longest = slices.Clone(moves)
+			}
 		}
+		played += games
 	}
 	elapsed := time.Since(start).Seconds()
 
 	return BenchmarkResult{
 		Counts:   counts,
 		Elapsed:  elapsed,
-		NumGames: numGames,
+		NumGames: played,
 		Shortest: shortest,
 		Longest:  longest,
 	}
 }
 
-// playTime keeps playing solo snakes and ladders for at least the given time.
+// benchmarkParallel plays totalGames games shared between numJobs goroutines
+// and combines their results.
 //
-// The goal is to play a round number of games while minimising the time
-// keeping overhead.
-func playTime(rng *rand.PCG, seconds int64) BenchmarkResult {
-	const minimum = 100
-	var result BenchmarkResult
-	for totalGames := range currencySeries(minimum) {
-		count := totalGames - result.NumGames
-		result = result.Add(playCount(rng, count))
-		if result.Elapsed > float64(seconds) {
-			break
-		}
-	}
-	return result
-}
+// Workers claim work in small chunks from a single pool, so they all finish
+// within one chunk of each other, and of the context deadline if one is set.
+func benchmarkParallel(ctx context.Context, numJobs int, totalGames int64) BenchmarkResult {
+	var remaining atomic.Int64
+	remaining.Store(totalGames)
 
-// currencySeries produces a readable series of numbers that is roughly exponential.
-//
-//	1, 2, 5, 10, 20, 50, 100, 200, etc.
-//
-// Grows a little faster than a power of two series, reaching one million
-// after 19 iterations, rather than 20. The series starts at the first value
-// greater than or equal to start, and ends at five quintillion (5e18), just
-// before int64 overflow.
-func currencySeries(start int64) iter.Seq[int64] {
-	return func(yield func(int64) bool) {
-		// Stop once multiplier wraps past MaxInt64; the largest value yielded is 5e18
-		for multiplier := int64(1); multiplier > 0; multiplier *= 10 {
-			for _, s := range [...]int64{1, 2, 5} {
-				if value := s * multiplier; value >= start && !yield(value) {
-					return
-				}
-			}
-		}
-	}
-}
-
-// splitCount divides total into parts entries that differ by at most one.
-//
-// The entries always sum to exactly total.
-func splitCount(total int64, parts int) []int64 {
-	counts := make([]int64, parts)
-	base := total / int64(parts)
-	remainder := total % int64(parts)
-	for i := range counts {
-		counts[i] = base
-		if int64(i) < remainder {
-			counts[i]++
-		}
-	}
-	return counts
-}
-
-// benchmarkParallel runs the benchmark function once per argument, each on
-// its own goroutine, and combines the results.
-//
-// Every goroutine rolls its dice with its own random number generator.
-func benchmarkParallel(function func(*rand.PCG, int64) BenchmarkResult, arguments []int64) BenchmarkResult {
 	// Start jobs, each with its own random number generator
-	results := make(chan BenchmarkResult, len(arguments))
-	for _, argument := range arguments {
+	results := make(chan BenchmarkResult, numJobs)
+	for range numJobs {
 		go func() {
 			rng := rand.NewPCG(rand.Uint64(), rand.Uint64())
-			results <- function(rng, argument)
+			results <- playGames(ctx, rng, &remaining)
 		}()
 	}
 
 	// Wait for, and combine results
 	var combined BenchmarkResult
-	for range arguments {
+	for range numJobs {
 		combined = combined.Add(<-results)
 	}
 	return combined

@@ -7,14 +7,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
-	"math/rand/v2"
 	"os"
 	"runtime"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -48,7 +47,7 @@ func parse(args []string) (options, error) {
 
 	// Iterations or seconds?
 	numGames := flags.Int64P("games", "n", 0, "Total number of games to play, eg. 100 or 1_000_000")
-	seconds := flags.IntP("seconds", "s", 10, "Approximate seconds to play for.")
+	seconds := flags.IntP("seconds", "s", 10, "Seconds to play for")
 
 	if err := flags.Parse(args); err != nil {
 		return options{}, err
@@ -65,8 +64,10 @@ func parse(args []string) (options, error) {
 	if *jobs < 1 {
 		return options{}, fmt.Errorf("number of jobs must be at least one, given: %d", *jobs)
 	}
-	if *seconds < 1 {
-		return options{}, fmt.Errorf("number of seconds must be at least one, given: %d", *seconds)
+	// The upper bound keeps the timeout within a time.Duration's count of nanoseconds
+	const maxSeconds = math.MaxInt64 / int64(time.Second)
+	if *seconds < 1 || int64(*seconds) > maxSeconds {
+		return options{}, fmt.Errorf("number of seconds out of range (1 to %d), given: %d", maxSeconds, *seconds)
 	}
 
 	if flags.Changed("games") && *numGames < 1 {
@@ -85,17 +86,18 @@ func parse(args []string) (options, error) {
 //
 // Summaries are printed to stderr, detailed JSON results to stdout.
 func run(opts options) int {
-	// Choose function and build one argument per job
-	var function func(*rand.PCG, int64) BenchmarkResult
-	var arguments []int64
+	// A game-count target plays from a finite pool; a time limit plays an
+	// effectively unbounded pool until the context deadline stops the workers.
+	ctx := context.Background()
+	totalGames := opts.numGames
 	if opts.numGames > 0 {
 		fmt.Fprintf(os.Stderr, "Playing %s games of Snakes & Ladders ", comma(opts.numGames))
-		function = playCount
-		arguments = splitCount(opts.numGames, opts.jobs)
 	} else {
-		fmt.Fprintf(os.Stderr, "Playing Snakes & Ladders for at least %d seconds ", opts.seconds)
-		function = playTime
-		arguments = slices.Repeat([]int64{int64(opts.seconds)}, opts.jobs)
+		fmt.Fprintf(os.Stderr, "Playing Snakes & Ladders for %d seconds ", opts.seconds)
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(opts.seconds)*time.Second)
+		defer cancel()
+		totalGames = math.MaxInt64
 	}
 
 	if opts.jobs == 1 {
@@ -106,7 +108,7 @@ func run(opts options) int {
 
 	// Run benchmark
 	start := time.Now()
-	result := benchmarkParallel(function, arguments)
+	result := benchmarkParallel(ctx, opts.jobs, totalGames)
 	wall := time.Since(start).Seconds()
 	rate := float64(result.NumGames) / wall
 	fmt.Fprintf(

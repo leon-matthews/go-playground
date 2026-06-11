@@ -1,31 +1,38 @@
 package main
 
 import (
+	"context"
 	"maps"
 	"math"
 	"math/rand/v2"
-	"slices"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
-// BenchmarkPlayCount measures playCount throughput in games per second.
-func BenchmarkPlayCount(b *testing.B) {
+// BenchmarkPlayGames measures playGames throughput in games per second.
+func BenchmarkPlayGames(b *testing.B) {
 	// Fixed seed keeps runs comparable between benchmark sessions
 	rng := rand.NewPCG(1, 2)
 	const gamesPerOp = 1_000
+	ctx := context.Background()
 
+	var remaining atomic.Int64
 	numGames := 0
 	for b.Loop() {
-		playCount(rng, gamesPerOp)
+		remaining.Store(gamesPerOp)
+		playGames(ctx, rng, &remaining)
 		numGames += gamesPerOp
 	}
 	b.ReportMetric(float64(numGames)/b.Elapsed().Seconds(), "games/s")
 }
 
-// TestPlayCount checks game counting and record keeping over a small run.
-func TestPlayCount(t *testing.T) {
+// TestPlayGames checks game counting and record keeping over a small run.
+func TestPlayGames(t *testing.T) {
 	rng := rand.NewPCG(1, 2)
-	result := playCount(rng, 1000)
+	var remaining atomic.Int64
+	remaining.Store(1000)
+	result := playGames(context.Background(), rng, &remaining)
 	if result.NumGames != 1000 {
 		t.Errorf("NumGames = %d, want 1000", result.NumGames)
 	}
@@ -48,12 +55,46 @@ func TestPlayCount(t *testing.T) {
 	}
 }
 
-// TestPlayTimeMinimum checks a zero-second budget still plays the minimum batch.
-func TestPlayTimeMinimum(t *testing.T) {
-	rng := rand.NewPCG(3, 4)
-	result := playTime(rng, 0)
-	if result.NumGames != 100 {
-		t.Errorf("NumGames = %d, want 100", result.NumGames)
+// TestPlayGamesCancelled checks a cancelled context plays no games at all.
+func TestPlayGamesCancelled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	var remaining atomic.Int64
+	remaining.Store(1_000_000)
+	result := playGames(ctx, rand.NewPCG(1, 2), &remaining)
+	if result.NumGames != 0 {
+		t.Errorf("NumGames = %d, want 0", result.NumGames)
+	}
+}
+
+// TestPlayGamesDeadline checks a deadline stops an effectively unbounded run.
+func TestPlayGamesDeadline(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	var remaining atomic.Int64
+	remaining.Store(math.MaxInt64)
+	result := playGames(ctx, rand.NewPCG(3, 4), &remaining)
+	if result.NumGames < 1 {
+		t.Error("expected at least one game before the deadline")
+	}
+	// Generous bound; just proves the deadline ended an otherwise endless run
+	if result.Elapsed > 5 {
+		t.Errorf("run took %.2f seconds, deadline was 0.05", result.Elapsed)
+	}
+}
+
+// TestBenchmarkParallelExactCount checks workers sharing the pool play exactly the total.
+func TestBenchmarkParallelExactCount(t *testing.T) {
+	result := benchmarkParallel(context.Background(), 4, 10_000)
+	if result.NumGames != 10_000 {
+		t.Errorf("NumGames = %d, want 10000", result.NumGames)
+	}
+	var total int64
+	for _, count := range result.Counts {
+		total += count
+	}
+	if total != 10_000 {
+		t.Errorf("sum of counts = %d, want 10000", total)
 	}
 }
 
@@ -102,76 +143,6 @@ func TestBenchmarkResultAddZero(t *testing.T) {
 	combined := zero.Add(other)
 	if combined.NumGames != 2 || len(combined.Shortest) != 8 || len(combined.Longest) != 8 {
 		t.Errorf("Add onto zero value = %+v, want copy of other", combined)
-	}
-}
-
-// TestSplitCount checks entries differ by at most one and sum to the total.
-func TestSplitCount(t *testing.T) {
-	tests := []struct {
-		total int64
-		parts int
-		want  []int64
-	}{
-		{10, 4, []int64{3, 3, 2, 2}},
-		{2, 4, []int64{1, 1, 0, 0}},
-		{7, 1, []int64{7}},
-		{100, 3, []int64{34, 33, 33}},
-	}
-	for _, test := range tests {
-		if got := splitCount(test.total, test.parts); !slices.Equal(got, test.want) {
-			t.Errorf("splitCount(%d, %d) = %v, want %v", test.total, test.parts, got, test.want)
-		}
-	}
-
-	// The arithmetic must hold right up to the int64 limit
-	var sum int64
-	for _, count := range splitCount(math.MaxInt64, 5) {
-		sum += count
-	}
-	if sum != math.MaxInt64 {
-		t.Errorf("splitCount(MaxInt64, 5) sums to %d, want %d", sum, int64(math.MaxInt64))
-	}
-}
-
-// TestCurrencySeriesStart checks the series starts at the first value >= start.
-func TestCurrencySeriesStart(t *testing.T) {
-	tests := []struct {
-		start int64
-		want  int64
-	}{
-		{1, 1},
-		{2, 2},
-		{3, 5},
-		{100, 100},
-		{101, 200},
-		{750, 1000},
-	}
-	for _, test := range tests {
-		for value := range currencySeries(test.start) {
-			if value != test.want {
-				t.Errorf("currencySeries(%d) starts at %d, want %d", test.start, value, test.want)
-			}
-			break
-		}
-	}
-}
-
-// TestCurrencySeriesTerminates checks the series stays increasing and ends before int64 overflow.
-func TestCurrencySeriesTerminates(t *testing.T) {
-	var last int64
-	values := 0
-	for value := range currencySeries(1) {
-		if value <= last {
-			t.Fatalf("series is not increasing: %d follows %d", value, last)
-		}
-		last = value
-		values++
-	}
-	if last != 5_000_000_000_000_000_000 {
-		t.Errorf("series ends at %d, want 5e18", last)
-	}
-	if values != 57 {
-		t.Errorf("series yielded %d values, want 57", values)
 	}
 }
 

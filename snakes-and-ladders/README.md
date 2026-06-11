@@ -14,7 +14,7 @@ dictionary, and each worker rolls its dice with its own PCG random number genera
 
 ## Usage
 
-Play for roughly ten seconds (the default) using a single goroutine:
+Play for ten seconds (the default) using a single goroutine:
 
     ./go_ladders
 
