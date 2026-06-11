@@ -11,7 +11,9 @@ import (
 )
 
 // gameCounts maps game length against the number of games of that length.
-type gameCounts map[int]int
+//
+// Counts are int64 so that long runs do not overflow on 32-bit builds.
+type gameCounts map[int]int64
 
 // MarshalJSON writes the counts with keys in ascending game-length order.
 func (c gameCounts) MarshalJSON() ([]byte, error) {
@@ -34,7 +36,7 @@ type BenchmarkResult struct {
 	// Elapsed is the time taken in seconds.
 	Elapsed float64 `json:"elapsed"`
 	// NumGames is the total number of games played.
-	NumGames int `json:"num_games"`
+	NumGames int64 `json:"num_games"`
 	// Shortest is the full roll and position history of the shortest game played.
 	Shortest Game `json:"shortest"`
 	// Longest is as per Shortest, but for the longest game.
@@ -81,7 +83,7 @@ func longerGame(a, b Game) Game {
 // playCount plays the given number of solo games of snakes and ladders.
 //
 // Returns a BenchmarkResult containing the shortest and longest games.
-func playCount(rng *rand.PCG, numGames int) BenchmarkResult {
+func playCount(rng *rand.PCG, numGames int64) BenchmarkResult {
 	counts := make(gameCounts)
 	var shortest, longest Game
 
@@ -115,7 +117,7 @@ func playCount(rng *rand.PCG, numGames int) BenchmarkResult {
 //
 // The goal is to play a round number of games while minimising the time
 // keeping overhead.
-func playTime(rng *rand.PCG, seconds int) BenchmarkResult {
+func playTime(rng *rand.PCG, seconds int64) BenchmarkResult {
 	const minimum = 100
 	var result BenchmarkResult
 	for totalGames := range currencySeries(minimum) {
@@ -134,11 +136,13 @@ func playTime(rng *rand.PCG, seconds int) BenchmarkResult {
 //
 // Grows a little faster than a power of two series, reaching one million
 // after 19 iterations, rather than 20. The series starts at the first value
-// greater than or equal to start.
-func currencySeries(start int) iter.Seq[int] {
-	return func(yield func(int) bool) {
-		for multiplier := 1; ; multiplier *= 10 {
-			for _, s := range [...]int{1, 2, 5} {
+// greater than or equal to start, and ends at five quintillion (5e18), just
+// before int64 overflow.
+func currencySeries(start int64) iter.Seq[int64] {
+	return func(yield func(int64) bool) {
+		// Stop once multiplier wraps past MaxInt64; the largest value yielded is 5e18
+		for multiplier := int64(1); multiplier > 0; multiplier *= 10 {
+			for _, s := range [...]int64{1, 2, 5} {
 				if value := s * multiplier; value >= start && !yield(value) {
 					return
 				}
@@ -153,7 +157,7 @@ func currencySeries(start int) iter.Seq[int] {
 // Every goroutine runs the full function with the same argument, just as the
 // Python original runs its benchmark function once per process, so the
 // combined result holds numJobs times the requested work.
-func benchmarkParallel(numJobs int, function func(*rand.PCG, int) BenchmarkResult, argument int) BenchmarkResult {
+func benchmarkParallel(numJobs int, function func(*rand.PCG, int64) BenchmarkResult, argument int64) BenchmarkResult {
 	// Start jobs, each with its own random number generator
 	results := make(chan BenchmarkResult, numJobs)
 	for range numJobs {

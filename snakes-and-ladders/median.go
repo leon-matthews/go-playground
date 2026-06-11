@@ -23,8 +23,8 @@ const (
 //
 // The multiset is given as a mapping of values against how many times each
 // value occurs. An error is returned if the multiset is empty.
-func multisetMedian(counts map[int]int, mode medianMode) (float64, error) {
-	total := 0
+func multisetMedian(counts map[int]int64, mode medianMode) (float64, error) {
+	var total int64
 	for _, count := range counts {
 		total += count
 	}
@@ -34,11 +34,11 @@ func multisetMedian(counts map[int]int, mode medianMode) (float64, error) {
 
 	// Find median values
 	middle := float64(total+1) / 2
-	lowerPos := int(math.Floor(middle))
-	upperPos := int(math.Ceil(middle))
+	lowerPos := int64(math.Floor(middle))
+	upperPos := int64(math.Ceil(middle))
 	var lower, upper int
 	lowerFound := false
-	count := 0
+	var count int64
 
 	for _, value := range slices.Sorted(maps.Keys(counts)) {
 		count += counts[value]
