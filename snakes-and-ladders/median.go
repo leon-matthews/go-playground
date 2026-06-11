@@ -2,9 +2,7 @@ package main
 
 import (
 	"errors"
-	"maps"
 	"math"
-	"slices"
 )
 
 // medianMode selects which flavour of median multisetMedian returns.
@@ -21,9 +19,9 @@ const (
 
 // multisetMedian efficiently determines the median of a multiset of integers.
 //
-// The multiset is given as a mapping of values against how many times each
-// value occurs. An error is returned if the multiset is empty.
-func multisetMedian(counts map[int]int64, mode medianMode) (float64, error) {
+// The multiset is given as a slice of counts indexed by value, eg. counts[33]
+// holding how many times 33 occurs. An error is returned if the multiset is empty.
+func multisetMedian(counts []int64, mode medianMode) (float64, error) {
 	var total int64
 	for _, count := range counts {
 		total += count
@@ -32,20 +30,23 @@ func multisetMedian(counts map[int]int64, mode medianMode) (float64, error) {
 		return 0, errors.New("cannot calculate median of empty counts")
 	}
 
-	// Find median values
+	// Find median values; walking by index visits the values smallest first
 	middle := float64(total+1) / 2
 	lowerPos := int64(math.Floor(middle))
 	upperPos := int64(math.Ceil(middle))
 	var lower, upper int
 	lowerFound := false
-	var count int64
+	var running int64
 
-	for _, value := range slices.Sorted(maps.Keys(counts)) {
-		count += counts[value]
-		if !lowerFound && count >= lowerPos {
+	for value, count := range counts {
+		if count == 0 {
+			continue
+		}
+		running += count
+		if !lowerFound && running >= lowerPos {
 			lower, lowerFound = value, true
 		}
-		if count >= upperPos {
+		if running >= upperPos {
 			upper = value
 			break
 		}

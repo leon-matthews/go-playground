@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"maps"
 	"math"
 	"math/rand/v2"
+	"slices"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -122,7 +122,7 @@ func TestBenchmarkResultAdd(t *testing.T) {
 		t.Errorf("Elapsed = %v, want 4.0", combined.Elapsed)
 	}
 	want := gameCounts{7: 1, 30: 7, 90: 1}
-	if !maps.Equal(combined.Counts, want) {
+	if !slices.Equal(combined.Counts, want) {
 		t.Errorf("Counts = %v, want %v", combined.Counts, want)
 	}
 	if len(combined.Shortest) != 7 || len(combined.Longest) != 90 {

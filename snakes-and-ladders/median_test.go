@@ -2,10 +2,12 @@ package main
 
 import "testing"
 
-// TestMultisetMedianEmpty checks that an empty multiset returns an error.
+// TestMultisetMedianEmpty checks that empty and all-zero multisets return an error.
 func TestMultisetMedianEmpty(t *testing.T) {
-	if _, err := multisetMedian(map[int]int64{}, medianMean); err == nil {
-		t.Error("expected an error for empty counts")
+	for _, counts := range [][]int64{{}, {0, 0, 0}} {
+		if _, err := multisetMedian(counts, medianMean); err == nil {
+			t.Errorf("expected an error for counts %v", counts)
+		}
 	}
 }
 
@@ -13,18 +15,18 @@ func TestMultisetMedianEmpty(t *testing.T) {
 func TestMultisetMedian(t *testing.T) {
 	tests := []struct {
 		name   string
-		counts map[int]int64
+		counts []int64
 		mode   medianMode
 		want   float64
 	}{
-		{"single", map[int]int64{5: 1}, medianMean, 5},
-		{"odd total", map[int]int64{1: 1, 2: 1, 3: 1}, medianMean, 2},
-		{"even mean", map[int]int64{1: 2, 9: 2}, medianMean, 5},
-		{"even low", map[int]int64{1: 2, 9: 2}, medianLow, 1},
-		{"even high", map[int]int64{1: 2, 9: 2}, medianHigh, 9},
-		{"weighted", map[int]int64{1: 9, 100: 1}, medianMean, 1},
-		{"billions mean", map[int]int64{10: 3_000_000_000, 20: 3_000_000_000}, medianMean, 15},
-		{"billions high", map[int]int64{10: 3_000_000_000, 20: 3_000_000_000}, medianHigh, 20},
+		{"single", []int64{5: 1}, medianMean, 5},
+		{"odd total", []int64{1: 1, 2: 1, 3: 1}, medianMean, 2},
+		{"even mean", []int64{1: 2, 9: 2}, medianMean, 5},
+		{"even low", []int64{1: 2, 9: 2}, medianLow, 1},
+		{"even high", []int64{1: 2, 9: 2}, medianHigh, 9},
+		{"weighted", []int64{1: 9, 100: 1}, medianMean, 1},
+		{"billions mean", []int64{10: 3_000_000_000, 20: 3_000_000_000}, medianMean, 15},
+		{"billions high", []int64{10: 3_000_000_000, 20: 3_000_000_000}, medianHigh, 20},
 	}
 	for _, test := range tests {
 		got, err := multisetMedian(test.counts, test.mode)

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"maps"
 	"math/rand/v2"
 	"slices"
 	"strings"
@@ -11,20 +10,25 @@ import (
 	"time"
 )
 
-// gameCounts maps game length against the number of games of that length.
+// gameCounts records how many games finished at each length, indexed by length.
 //
 // Counts are int64 so that long runs do not overflow on 32-bit builds.
-type gameCounts map[int]int64
+type gameCounts []int64
 
-// MarshalJSON writes the counts with keys in ascending game-length order.
+// MarshalJSON writes the counts as an object with keys in ascending game-length order.
 func (c gameCounts) MarshalJSON() ([]byte, error) {
 	var b strings.Builder
 	b.WriteByte('{')
-	for i, length := range slices.Sorted(maps.Keys(c)) {
-		if i > 0 {
+	first := true
+	for length, count := range c {
+		if count == 0 {
+			continue
+		}
+		if !first {
 			b.WriteByte(',')
 		}
-		fmt.Fprintf(&b, `"%d":%d`, length, c[length])
+		first = false
+		fmt.Fprintf(&b, `"%d":%d`, length, count)
 	}
 	b.WriteByte('}')
 	return []byte(b.String()), nil
@@ -47,9 +51,7 @@ type BenchmarkResult struct {
 // Add combines two results and creates a new one.
 func (r BenchmarkResult) Add(other BenchmarkResult) BenchmarkResult {
 	counts := make(gameCounts, max(len(r.Counts), len(other.Counts)))
-	for length, count := range r.Counts {
-		counts[length] += count
-	}
+	copy(counts, r.Counts)
 	for length, count := range other.Counts {
 		counts[length] += count
 	}
@@ -93,7 +95,8 @@ const progressInterval = 10 * time.Second
 // until the counter is exhausted or the context is cancelled. Returns the
 // games actually played, including the shortest and longest seen.
 func playGames(ctx context.Context, rng *rand.PCG, remaining *atomic.Int64) BenchmarkResult {
-	counts := make(gameCounts)
+	// Counts are indexed by game length; 512 covers all but the freakiest games
+	counts := make(gameCounts, 512)
 	var shortest, longest Game
 	var played int64
 
@@ -110,6 +113,9 @@ func playGames(ctx context.Context, rng *rand.PCG, remaining *atomic.Int64) Benc
 		for range games {
 			moves = snakesAndLadders(rng, moves)
 			numMoves := len(moves)
+			if numMoves >= len(counts) {
+				counts = append(counts, make(gameCounts, numMoves+1-len(counts))...)
+			}
 			counts[numMoves]++
 			if shortest == nil || numMoves < len(shortest) {
 				shortest = slices.Clone(moves)
@@ -121,6 +127,11 @@ func playGames(ctx context.Context, rng *rand.PCG, remaining *atomic.Int64) Benc
 		played += games
 	}
 	elapsed := time.Since(start).Seconds()
+
+	// Trim the zero tail so equal results compare equal and marshal compactly
+	for len(counts) > 0 && counts[len(counts)-1] == 0 {
+		counts = counts[:len(counts)-1]
+	}
 
 	return BenchmarkResult{
 		Counts:   counts,
