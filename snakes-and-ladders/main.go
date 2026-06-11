@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"os/signal"
 	"runtime"
 	"strconv"
 	"strings"
@@ -124,7 +125,9 @@ func isDigits(s string) bool {
 func run(opts options) int {
 	// A game-count target plays from a finite pool; a time limit plays an
 	// effectively unbounded pool until the context deadline stops the workers.
-	ctx := context.Background()
+	// An interrupt cancels either mode early, reporting the games played so far.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
 	totalGames := opts.numGames
 	if opts.numGames > 0 {
 		fmt.Fprintf(os.Stderr, "Playing %s games of Snakes & Ladders ", comma(opts.numGames))
@@ -144,8 +147,35 @@ func run(opts options) int {
 
 	// Run benchmark
 	start := time.Now()
-	result := benchmarkParallel(ctx, opts.jobs, totalGames)
+	progress := func(played int64) {
+		elapsed := time.Since(start).Seconds()
+		rate := comma(int64(math.Round(float64(played) / elapsed)))
+		if opts.numGames > 0 {
+			percent := 100 * float64(played) / float64(opts.numGames)
+			fmt.Fprintf(os.Stderr, "%s of %s games (%.1f%%) at %s games per second\n",
+				comma(played), comma(opts.numGames), percent, rate)
+		} else {
+			fmt.Fprintf(os.Stderr, "%s games after %.0f of %d seconds, at %s games per second\n",
+				comma(played), elapsed, opts.seconds, rate)
+		}
+	}
+	result := benchmarkParallel(ctx, opts.jobs, totalGames, progress)
 	wall := time.Since(start).Seconds()
+
+	// Note interruption before calling stop, as stop itself cancels the context
+	interrupted := ctx.Err() == context.Canceled
+
+	// Restore default signal handling, so a second interrupt kills immediately
+	stop()
+	if interrupted {
+		if opts.numGames > 0 {
+			fmt.Fprintf(os.Stderr, "Interrupted after %s of %s games.\n",
+				comma(result.NumGames), comma(opts.numGames))
+		} else {
+			fmt.Fprintf(os.Stderr, "Interrupted after %.2f of %d seconds.\n", wall, opts.seconds)
+		}
+	}
+
 	rate := float64(result.NumGames) / wall
 	fmt.Fprintf(
 		os.Stderr,
@@ -153,24 +183,28 @@ func run(opts options) int {
 		comma(result.NumGames), wall, result.Elapsed, comma(int64(math.Round(rate))),
 	)
 
-	median, err := multisetMedian(result.Counts, medianHigh)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "error:", err)
-		return 1
+	// An interrupt can arrive before any games at all; skip the empty statistics
+	if result.NumGames > 0 {
+		median, err := multisetMedian(result.Counts, medianHigh)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "error:", err)
+			return 1
+		}
+		fmt.Fprintf(
+			os.Stderr,
+			"The shortest game took %d moves, the longest %d, while the median was %d.\n",
+			len(result.Shortest), len(result.Longest), int(median),
+		)
 	}
-	fmt.Fprintf(
-		os.Stderr,
-		"The shortest game took %d moves, the longest %d, while the median was %d.\n",
-		len(result.Shortest), len(result.Longest), int(median),
-	)
 
 	// JSON?
 	if opts.json {
-		// Wall time belongs to the run as a whole, not the mergeable per-worker results
+		// Run-level facts live here, not in the mergeable per-worker results
 		detailed := struct {
 			BenchmarkResult
-			Wall float64 `json:"wall"`
-		}{result, wall}
+			Wall        float64 `json:"wall"`
+			Interrupted bool    `json:"interrupted"`
+		}{result, wall, interrupted}
 		encoded, err := json.MarshalIndent(detailed, "", "    ")
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "error:", err)
@@ -179,6 +213,10 @@ func run(opts options) int {
 		fmt.Println(string(encoded))
 	}
 
+	// Exit 130 mimics the shell's 128 plus signal number convention for SIGINT
+	if interrupted {
+		return 130
+	}
 	return 0
 }
 
