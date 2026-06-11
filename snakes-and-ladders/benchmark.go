@@ -33,7 +33,7 @@ func (c gameCounts) MarshalJSON() ([]byte, error) {
 type BenchmarkResult struct {
 	// Counts maps game length against number of games.
 	Counts gameCounts `json:"counts"`
-	// Elapsed is the time taken in seconds.
+	// Elapsed is the seconds spent playing; combined results sum every worker's span.
 	Elapsed float64 `json:"elapsed"`
 	// NumGames is the total number of games played.
 	NumGames int64 `json:"num_games"`

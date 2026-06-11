@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/spf13/pflag"
 )
@@ -107,13 +108,14 @@ func run(opts options) int {
 	}
 
 	// Run benchmark
+	start := time.Now()
 	result := benchmarkParallel(opts.jobs, function, argument)
-	elapsed := result.Elapsed / float64(opts.jobs)
-	rate := float64(result.NumGames) / elapsed
+	wall := time.Since(start).Seconds()
+	rate := float64(result.NumGames) / wall
 	fmt.Fprintf(
 		os.Stderr,
-		"%s games finished in %.2f seconds (%.2fs CPU) = %s games per second\n",
-		comma(result.NumGames), elapsed, result.Elapsed, comma(int64(math.Round(rate))),
+		"%s games finished in %.2f seconds (%.2fs worker time) = %s games per second\n",
+		comma(result.NumGames), wall, result.Elapsed, comma(int64(math.Round(rate))),
 	)
 
 	median, err := multisetMedian(result.Counts, medianHigh)
@@ -129,7 +131,12 @@ func run(opts options) int {
 
 	// JSON?
 	if opts.json {
-		encoded, err := json.MarshalIndent(result, "", "    ")
+		// Wall time belongs to the run as a whole, not the mergeable per-worker results
+		detailed := struct {
+			BenchmarkResult
+			Wall float64 `json:"wall"`
+		}{result, wall}
+		encoded, err := json.MarshalIndent(detailed, "", "    ")
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "error:", err)
 			return 1
