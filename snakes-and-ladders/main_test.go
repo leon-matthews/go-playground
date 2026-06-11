@@ -28,6 +28,7 @@ func TestParseGames(t *testing.T) {
 		{[]string{"-n", "1_000_000"}, 1_000_000},
 		{[]string{"--games", "1000000000"}, 1_000_000_000},
 		{[]string{"-n", "9223372036854775807"}, math.MaxInt64},
+		{[]string{"-n", "9223372036854775807", "-j=4"}, math.MaxInt64},
 	}
 	for _, test := range tests {
 		opts, err := parse(test.args)
@@ -69,7 +70,6 @@ func TestParseErrors(t *testing.T) {
 		{"-s=-3"},
 		{"-n", "0"},
 		{"-n=-100"},
-		{"-n", "5000000000000000000", "-j=4"},
 	}
 	for _, args := range tests {
 		if _, err := parse(args); err == nil {

@@ -151,16 +151,30 @@ func currencySeries(start int64) iter.Seq[int64] {
 	}
 }
 
-// benchmarkParallel runs the given benchmark function on numJobs goroutines
-// and combines the results.
+// splitCount divides total into parts entries that differ by at most one.
 //
-// Every goroutine runs the full function with the same argument, just as the
-// Python original runs its benchmark function once per process, so the
-// combined result holds numJobs times the requested work.
-func benchmarkParallel(numJobs int, function func(*rand.PCG, int64) BenchmarkResult, argument int64) BenchmarkResult {
+// The entries always sum to exactly total.
+func splitCount(total int64, parts int) []int64 {
+	counts := make([]int64, parts)
+	base := total / int64(parts)
+	remainder := total % int64(parts)
+	for i := range counts {
+		counts[i] = base
+		if int64(i) < remainder {
+			counts[i]++
+		}
+	}
+	return counts
+}
+
+// benchmarkParallel runs the benchmark function once per argument, each on
+// its own goroutine, and combines the results.
+//
+// Every goroutine rolls its dice with its own random number generator.
+func benchmarkParallel(function func(*rand.PCG, int64) BenchmarkResult, arguments []int64) BenchmarkResult {
 	// Start jobs, each with its own random number generator
-	results := make(chan BenchmarkResult, numJobs)
-	for range numJobs {
+	results := make(chan BenchmarkResult, len(arguments))
+	for _, argument := range arguments {
 		go func() {
 			rng := rand.NewPCG(rand.Uint64(), rand.Uint64())
 			results <- function(rng, argument)
@@ -169,7 +183,7 @@ func benchmarkParallel(numJobs int, function func(*rand.PCG, int64) BenchmarkRes
 
 	// Wait for, and combine results
 	var combined BenchmarkResult
-	for range numJobs {
+	for range arguments {
 		combined = combined.Add(<-results)
 	}
 	return combined

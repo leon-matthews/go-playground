@@ -14,6 +14,7 @@ import (
 	"math/rand/v2"
 	"os"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -46,7 +47,7 @@ func parse(args []string) (options, error) {
 	jsonOut := flags.Bool("json", false, "Dump detailed results to stdout as JSON")
 
 	// Iterations or seconds?
-	numGames := flags.Int64P("games", "n", 0, "Number of games to play, eg. 100 or 1_000_000")
+	numGames := flags.Int64P("games", "n", 0, "Total number of games to play, eg. 100 or 1_000_000")
 	seconds := flags.IntP("seconds", "s", 10, "Approximate seconds to play for.")
 
 	if err := flags.Parse(args); err != nil {
@@ -68,12 +69,8 @@ func parse(args []string) (options, error) {
 		return options{}, fmt.Errorf("number of seconds must be at least one, given: %d", *seconds)
 	}
 
-	// Every job plays the full count, so the combined total must still fit into an int64
-	if flags.Changed("games") && (*numGames < 1 || *numGames > math.MaxInt64/int64(*jobs)) {
-		return options{}, fmt.Errorf(
-			"number of games must be from 1 to %d, given: %d",
-			math.MaxInt64/int64(*jobs), *numGames,
-		)
+	if flags.Changed("games") && *numGames < 1 {
+		return options{}, fmt.Errorf("number of games must be at least one, given: %d", *numGames)
 	}
 
 	return options{
@@ -88,17 +85,17 @@ func parse(args []string) (options, error) {
 //
 // Summaries are printed to stderr, detailed JSON results to stdout.
 func run(opts options) int {
-	// Choose function
+	// Choose function and build one argument per job
 	var function func(*rand.PCG, int64) BenchmarkResult
-	var argument int64
+	var arguments []int64
 	if opts.numGames > 0 {
 		fmt.Fprintf(os.Stderr, "Playing %s games of Snakes & Ladders ", comma(opts.numGames))
 		function = playCount
-		argument = opts.numGames
+		arguments = splitCount(opts.numGames, opts.jobs)
 	} else {
 		fmt.Fprintf(os.Stderr, "Playing Snakes & Ladders for at least %d seconds ", opts.seconds)
 		function = playTime
-		argument = int64(opts.seconds)
+		arguments = slices.Repeat([]int64{int64(opts.seconds)}, opts.jobs)
 	}
 
 	if opts.jobs == 1 {
@@ -109,7 +106,7 @@ func run(opts options) int {
 
 	// Run benchmark
 	start := time.Now()
-	result := benchmarkParallel(opts.jobs, function, argument)
+	result := benchmarkParallel(function, arguments)
 	wall := time.Since(start).Seconds()
 	rate := float64(result.NumGames) / wall
 	fmt.Fprintf(

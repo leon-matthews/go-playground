@@ -18,7 +18,7 @@ Play for roughly ten seconds (the default) using a single goroutine:
 
     ./go_ladders
 
-Play one million games on every core, then dump detailed results to stdout as JSON:
+Spread one million games across every core, then dump detailed results to stdout as JSON:
 
     ./go_ladders -n 1_000_000 -j --json
 

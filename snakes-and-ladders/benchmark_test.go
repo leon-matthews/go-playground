@@ -2,7 +2,9 @@ package main
 
 import (
 	"maps"
+	"math"
 	"math/rand/v2"
+	"slices"
 	"testing"
 )
 
@@ -100,6 +102,34 @@ func TestBenchmarkResultAddZero(t *testing.T) {
 	combined := zero.Add(other)
 	if combined.NumGames != 2 || len(combined.Shortest) != 8 || len(combined.Longest) != 8 {
 		t.Errorf("Add onto zero value = %+v, want copy of other", combined)
+	}
+}
+
+// TestSplitCount checks entries differ by at most one and sum to the total.
+func TestSplitCount(t *testing.T) {
+	tests := []struct {
+		total int64
+		parts int
+		want  []int64
+	}{
+		{10, 4, []int64{3, 3, 2, 2}},
+		{2, 4, []int64{1, 1, 0, 0}},
+		{7, 1, []int64{7}},
+		{100, 3, []int64{34, 33, 33}},
+	}
+	for _, test := range tests {
+		if got := splitCount(test.total, test.parts); !slices.Equal(got, test.want) {
+			t.Errorf("splitCount(%d, %d) = %v, want %v", test.total, test.parts, got, test.want)
+		}
+	}
+
+	// The arithmetic must hold right up to the int64 limit
+	var sum int64
+	for _, count := range splitCount(math.MaxInt64, 5) {
+		sum += count
+	}
+	if sum != math.MaxInt64 {
+		t.Errorf("splitCount(MaxInt64, 5) sums to %d, want %d", sum, int64(math.MaxInt64))
 	}
 }
 
