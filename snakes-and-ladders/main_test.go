@@ -204,6 +204,50 @@ func TestReadResults(t *testing.T) {
 	}
 }
 
+// TestWriteResults checks an existing target is replaced and no temp file remains.
+func TestWriteResults(t *testing.T) {
+	dir := t.TempDir()
+	target := filepath.Join(dir, "results.json")
+	if err := os.WriteFile(target, []byte("old content"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	result := BenchmarkResult{
+		Counts:   gameCounts{8: 2},
+		Elapsed:  1.5,
+		Wall:     2.5,
+		NumGames: 2,
+		Shortest: Game{{4, 14}, {6, 100}},
+		Longest:  Game{{4, 14}, {6, 100}},
+	}
+	if err := writeResults(result, target); err != nil {
+		t.Fatalf("writeResults returned error: %v", err)
+	}
+
+	data, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var written BenchmarkResult
+	if err := json.Unmarshal(data, &written); err != nil {
+		t.Fatalf("written file does not parse: %v", err)
+	}
+	if !reflect.DeepEqual(written, result) {
+		t.Errorf("written = %+v, want %+v", written, result)
+	}
+
+	// The write must leave nothing beside the target, even when replacing it
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if entry.Name() != "results.json" {
+			t.Errorf("unexpected file left behind: %s", entry.Name())
+		}
+	}
+}
+
 // TestMerge checks the combined result is written intact to the last named file.
 func TestMerge(t *testing.T) {
 	dir := t.TempDir()

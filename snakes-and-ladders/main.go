@@ -285,12 +285,39 @@ func printSummary(result BenchmarkResult) int {
 }
 
 // writeResults writes a result to the given path as indented JSON.
+//
+// The data goes to a temporary file beside the target, renamed into place
+// only once safely on disk, so a failed write cannot corrupt earlier results.
 func writeResults(result BenchmarkResult, path string) error {
 	encoded, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, append(encoded, '\n'), 0o644)
+
+	// The same directory as the target keeps the rename on one filesystem
+	temp, err := os.CreateTemp(filepath.Dir(path), filepath.Base(path)+".*.tmp")
+	if err != nil {
+		return err
+	}
+	// Clean up after any failure; a no-op once the rename claims the file
+	defer os.Remove(temp.Name())
+	defer temp.Close()
+
+	if _, err := temp.Write(append(encoded, '\n')); err != nil {
+		return err
+	}
+	// CreateTemp makes a private file; match the mode WriteFile used to apply
+	if err := temp.Chmod(0o644); err != nil {
+		return err
+	}
+	// Force data to disk first, so a crash cannot publish an empty file
+	if err := temp.Sync(); err != nil {
+		return err
+	}
+	if err := temp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(temp.Name(), path)
 }
 
 // comma formats an integer with thousands separators, eg. 1234567 becomes "1,234,567".
