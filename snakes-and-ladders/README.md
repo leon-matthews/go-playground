@@ -23,9 +23,11 @@ Spread one million games across every core, then write detailed results to a JSO
     ./go_ladders -n 1_000_000 -j results.json
 
 Results from every earlier run of this command accumulate in the named file, as it is
-read back, if it exists, before being rewritten. Naming several files skips the benchmark
-entirely: here the results in `A.json` and `B.json` are merged into `C.json`, leaving the
-first two files untouched, and no games are played at all:
+read back, if it exists, before being rewritten. During long runs the file is freshly
+written every ten minutes, or whatever `--interval` is set to, so little is lost should
+the run die. Naming several files skips the benchmark entirely: here the results in
+`A.json` and `B.json` are merged into `C.json`, leaving the first two files untouched,
+and no games are played at all:
 
     ./go_ladders A.json B.json C.json
 

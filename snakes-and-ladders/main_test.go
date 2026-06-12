@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"runtime"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -17,8 +18,8 @@ func TestParseDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse(nil) returned error: %v", err)
 	}
-	if opts.jobs != 1 || opts.numGames != 0 || opts.seconds != 10 {
-		t.Errorf("parse(nil) = %+v, want jobs 1, numGames 0, seconds 10", opts)
+	if opts.interval != 600 || opts.jobs != 1 || opts.numGames != 0 || opts.seconds != 10 {
+		t.Errorf("parse(nil) = %+v, want interval 600, jobs 1, numGames 0, seconds 10", opts)
 	}
 	if len(opts.jsonPaths) != 0 {
 		t.Errorf("parse(nil) jsonPaths = %v, want none", opts.jsonPaths)
@@ -44,6 +45,27 @@ func TestParsePaths(t *testing.T) {
 		}
 		if !slices.Equal(opts.jsonPaths, test.want) {
 			t.Errorf("parse(%v) jsonPaths = %v, want %v", test.args, opts.jsonPaths, test.want)
+		}
+	}
+}
+
+// TestParseInterval checks both spellings of the update interval flag parse.
+func TestParseInterval(t *testing.T) {
+	tests := []struct {
+		args []string
+		want int
+	}{
+		{[]string{"--interval", "60", "A.json"}, 60},
+		{[]string{"-i=120", "A.json"}, 120},
+	}
+	for _, test := range tests {
+		opts, err := parse(test.args)
+		if err != nil {
+			t.Errorf("parse(%v) returned error: %v", test.args, err)
+			continue
+		}
+		if opts.interval != test.want {
+			t.Errorf("parse(%v) interval = %d, want %d", test.args, opts.interval, test.want)
 		}
 	}
 }
@@ -140,9 +162,13 @@ func TestParseErrors(t *testing.T) {
 		{"-s=-3"},
 		{"-n", "0"},
 		{"-n=-100"},
+		{"-i=0", "A.json"},
+		{"-i=-60", "A.json"},
+		{"-i", "60"},
 		{"-j2", "A.json", "B.json"},
 		{"-n", "100", "A.json", "B.json"},
 		{"-s", "5", "A.json", "B.json"},
+		{"-i", "60", "A.json", "B.json"},
 		{"A.json", "A.json"},
 		{"./A.json", "A.json"},
 		{"sub/../A.json", "B.json", "A.json"},
@@ -159,7 +185,7 @@ func TestReadResults(t *testing.T) {
 	dir := t.TempDir()
 	first := filepath.Join(dir, "first.json")
 	second := filepath.Join(dir, "second.json")
-	content := `{"counts":{"8":2},"elapsed":1.5,"wall":2.5,"num_games":2,` +
+	content := `{"counts":{"2":2},"elapsed":1.5,"wall":2.5,"num_games":2,` +
 		`"shortest":[[4,14],[6,100]],"longest":[[4,14],[6,100]]}`
 	if err := os.WriteFile(first, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
@@ -185,7 +211,7 @@ func TestReadResults(t *testing.T) {
 	if combined.NumGames != 4 || combined.Elapsed != 3.0 || combined.Wall != 5.0 {
 		t.Errorf("combined = %+v, want NumGames 4, Elapsed 3.0, Wall 5.0", combined)
 	}
-	if want := (gameCounts{8: 4}); !slices.Equal(combined.Counts, want) {
+	if want := (gameCounts{2: 4}); !slices.Equal(combined.Counts, want) {
 		t.Errorf("Counts = %v, want %v", combined.Counts, want)
 	}
 
@@ -202,6 +228,57 @@ func TestReadResults(t *testing.T) {
 	if _, err := readResults([]string{garbled}); err == nil {
 		t.Error("expected an error for an unparseable file")
 	}
+
+	// As is a file whose counts disagree with its game total
+	inconsistent := filepath.Join(dir, "inconsistent.json")
+	doubled := strings.Replace(content, `"num_games":2`, `"num_games":4`, 1)
+	if err := os.WriteFile(inconsistent, []byte(doubled), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := readResults([]string{inconsistent}); err == nil {
+		t.Error("expected an error for an inconsistent file")
+	}
+}
+
+// TestRun checks a game-count run plays every game and accumulates into the file.
+func TestRun(t *testing.T) {
+	target := filepath.Join(t.TempDir(), "results.json")
+	opts := options{
+		interval:  600,
+		jobs:      2,
+		jsonPaths: []string{target},
+		numGames:  5000,
+	}
+	for runs := int64(1); runs <= 2; runs++ {
+		if code := run(opts); code != 0 {
+			t.Fatalf("run returned %d, want 0", code)
+		}
+		result, err := readResults([]string{target})
+		if err != nil {
+			t.Fatalf("readResults returned error: %v", err)
+		}
+		if want := runs * opts.numGames; result.NumGames != want {
+			t.Errorf("NumGames after %d runs = %d, want %d", runs, result.NumGames, want)
+		}
+	}
+}
+
+// TestLockResults checks the lock excludes a second claim until released.
+func TestLockResults(t *testing.T) {
+	target := filepath.Join(t.TempDir(), "results.json")
+	unlock, err := lockResults(target)
+	if err != nil {
+		t.Fatalf("lockResults returned error: %v", err)
+	}
+	if _, err := lockResults(target); err == nil {
+		t.Error("expected an error claiming an already locked file")
+	}
+	unlock()
+	unlock, err = lockResults(target)
+	if err != nil {
+		t.Fatalf("lockResults after unlock returned error: %v", err)
+	}
+	unlock()
 }
 
 // TestWriteResults checks an existing target is replaced and no temp file remains.
@@ -213,7 +290,7 @@ func TestWriteResults(t *testing.T) {
 	}
 
 	result := BenchmarkResult{
-		Counts:   gameCounts{8: 2},
+		Counts:   gameCounts{2: 2},
 		Elapsed:  1.5,
 		Wall:     2.5,
 		NumGames: 2,
@@ -253,7 +330,7 @@ func TestMerge(t *testing.T) {
 	dir := t.TempDir()
 	target := filepath.Join(dir, "target.json")
 	combined := BenchmarkResult{
-		Counts:   gameCounts{8: 2},
+		Counts:   gameCounts{2: 2},
 		Elapsed:  1.5,
 		Wall:     2.5,
 		NumGames: 2,

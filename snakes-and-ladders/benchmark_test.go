@@ -153,6 +153,48 @@ func TestBenchmarkResultAddZero(t *testing.T) {
 	}
 }
 
+// TestBenchmarkResultValidate checks consistent results pass and broken ones do not.
+func TestBenchmarkResultValidate(t *testing.T) {
+	good := BenchmarkResult{
+		Counts:   gameCounts{2: 1, 3: 2},
+		NumGames: 3,
+		Shortest: Game{{4, 14}, {6, 100}},
+		Longest:  Game{{1, 38}, {2, 40}, {6, 100}},
+	}
+	if err := good.validate(); err != nil {
+		t.Errorf("validate returned error for consistent result: %v", err)
+	}
+	if err := (BenchmarkResult{}).validate(); err != nil {
+		t.Errorf("validate returned error for empty result: %v", err)
+	}
+
+	bads := map[string]BenchmarkResult{
+		"counts sum": {
+			Counts:   gameCounts{2: 1},
+			NumGames: 2,
+			Shortest: Game{{4, 14}, {6, 100}},
+			Longest:  Game{{4, 14}, {6, 100}},
+		},
+		"shortest length": {
+			Counts:   gameCounts{2: 1},
+			NumGames: 1,
+			Shortest: Game{{1, 38}, {2, 40}, {6, 100}},
+			Longest:  Game{{4, 14}, {6, 100}},
+		},
+		"longest length": {
+			Counts:   gameCounts{2: 1},
+			NumGames: 1,
+			Shortest: Game{{4, 14}, {6, 100}},
+			Longest:  Game{{1, 38}, {2, 40}, {6, 100}},
+		},
+	}
+	for name, bad := range bads {
+		if err := bad.validate(); err == nil {
+			t.Errorf("validate expected a %s error, got none", name)
+		}
+	}
+}
+
 // TestGameCountsMarshalJSON checks keys are written in ascending numeric order.
 func TestGameCountsMarshalJSON(t *testing.T) {
 	counts := gameCounts{100: 3, 7: 1, 20: 2}

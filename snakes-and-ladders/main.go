@@ -25,6 +25,7 @@ import (
 
 // options holds the parsed command-line arguments.
 type options struct {
+	interval  int
 	jobs      int
 	jsonPaths []string
 	numGames  int64
@@ -54,14 +55,21 @@ func parse(args []string) (options, error) {
 	numGames := flags.Int64P("games", "n", 0, "Total number of games to play, eg. 100 or 1_000_000")
 	seconds := flags.IntP("seconds", "s", 10, "Seconds to play for")
 
+	// How often to update the results file during a long run?
+	interval := flags.IntP("interval", "i", 600, "Seconds between updates of the results file")
+
 	if err := flags.Parse(normalizeJobs(args)); err != nil {
 		return options{}, err
 	}
 	if flags.Changed("games") && flags.Changed("seconds") {
 		return options{}, errors.New("only one of -n and -s may be given")
 	}
-	if flags.NArg() > 1 && (flags.Changed("jobs") || flags.Changed("games") || flags.Changed("seconds")) {
-		return options{}, errors.New("merging several files plays no games, so -j, -n, and -s may not be given")
+	if flags.NArg() > 1 && (flags.Changed("jobs") || flags.Changed("games") ||
+		flags.Changed("seconds") || flags.Changed("interval")) {
+		return options{}, errors.New("merging several files plays no games, so -j, -n, -s, and -i may not be given")
+	}
+	if flags.Changed("interval") && flags.NArg() == 0 {
+		return options{}, errors.New("-i sets how often the results file is updated, but no file was given")
 	}
 	if *jobs < 1 {
 		return options{}, fmt.Errorf("number of jobs must be at least one, given: %d", *jobs)
@@ -70,6 +78,9 @@ func parse(args []string) (options, error) {
 	const maxSeconds = math.MaxInt64 / int64(time.Second)
 	if *seconds < 1 || int64(*seconds) > maxSeconds {
 		return options{}, fmt.Errorf("number of seconds out of range (1 to %d), given: %d", maxSeconds, *seconds)
+	}
+	if *interval < 1 || int64(*interval) > maxSeconds {
+		return options{}, fmt.Errorf("update interval out of range (1 to %d), given: %d", maxSeconds, *interval)
 	}
 
 	if flags.Changed("games") && *numGames < 1 {
@@ -90,6 +101,7 @@ func parse(args []string) (options, error) {
 	}
 
 	return options{
+		interval:  *interval,
 		jobs:      *jobs,
 		jsonPaths: flags.Args(),
 		numGames:  *numGames,
@@ -99,8 +111,8 @@ func parse(args []string) (options, error) {
 
 // readResults loads and combines results from the given JSON files.
 //
-// Every file must exist and parse cleanly, except the last, which is the
-// output target and so is allowed to be missing.
+// Every file must exist, parse, and pass the consistency check, except the
+// last, which is the output target and so is allowed to be missing.
 func readResults(paths []string) (BenchmarkResult, error) {
 	var combined BenchmarkResult
 	for index, path := range paths {
@@ -115,9 +127,32 @@ func readResults(paths []string) (BenchmarkResult, error) {
 		if err := json.Unmarshal(data, &result); err != nil {
 			return BenchmarkResult{}, fmt.Errorf("%s: %w", path, err)
 		}
+		if err := result.validate(); err != nil {
+			return BenchmarkResult{}, fmt.Errorf("%s: %w", path, err)
+		}
 		combined = combined.Add(result)
 	}
 	return combined, nil
+}
+
+// lockResults claims exclusive use of the given results file.
+//
+// A sibling lock file created with O_EXCL makes a second concurrent run fail
+// loudly, rather than silently losing one run's games. Returns the unlock
+// function that releases the claim.
+func lockResults(path string) (func(), error) {
+	lock := path + ".lock"
+	file, err := os.OpenFile(lock, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+	if err != nil {
+		if errors.Is(err, os.ErrExist) {
+			return nil, fmt.Errorf(
+				"%s exists: is another run writing to %s? (delete the lock file if not)", lock, path,
+			)
+		}
+		return nil, err
+	}
+	file.Close()
+	return func() { os.Remove(lock) }, nil
 }
 
 // normalizeJobs rewrites make-style job counts into the -j=4 form pflag needs.
@@ -162,8 +197,19 @@ func isDigits(s string) bool {
 // run plays the requested benchmark and prints its results.
 //
 // Summaries are printed to stderr. Detailed results accumulate into a named
-// JSON file; naming several files skips the benchmark and merges instead.
+// JSON file, freshly updated as each interval elapses; naming several files
+// skips the benchmark and merges instead.
 func run(opts options) int {
+	// Claim the output file for the whole run, so two runs cannot share it
+	if len(opts.jsonPaths) > 0 {
+		unlock, err := lockResults(opts.jsonPaths[len(opts.jsonPaths)-1])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "error:", err)
+			return 1
+		}
+		defer unlock()
+	}
+
 	// Read earlier results up front, so a bad path fails before a long run
 	prior, err := readResults(opts.jsonPaths)
 	if err != nil {
@@ -198,11 +244,29 @@ func run(opts options) int {
 		fmt.Fprintf(os.Stderr, "using %d goroutines.\n", opts.jobs)
 	}
 
-	// Run benchmark
+	// Play in interval-long segments, updating the results file after each
 	start := time.Now()
-	result := benchmarkParallel(ctx, opts.jobs, totalGames)
-	wall := time.Since(start).Seconds()
-	result.Wall = wall
+	interval := time.Duration(opts.interval) * time.Second
+	var result BenchmarkResult
+	for {
+		// In seconds mode the parent deadline caps the final segment
+		segmentCtx, cancel := context.WithTimeout(ctx, interval)
+		segment := benchmarkParallel(segmentCtx, opts.jobs, totalGames-result.NumGames)
+		cancel()
+		result = result.Add(segment)
+		result.Wall = time.Since(start).Seconds()
+
+		// Each update rewrites the whole snapshot, depending on no earlier one
+		if len(opts.jsonPaths) == 1 {
+			if err := writeResults(prior.Add(result), opts.jsonPaths[0]); err != nil {
+				fmt.Fprintln(os.Stderr, "error:", err)
+				return 1
+			}
+		}
+		if ctx.Err() != nil || result.NumGames >= totalGames {
+			break
+		}
+	}
 
 	// Note interruption before calling stop, as stop itself cancels the context
 	interrupted := ctx.Err() == context.Canceled
@@ -214,20 +278,12 @@ func run(opts options) int {
 			fmt.Fprintf(os.Stderr, "Interrupted after %s of %s games.\n",
 				comma(result.NumGames), comma(opts.numGames))
 		} else {
-			fmt.Fprintf(os.Stderr, "Interrupted after %.2f of %d seconds.\n", wall, opts.seconds)
+			fmt.Fprintf(os.Stderr, "Interrupted after %.2f of %d seconds.\n", result.Wall, opts.seconds)
 		}
 	}
 
 	if code := printSummary(result); code != 0 {
 		return code
-	}
-
-	// Merge this run with any earlier results and write back to the file
-	if len(opts.jsonPaths) == 1 {
-		if err := writeResults(prior.Add(result), opts.jsonPaths[0]); err != nil {
-			fmt.Fprintln(os.Stderr, "error:", err)
-			return 1
-		}
 	}
 
 	// Exit 130 mimics the shell's 128 plus signal number convention for SIGINT
@@ -288,7 +344,12 @@ func printSummary(result BenchmarkResult) int {
 //
 // The data goes to a temporary file beside the target, renamed into place
 // only once safely on disk, so a failed write cannot corrupt earlier results.
+// Results that fail the consistency check are refused outright.
 func writeResults(result BenchmarkResult, path string) error {
+	// Catch double-count style bugs here, before they spread into the file
+	if err := result.validate(); err != nil {
+		return fmt.Errorf("refusing to write inconsistent results: %w", err)
+	}
 	encoded, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
 		return err

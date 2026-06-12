@@ -93,6 +93,37 @@ func (r BenchmarkResult) Add(other BenchmarkResult) BenchmarkResult {
 	}
 }
 
+// validate checks the cross-field consistency of a result.
+//
+// The counts must sum to the recorded game total, and the shortest and
+// longest games must match the lowest and highest counted lengths.
+func (r BenchmarkResult) validate() error {
+	var total int64
+	first, last := 0, 0
+	for length, count := range r.Counts {
+		if count == 0 {
+			continue
+		}
+		if first == 0 {
+			first = length
+		}
+		last = length
+		total += count
+	}
+	if total != r.NumGames {
+		return fmt.Errorf("counts sum to %d games, but %d were recorded", total, r.NumGames)
+	}
+	if len(r.Shortest) != first {
+		return fmt.Errorf("shortest game has %d moves, but the lowest count is for length %d",
+			len(r.Shortest), first)
+	}
+	if len(r.Longest) != last {
+		return fmt.Errorf("longest game has %d moves, but the highest count is for length %d",
+			len(r.Longest), last)
+	}
+	return nil
+}
+
 // shorterGame returns the shorter of two games, ignoring empty ones.
 func shorterGame(a, b Game) Game {
 	if len(a) == 0 {
