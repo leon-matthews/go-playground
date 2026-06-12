@@ -19,6 +19,7 @@ import (
 	"runtime/pprof"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -55,7 +56,7 @@ func parse(args []string) (options, error) {
 
 	// Iterations or seconds?
 	numGames := flags.Int64P("games", "n", 0, "Total number of games to play, eg. 100 or 1_000_000")
-	seconds := flags.IntP("seconds", "s", 10, "Seconds to play for")
+	seconds := flags.IntP("seconds", "s", 10, "Seconds to play for, 0 to run until interrupted")
 
 	// How often to update the results file during a long run?
 	interval := flags.IntP("interval", "i", 600, "Seconds between updates of the results file")
@@ -81,8 +82,8 @@ func parse(args []string) (options, error) {
 	}
 	// The upper bound keeps the timeout within a time.Duration's count of nanoseconds
 	const maxSeconds = math.MaxInt64 / int64(time.Second)
-	if *seconds < 1 || int64(*seconds) > maxSeconds {
-		return options{}, fmt.Errorf("number of seconds out of range (1 to %d), given: %d", maxSeconds, *seconds)
+	if *seconds < 0 || int64(*seconds) > maxSeconds {
+		return options{}, fmt.Errorf("number of seconds out of range (0 to %d), given: %d", maxSeconds, *seconds)
 	}
 	if *interval < 1 || int64(*interval) > maxSeconds {
 		return options{}, fmt.Errorf("update interval out of range (1 to %d), given: %d", maxSeconds, *interval)
@@ -261,13 +262,21 @@ func run(opts options) int {
 
 	// A game-count target plays from a finite pool; a time limit plays an
 	// effectively unbounded pool until the context deadline stops the workers.
-	// An interrupt cancels either mode early, reporting the games played so far.
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	// Zero seconds sets no deadline at all, playing until interrupted.
+	// An interrupt cancels any mode early, reporting the games played so far.
+	// Beyond Ctrl+C's SIGINT, system shutdown sends SIGTERM and a closing terminal SIGHUP
+	ctx, stop := signal.NotifyContext(
+		context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP,
+	)
 	defer stop()
 	totalGames := opts.numGames
-	if opts.numGames > 0 {
+	switch {
+	case opts.numGames > 0:
 		fmt.Fprintf(os.Stderr, "Playing %s games of Snakes & Ladders ", comma(opts.numGames))
-	} else {
+	case opts.seconds == 0:
+		fmt.Fprint(os.Stderr, "Playing Snakes & Ladders until interrupted ")
+		totalGames = math.MaxInt64
+	default:
 		fmt.Fprintf(os.Stderr, "Playing Snakes & Ladders for %d seconds ", opts.seconds)
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, time.Duration(opts.seconds)*time.Second)
@@ -311,10 +320,13 @@ func run(opts options) int {
 	// Restore default signal handling, so a second interrupt kills immediately
 	stop()
 	if interrupted {
-		if opts.numGames > 0 {
+		switch {
+		case opts.numGames > 0:
 			fmt.Fprintf(os.Stderr, "Interrupted after %s of %s games.\n",
 				comma(result.NumGames), comma(opts.numGames))
-		} else {
+		case opts.seconds == 0:
+			fmt.Fprintf(os.Stderr, "Interrupted after %.2f seconds.\n", result.Wall)
+		default:
 			fmt.Fprintf(os.Stderr, "Interrupted after %.2f of %d seconds.\n", result.Wall, opts.seconds)
 		}
 	}

@@ -94,6 +94,28 @@ func TestParseGames(t *testing.T) {
 	}
 }
 
+// TestParseSeconds checks time limits parse, including the run-forever zero.
+func TestParseSeconds(t *testing.T) {
+	tests := []struct {
+		args []string
+		want int
+	}{
+		{[]string{"-s", "30"}, 30},
+		{[]string{"--seconds=60"}, 60},
+		{[]string{"-s", "0"}, 0},
+	}
+	for _, test := range tests {
+		opts, err := parse(test.args)
+		if err != nil {
+			t.Errorf("parse(%v) returned error: %v", test.args, err)
+			continue
+		}
+		if opts.seconds != test.want {
+			t.Errorf("parse(%v) seconds = %d, want %d", test.args, opts.seconds, test.want)
+		}
+	}
+}
+
 // TestNormalizeJobs checks make-style job counts are rewritten to pflag's form.
 func TestNormalizeJobs(t *testing.T) {
 	tests := []struct {
@@ -171,7 +193,6 @@ func TestParseErrors(t *testing.T) {
 		{"-n", "100", "-s", "5"},
 		{"-j=0"},
 		{"-j0"},
-		{"-s", "0"},
 		{"-s=-3"},
 		{"-n", "0"},
 		{"-n=-100"},
