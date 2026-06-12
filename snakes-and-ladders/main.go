@@ -16,6 +16,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"runtime/pprof"
 	"strconv"
 	"strings"
 	"time"
@@ -29,6 +30,7 @@ type options struct {
 	jobs      int
 	jsonPaths []string
 	numGames  int64
+	profile   bool
 	seconds   int
 }
 
@@ -58,6 +60,9 @@ func parse(args []string) (options, error) {
 	// How often to update the results file during a long run?
 	interval := flags.IntP("interval", "i", 600, "Seconds between updates of the results file")
 
+	// Capture a CPU profile? Its fixed name is the one 'go build' auto-detects.
+	profile := flags.BoolP("profile", "p", false, "Write a CPU profile to default.pgo for PGO builds")
+
 	if err := flags.Parse(normalizeJobs(args)); err != nil {
 		return options{}, err
 	}
@@ -65,8 +70,8 @@ func parse(args []string) (options, error) {
 		return options{}, errors.New("only one of -n and -s may be given")
 	}
 	if flags.NArg() > 1 && (flags.Changed("jobs") || flags.Changed("games") ||
-		flags.Changed("seconds") || flags.Changed("interval")) {
-		return options{}, errors.New("merging several files plays no games, so -j, -n, -s, and -i may not be given")
+		flags.Changed("seconds") || flags.Changed("interval") || flags.Changed("profile")) {
+		return options{}, errors.New("merging several files plays no games, so -j, -n, -s, -i, and -p may not be given")
 	}
 	if flags.Changed("interval") && flags.NArg() == 0 {
 		return options{}, errors.New("-i sets how often the results file is updated, but no file was given")
@@ -105,6 +110,7 @@ func parse(args []string) (options, error) {
 		jobs:      *jobs,
 		jsonPaths: flags.Args(),
 		numGames:  *numGames,
+		profile:   *profile,
 		seconds:   *seconds,
 	}, nil
 }
@@ -155,6 +161,27 @@ func lockResults(path string) (func(), error) {
 	return func() { os.Remove(lock) }, nil
 }
 
+// startProfile begins writing a CPU profile to the given path.
+//
+// Returns the stop function that ends profiling, closes the file, and reports
+// where the profile went. A plain create suffices here, with none of the care
+// writeResults takes, as a spoiled profile is simply overwritten next run.
+func startProfile(path string) (func(), error) {
+	file, err := os.Create(path)
+	if err != nil {
+		return nil, err
+	}
+	if err := pprof.StartCPUProfile(file); err != nil {
+		file.Close()
+		return nil, err
+	}
+	return func() {
+		pprof.StopCPUProfile()
+		file.Close()
+		fmt.Fprintf(os.Stderr, "CPU profile written to %s\n", path)
+	}, nil
+}
+
 // normalizeJobs rewrites make-style job counts into the -j=4 form pflag needs.
 //
 // Mirrors GNU make, which accepts an attached count like -j4, a separate
@@ -200,6 +227,16 @@ func isDigits(s string) bool {
 // JSON file, freshly updated as each interval elapses; naming several files
 // skips the benchmark and merges instead.
 func run(opts options) int {
+	// Profile everything, JSON handling included; the game loop still dominates
+	if opts.profile {
+		stopProfile, err := startProfile("default.pgo")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "error:", err)
+			return 1
+		}
+		defer stopProfile()
+	}
+
 	// Claim the output file for the whole run, so two runs cannot share it
 	if len(opts.jsonPaths) > 0 {
 		unlock, err := lockResults(opts.jsonPaths[len(opts.jsonPaths)-1])

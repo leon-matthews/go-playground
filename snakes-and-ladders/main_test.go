@@ -18,8 +18,8 @@ func TestParseDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse(nil) returned error: %v", err)
 	}
-	if opts.interval != 600 || opts.jobs != 1 || opts.numGames != 0 || opts.seconds != 10 {
-		t.Errorf("parse(nil) = %+v, want interval 600, jobs 1, numGames 0, seconds 10", opts)
+	if opts.interval != 600 || opts.jobs != 1 || opts.numGames != 0 || opts.profile || opts.seconds != 10 {
+		t.Errorf("parse(nil) = %+v, want interval 600, jobs 1, numGames 0, no profile, seconds 10", opts)
 	}
 	if len(opts.jsonPaths) != 0 {
 		t.Errorf("parse(nil) jsonPaths = %v, want none", opts.jsonPaths)
@@ -152,6 +152,19 @@ func TestParseJobs(t *testing.T) {
 	}
 }
 
+// TestParseProfile checks both spellings of the profile flag parse.
+func TestParseProfile(t *testing.T) {
+	for _, args := range [][]string{{"--profile"}, {"-p"}} {
+		opts, err := parse(args)
+		if err != nil {
+			t.Fatalf("parse(%v) returned error: %v", args, err)
+		}
+		if !opts.profile {
+			t.Errorf("parse(%v) profile = false, want true", args)
+		}
+	}
+}
+
 // TestParseErrors checks invalid values and combinations are rejected.
 func TestParseErrors(t *testing.T) {
 	tests := [][]string{
@@ -169,6 +182,8 @@ func TestParseErrors(t *testing.T) {
 		{"-n", "100", "A.json", "B.json"},
 		{"-s", "5", "A.json", "B.json"},
 		{"-i", "60", "A.json", "B.json"},
+		{"-p", "A.json", "B.json"},
+		{"--profile", "A.json", "B.json"},
 		{"A.json", "A.json"},
 		{"./A.json", "A.json"},
 		{"sub/../A.json", "B.json", "A.json"},
@@ -260,6 +275,28 @@ func TestRun(t *testing.T) {
 		if want := runs * opts.numGames; result.NumGames != want {
 			t.Errorf("NumGames after %d runs = %d, want %d", runs, result.NumGames, want)
 		}
+	}
+}
+
+// TestRunProfile checks a profiled run leaves a default.pgo behind.
+func TestRunProfile(t *testing.T) {
+	// The profile lands in the working directory, as go build expects
+	t.Chdir(t.TempDir())
+	opts := options{
+		interval: 600,
+		jobs:     1,
+		numGames: 1000,
+		profile:  true,
+	}
+	if code := run(opts); code != 0 {
+		t.Fatalf("run returned %d, want 0", code)
+	}
+	info, err := os.Stat("default.pgo")
+	if err != nil {
+		t.Fatalf("expected a default.pgo file: %v", err)
+	}
+	if info.Size() == 0 {
+		t.Error("default.pgo is empty")
 	}
 }
 
