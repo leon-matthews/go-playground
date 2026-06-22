@@ -26,10 +26,12 @@ type Log struct {
 }
 
 func ParseLogs(r io.Reader) error {
+	// A Decoder reads and decodes JSON values from an input stream.
 	dec := json.NewDecoder(r)
 
 loop:
 	for i := 1; ; i++ {
+		// Decode reads the next JSON-encoded value from its input and stores it in the value pointed to by v
 		var l Log
 		err := dec.Decode(&l)
 		switch {
