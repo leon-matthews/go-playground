@@ -5,11 +5,14 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"strings"
 	"sync"
 )
+
+const numWorkers = 10
 
 type lookup struct {
 	host  string
@@ -18,50 +21,56 @@ type lookup struct {
 }
 
 func main() {
-	hosts := make(chan string)
-	lookups := make(chan lookup)
-	var wg sync.WaitGroup
-
-	// Read lines from stdin and stuff them down the hosts channel.
-	wg.Add(1)
-	go func() {
-		input := bufio.NewScanner(os.Stdin)
-		for input.Scan() {
-			hosts <- input.Text()
-		}
-		if err := input.Err(); err != nil {
-			fmt.Fprintf(os.Stderr, "lookup: %v\n", err)
-			os.Exit(1)
-		}
-		close(hosts)
-		wg.Done()
-	}()
-
-	// Spin up 1000 goroutines doing lookups on lines coming out of the
-	// hosts channel and stuffing the results down the lookups channel.
-	for i := 0; i < 1000; i++ {
-		wg.Add(1)
-		go func() {
-			for host := range hosts {
-				addrs, err := net.LookupHost(host)
-				lookups <- lookup{host: host, addrs: addrs, err: err}
-			}
-			wg.Done()
-		}()
-	}
-
-	// Wait until stdin is closed and all lookups are done.
-	go func() {
-		wg.Wait()
-		close(lookups)
-	}()
+	hosts := readHosts(os.Stdin)
+	results := lookupHosts(hosts)
 
 	// Print errors on stderr and lookups on stdout.
-	for lookup := range lookups {
+	for lookup := range results {
 		if lookup.err != nil {
 			fmt.Fprintf(os.Stderr, "lookup: %v\n", lookup.err)
 		} else {
 			fmt.Printf("%s: %s\n", lookup.host, strings.Join(lookup.addrs, ", "))
 		}
 	}
+}
+
+// readHosts pushes lines from stdin into the returned channel
+func readHosts(r io.Reader) <-chan string {
+	hosts := make(chan string)
+	go func() {
+		defer close(hosts)
+		scanner := bufio.NewScanner(r)
+		for scanner.Scan() {
+			hosts <- scanner.Text()
+		}
+		if err := scanner.Err(); err != nil {
+			fmt.Fprintf(os.Stderr, "reading: %v\n", err)
+			os.Exit(1)
+		}
+	}()
+	return hosts
+}
+
+func lookupHosts(hosts <-chan string) <-chan lookup {
+	// Spin-up workers to look-up hosts
+	lookups := make(chan lookup)
+
+	// Each worker pulls work from hosts (until its closed) then writes results to lookups.
+	var wg sync.WaitGroup
+	for range numWorkers {
+		wg.Go(func() {
+			for host := range hosts {
+				addrs, err := net.LookupHost(host)
+				lookups <- lookup{host: host, addrs: addrs, err: err}
+			}
+		})
+	}
+
+	// Close lookups once all the works are finished
+	go func() {
+		wg.Wait()
+		close(lookups)
+	}()
+
+	return lookups
 }
