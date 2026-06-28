@@ -1,12 +1,10 @@
-package quickselect_test
+package quickselect
 
 import (
 	"math/rand/v2"
 	"slices"
 	"sort"
 	"testing"
-
-	"quickselect/quickselect"
 
 	"github.com/stretchr/testify/require"
 )
@@ -75,7 +73,7 @@ func benchmarkSelect(b *testing.B, count, k int) {
 		b.StopTimer()
 		values := slices.Clone(numbers)
 		b.StartTimer()
-		got = quickselect.NthElement(values, k)
+		got = NthElement(values, k)
 	}
 	require.Equal(b, k+1, got)
 }
