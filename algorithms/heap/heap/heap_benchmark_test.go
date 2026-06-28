@@ -73,7 +73,6 @@ func BenchmarkSort(b *testing.B) {
 			require.False(b, slices.IsSorted(numbers))
 			require.True(b, slices.IsSorted(sorted))
 		}
-
 	})
 
 	b.Run("using slices.Sort()", func(b *testing.B) {

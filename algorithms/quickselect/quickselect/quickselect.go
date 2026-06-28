@@ -12,14 +12,14 @@ import (
 // and every item in values[k+1:] is >= it. Panics if k is outside [0, len(values)).
 // Clone the slice first with slices.Clone if you need to keep the original order.
 func NthElement[T cmp.Ordered](values []T, k int) T {
-	return NthElementCustom(values, k, cmp.Compare[T])
+	return NthElementFunc(values, k, cmp.Compare[T])
 }
 
-// NthElementCustom is like [NthElement] but orders elements with the given comparator.
+// NthElementFunc is like [NthElement] but orders elements with the given comparator.
 //
 // cmp reports whether a is less than (negative), equal to (zero), or greater than
 // (positive) b, the same convention as cmp.Compare and slices.SortFunc.
-func NthElementCustom[T any](values []T, k int, cmp func(T, T) int) T {
+func NthElementFunc[T any](values []T, k int, cmp func(T, T) int) T {
 	if k < 0 || k >= len(values) {
 		panic(fmt.Sprintf("quickselect: k=%d out of range [0, %d)", k, len(values)))
 	}

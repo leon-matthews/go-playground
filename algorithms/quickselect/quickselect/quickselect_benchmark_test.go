@@ -6,9 +6,9 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"quickselect/quickselect"
+
+	"github.com/stretchr/testify/require"
 )
 
 // BenchmarkNthElement compares selecting one element via quickselect against

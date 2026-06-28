@@ -20,11 +20,11 @@ type Heap[T any] struct {
 
 // NewHeap builds an empty heap of any basic ordered type
 func NewHeap[T cmp.Ordered]() *Heap[T] {
-	return NewHeapCustom[T](cmp.Compare[T])
+	return NewHeapFunc[T](cmp.Compare[T])
 }
 
-// NewHeapCustom builds an empty heap of any custom type, but requires a comparison function
-func NewHeapCustom[T any](cmp func(T, T) int) *Heap[T] {
+// NewHeapFunc builds an empty heap of any custom type, but requires a comparison function
+func NewHeapFunc[T any](cmp func(T, T) int) *Heap[T] {
 	h := Heap[T]{
 		cmp:    cmp,
 		values: make([]T, 0),
@@ -37,14 +37,14 @@ func NewHeapCustom[T any](cmp func(T, T) int) *Heap[T] {
 // The original slice is consumed in the process. Use [slices.Clone] if you need
 // to keep the original unchanged.
 func Heapify[T cmp.Ordered](values []T) *Heap[T] {
-	return HeapifyCustom(values, cmp.Compare[T])
+	return HeapifyFunc(values, cmp.Compare[T])
 }
 
-// HeapifyCustom builds a heap from an existing slice with a custom comparator
-// This is much faster than calling [NewHeapCustom] then pushing values individually.
+// HeapifyFunc builds a heap from an existing slice with a custom comparator
+// This is much faster than calling [NewHeapFunc] then pushing values individually.
 // The given slice is consumed in the process. Use [slices.Clone] if you need
 // to keep the original slices unchanged.
-func HeapifyCustom[T any](values []T, cmp func(T, T) int) *Heap[T] {
+func HeapifyFunc[T any](values []T, cmp func(T, T) int) *Heap[T] {
 	h := &Heap[T]{
 		cmp:    cmp,
 		values: values,

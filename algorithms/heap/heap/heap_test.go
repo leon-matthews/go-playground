@@ -147,23 +147,23 @@ func TestHeapify(t *testing.T) {
 	assert.Equal(t, []int{1, 2, 3, 4, 5}, slices.Collect(pushed.All()))
 }
 
-func TestHeapCustom(t *testing.T) {
+func TestNewHeapFunc(t *testing.T) {
 	t.Parallel()
 
 	t.Run("new heap is empty", func(t *testing.T) {
-		h := heap.NewHeapCustom[testItem](testItem.compare)
+		h := heap.NewHeapFunc[testItem](testItem.compare)
 		assert.Equal(t, 0, h.Len())
 	})
 
 	t.Run("push adds value", func(t *testing.T) {
-		h := heap.NewHeapCustom[testItem](testItem.compare)
+		h := heap.NewHeapFunc[testItem](testItem.compare)
 		assert.Equal(t, 0, h.Len())
 		h.Push(testItem{1, 2})
 		assert.Equal(t, 1, h.Len())
 	})
 
 	t.Run("peek does not remove value", func(t *testing.T) {
-		h := heap.NewHeapCustom[testItem](testItem.compare)
+		h := heap.NewHeapFunc[testItem](testItem.compare)
 		h.Push(testItem{2, 4})
 		assert.Equal(t, 1, h.Len())
 
@@ -175,7 +175,7 @@ func TestHeapCustom(t *testing.T) {
 	})
 
 	t.Run("pop removes value", func(t *testing.T) {
-		h := heap.NewHeapCustom[testItem](testItem.compare)
+		h := heap.NewHeapFunc[testItem](testItem.compare)
 		h.Push(testItem{3, 8})
 		assert.Equal(t, 1, h.Len())
 
@@ -187,11 +187,11 @@ func TestHeapCustom(t *testing.T) {
 	})
 }
 
-func TestHeapifyCustom(t *testing.T) {
+func TestHeapifyFunc(t *testing.T) {
 	unordered := makeItems(5)
 	slices.Reverse(unordered)
 
-	h := heap.HeapifyCustom(unordered, testItem.compare)
+	h := heap.HeapifyFunc(unordered, testItem.compare)
 	assert.Equal(t, 5, h.Len())
 	// Peek under the covers using the string method.
 	// The first element must be the smallest.

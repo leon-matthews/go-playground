@@ -21,8 +21,9 @@ type PriorityQueue[T any] struct {
 	heap *Heap[item[T]]
 }
 
+// NewQueue builds an empty priority queue of any value type.
 func NewQueue[T any]() *PriorityQueue[T] {
-	h := NewHeapCustom[item[T]](itemCompare)
+	h := NewHeapFunc[item[T]](itemCompare)
 	return &PriorityQueue[T]{heap: h}
 }
 
@@ -42,10 +43,12 @@ func (q *PriorityQueue[T]) Values() iter.Seq[T] {
 	}
 }
 
+// Len returns the count of values in the queue.
 func (q *PriorityQueue[T]) Len() int {
 	return q.heap.Len()
 }
 
+// Push adds value v to the queue under the given id.
 func (q *PriorityQueue[T]) Push(id int, v T) {
 	q.heap.Push(item[T]{id, v})
 }

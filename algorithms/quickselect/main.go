@@ -39,10 +39,10 @@ func main() {
 	fmt.Println("  nth       :", numbers[*k])
 	fmt.Println("  right (>=):", numbers[*k+1:])
 
-	// NthElementCustom takes a comparator. A descending one reverses the order,
+	// NthElementFunc takes a comparator. A descending one reverses the order,
 	// so the "0th smallest" is really the largest element.
 	descending := func(a, b int) int { return cmp.Compare(b, a) }
-	largest := quickselect.NthElementCustom(shuffledIntegers(*count), 0, descending)
+	largest := quickselect.NthElementFunc(shuffledIntegers(*count), 0, descending)
 	fmt.Printf("\nwith a descending comparator, k=0 yields the largest: %d\n", largest)
 }
 

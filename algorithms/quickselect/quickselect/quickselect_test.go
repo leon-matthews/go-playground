@@ -113,34 +113,34 @@ func TestNthElement(t *testing.T) {
 	})
 }
 
-func TestNthElementCustom(t *testing.T) {
+func TestNthElementFunc(t *testing.T) {
 	t.Parallel()
 
 	t.Run("selects using a descending comparator", func(t *testing.T) {
 		descending := func(a, b int) int { return cmp.Compare(b, a) }
 		values := []int{5, 3, 1, 4, 2}
 		// Under descending order the 0th element is the largest.
-		assert.Equal(t, 5, quickselect.NthElementCustom(slices.Clone(values), 0, descending))
-		assert.Equal(t, 1, quickselect.NthElementCustom(slices.Clone(values), 4, descending))
+		assert.Equal(t, 5, quickselect.NthElementFunc(slices.Clone(values), 0, descending))
+		assert.Equal(t, 1, quickselect.NthElementFunc(slices.Clone(values), 4, descending))
 	})
 
 	t.Run("selects a custom struct type by field", func(t *testing.T) {
 		items := []testItem{{3, 30}, {1, 10}, {5, 50}, {2, 20}, {4, 40}}
-		got := quickselect.NthElementCustom(items, 0, testItem.compare)
+		got := quickselect.NthElementFunc(items, 0, testItem.compare)
 		assert.Equal(t, testItem{1, 10}, got)
 	})
 
 	t.Run("matches NthElement under cmp.Compare", func(t *testing.T) {
 		unordered := []int{5, 3, 1, 4, 2}
 		for k := range len(unordered) {
-			got := quickselect.NthElementCustom(slices.Clone(unordered), k, cmp.Compare[int])
+			got := quickselect.NthElementFunc(slices.Clone(unordered), k, cmp.Compare[int])
 			assert.Equal(t, k+1, got)
 		}
 	})
 
 	t.Run("panics on out-of-range k", func(t *testing.T) {
 		assert.Panics(t, func() {
-			quickselect.NthElementCustom([]int{1, 2, 3}, 3, cmp.Compare[int])
+			quickselect.NthElementFunc([]int{1, 2, 3}, 3, cmp.Compare[int])
 		})
 	})
 }
