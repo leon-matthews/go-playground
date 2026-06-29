@@ -8,11 +8,13 @@ import (
 )
 
 // Heap is a generic heap implementation.
-// A heap efficiently (in terms of both time spent and space used) maintains a
-// partial ordering of an underlying slice of values, where the smallest value
-// is always accessible. Can be used to build priority queues, perform n-way
-// (sorted) merging, and implement graph traversal algorithms.
-// https://en.wikipedia.org/wiki/Heap_(data_structure)
+//
+// Implements the classic [Heap] data structure, which efficiently (both in time
+// and space) maintains a partial ordering of an underlying slice. The smallest
+// value is always immediately accessible. Can be used to build priority
+// queues, perform n-way (sorted) merging, and implement graph traversal algorithms.
+//
+// [Heap]: https://en.wikipedia.org/wiki/Heap_(data_structure)
 type Heap[T any] struct {
 	cmp    func(T, T) int
 	values []T
@@ -33,6 +35,7 @@ func NewHeapFunc[T any](cmp func(T, T) int) *Heap[T] {
 }
 
 // Heapify builds a heap from an existing slice of basic comparable types.
+//
 // This is much faster than calling [NewHeap] then pushing values individually.
 // The original slice is consumed in the process. Use [slices.Clone] if you need
 // to keep the original unchanged.
@@ -41,6 +44,7 @@ func Heapify[T cmp.Ordered](values []T) *Heap[T] {
 }
 
 // HeapifyFunc builds a heap from an existing slice with a custom comparator
+//
 // This is much faster than calling [NewHeapFunc] then pushing values individually.
 // The given slice is consumed in the process. Use [slices.Clone] if you need
 // to keep the original slices unchanged.
@@ -56,7 +60,8 @@ func HeapifyFunc[T any](values []T, cmp func(T, T) int) *Heap[T] {
 	return h
 }
 
-// All returns an iterator that pops values off the heap in ascending order
+// All returns an iterator that pops values off the heap in ascending order.
+//
 // The heap is consumed in the process.
 func (h *Heap[T]) All() iter.Seq[T] {
 	return func(yield func(T) bool) {
@@ -77,9 +82,8 @@ func (h *Heap[T]) Len() int {
 	return len(h.values)
 }
 
-// Peek returns the smallest value, without modifying the heap
-// Uses the comma-okay idiom, returning a zero value and false if empty.
-func (h *Heap[T]) Peek() (T, bool) {
+// Peek returns the smallest value, without modifying the heap.
+func (h *Heap[T]) Peek() (value T, ok bool) {
 	if len(h.values) == 0 {
 		var zero T
 		return zero, false
@@ -87,9 +91,8 @@ func (h *Heap[T]) Peek() (T, bool) {
 	return h.values[0], true
 }
 
-// Pop returns the smallest value and removes it from the heap
-// Uses the comma-okay idiom, returning a zero value and false if empty.
-func (h *Heap[T]) Pop() (T, bool) {
+// Pop returns the smallest value and removes it from the heap.
+func (h *Heap[T]) Pop() (value T, ok bool) {
 	if len(h.values) == 0 {
 		var zero T
 		return zero, false

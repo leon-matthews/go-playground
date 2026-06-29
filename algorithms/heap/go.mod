@@ -1,6 +1,6 @@
-module heap
+module local.dev/heap
 
-go 1.26.1
+go 1.26.4
 
 require github.com/stretchr/testify v1.11.1
 

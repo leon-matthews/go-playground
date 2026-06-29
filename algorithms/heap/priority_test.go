@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"heap/heap"
+	"local.dev/heap"
 )
 
 func TestPriorityQueue(t *testing.T) {

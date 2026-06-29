@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"heap/heap"
+	"local.dev/heap"
 )
 
 // BenchmarkBuildHeap compares methods of building a heap
