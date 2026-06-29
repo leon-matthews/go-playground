@@ -9,7 +9,7 @@ import (
 	"log"
 	"math/rand/v2"
 
-	"quickselect/quickselect"
+	"local.dev/quickselect"
 )
 
 func main() {

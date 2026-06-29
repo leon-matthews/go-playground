@@ -1,4 +1,4 @@
-module quickselect
+module local.dev/quickselect
 
 go 1.26.4
 

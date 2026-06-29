@@ -1,4 +1,7 @@
-// Package quickselect finds the k-th smallest element of a slice in O(n) average time.
+// Package quickselect efficiently finds the k-th smallest element of a slice
+// using Tony Hoare's [Quickselect] algorithm.
+//
+// [Quickselect]: https://en.wikipedia.org/wiki/Quickselect
 package quickselect
 
 import (
@@ -6,11 +9,13 @@ import (
 	"fmt"
 )
 
-// NthElement returns the k-th smallest element (0-based), reordering values in place.
+// NthElement returns the k-th smallest element (0-based), modifying input.
 //
-// After it returns, values[k] holds that element, every item in values[:k] is <= it,
-// and every item in values[k+1:] is >= it. Panics if k is outside [0, len(values)).
-// Clone the slice first with slices.Clone if you need to keep the original order.
+// Only a partial ordering is performed, making it many times faster than pre-sorting
+// when only one value is required.
+//
+// Clone the slice first with [slices.Clone] if you need to keep the original order.
+// Panics if k is outside [0, len(values)).
 func NthElement[T cmp.Ordered](values []T, k int) T {
 	return run(values, k, partition[T])
 }
@@ -18,7 +23,7 @@ func NthElement[T cmp.Ordered](values []T, k int) T {
 // NthElementFunc is like [NthElement] but orders elements with the given comparator.
 //
 // cmp reports whether a is less than (negative), equal to (zero), or greater than
-// (positive) b, the same convention as cmp.Compare and slices.SortFunc.
+// (positive) b, the same convention as [cmp.Compare] and [slices.SortFunc].
 func NthElementFunc[T any](values []T, k int, cmp func(T, T) int) T {
 	return run(values, k, func(values []T, lo, hi int) int {
 		return partitionFunc(values, lo, hi, cmp)
@@ -47,10 +52,15 @@ func run[T any](values []T, k int, partitionStep func(values []T, lo, hi int) in
 	return values[k]
 }
 
-// partition is [partitionFunc] specialized for ordered types.
+// partition is [partitionFunc] for basic ordered types.
 //
 // Comparing with the < operator inlines and avoids the indirect comparator call that
 // dominates NthElementFunc for cheap element types.
+//
+// Interestingly, the Lomuto scheme was first chosen for being easy to understand,
+// but an experiment switching it out to Hoare's original method showed that to
+// be slower on all input, except for the all-values-equal case, presumably
+// for locality of reference reasons.
 func partition[T cmp.Ordered](values []T, lo, hi int) int {
 	medianOfThree(values, lo, hi)
 
