@@ -143,17 +143,17 @@ func TestNthElementFunc(t *testing.T) {
 	})
 }
 
-// TestPartition exercises the unexported Lomuto partition step on its own.
+// TestPartitionFunc exercises the unexported partitionFunc step on its own.
 //
-// lo and hi are the inclusive bounds of the window partition reorders. The
-// NthElementFunc loop sets them, starting on the full slice and narrowing toward k.
-func TestPartition(t *testing.T) {
+// lo and hi are the inclusive bounds of the window partitionFunc reorders; the run
+// driver supplies them, starting on the full slice and narrowing toward k.
+func TestPartitionFunc(t *testing.T) {
 	t.Parallel()
 
 	t.Run("upholds the partition invariant", func(t *testing.T) {
 		//
 		values := []int{9, 3, 7, 1, 8, 2, 5}
-		i := partition(values, 0, len(values)-1, cmp.Compare[int])
+		i := partitionFunc(values, 0, len(values)-1, cmp.Compare[int])
 
 		// Values his been modified so that everything left of the pivot
 		// is less than the pivot; everything right is greater.
@@ -176,7 +176,7 @@ func TestPartition(t *testing.T) {
 	t.Run("picks the median of three as the pivot", func(t *testing.T) {
 		// Pivot = median of first/middle/last = median(9, 1, 5) = 5, parked at its sorted index.
 		values := []int{9, 3, 7, 1, 8, 2, 5}
-		p := partition(values, 0, len(values)-1, cmp.Compare[int])
+		p := partitionFunc(values, 0, len(values)-1, cmp.Compare[int])
 		assert.Equal(t, 5, values[p])
 		assert.Equal(t, 3, p) // three values (1, 2, 3) are smaller than the pivot
 	})
@@ -184,7 +184,7 @@ func TestPartition(t *testing.T) {
 	t.Run("reorders the window without losing elements", func(t *testing.T) {
 		// Partitioning is a permutation: the same multiset comes out, merely reordered.
 		values := []int{9, 3, 7, 1, 8, 2, 5}
-		partition(values, 0, len(values)-1, cmp.Compare[int])
+		partitionFunc(values, 0, len(values)-1, cmp.Compare[int])
 		assert.ElementsMatch(t, []int{1, 2, 3, 5, 7, 8, 9}, values)
 	})
 
@@ -192,7 +192,7 @@ func TestPartition(t *testing.T) {
 		// A partial window, values[2:9]: partition must leave everything outside [lo, hi] put.
 		values := []int{-100, -99, 9, 3, 7, 1, 8, 2, 5, 99, 100}
 		lo, hi := 2, 8
-		partition(values, lo, hi, cmp.Compare[int])
+		partitionFunc(values, lo, hi, cmp.Compare[int])
 		assert.Equal(t, []int{-100, -99}, values[:lo])
 		assert.Equal(t, []int{99, 100}, values[hi+1:])
 	})
@@ -200,7 +200,7 @@ func TestPartition(t *testing.T) {
 	t.Run("sends pivot-equal elements to the right side", func(t *testing.T) {
 		// Strict "< pivot" keeps pivot duplicates out of the left side -- the all-equal O(n^2) trap.
 		values := []int{5, 5, 5, 5, 5}
-		p := partition(values, 0, len(values)-1, cmp.Compare[int])
+		p := partitionFunc(values, 0, len(values)-1, cmp.Compare[int])
 		assert.Equal(t, 0, p)
 	})
 }

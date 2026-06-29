@@ -24,9 +24,3 @@ and the gap grows with element size (a memory-locality bound, not an instruction
 one). Hoare wins only on duplicate-heavy input, where its stop-on-equal scan sidesteps
 Lomuto's O(n²) degradation — an argument for three-way (Dutch-flag) partitioning rather
 than for switching schemes wholesale.
-
-## TODO
-
-1. Explore introselect: fall back to median-of-medians pivot selection when the
-   median-of-three pivot keeps splitting badly, to guarantee O(n) worst case rather than
-   the current O(n²) worst case.
