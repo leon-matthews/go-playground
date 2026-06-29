@@ -44,9 +44,9 @@ func Example_topN() {
 	// top 3 largest: [10 11 12]
 }
 
-// Example_priorityQueue pops values by ascending id, whatever the push order.
+// Example_priorityQueue pops values by ascending priority, whatever the push order.
 func Example_priorityQueue() {
-	q := heap.NewQueue[string]()
+	q := heap.NewPriorityQueue[string]()
 	q.Push(3, "black")
 	q.Push(1, "Sphinx")
 	q.Push(4, "quartz")

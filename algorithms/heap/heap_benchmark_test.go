@@ -110,7 +110,7 @@ func BenchmarkQueue(b *testing.B) {
 	var q *heap.PriorityQueue[int] // Hold on to a queue for later validation
 	for b.Loop() {
 		// Create new queue, then fill it n times
-		q = heap.NewQueue[int]()
+		q = heap.NewPriorityQueue[int]()
 		for _, pair := range items {
 			q.Push(pair.index, pair.value)
 		}
