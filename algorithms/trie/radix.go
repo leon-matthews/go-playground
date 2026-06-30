@@ -11,6 +11,10 @@ func NewRadixTrie() *RadixTrie {
 }
 
 func (t *RadixTrie) Insert(pattern string) {
+	// "" is a prefix of every input, so it is not a valid stored pattern.
+	if pattern == "" {
+		return
+	}
 	node := t
 	remaining := pattern
 

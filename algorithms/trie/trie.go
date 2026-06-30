@@ -11,6 +11,10 @@ func NewTrie() *Trie {
 }
 
 func (t *Trie) Insert(pattern string) {
+	// "" is a prefix of every input, so it is not a valid stored pattern.
+	if pattern == "" {
+		return
+	}
 	node := t
 	for i := 0; i < len(pattern); i++ {
 		b := pattern[i]

@@ -70,13 +70,16 @@ func TestHasPrefixMatch_EmptyInput(t *testing.T) {
 	}
 }
 
-func TestHasPrefixMatch_EmptyPatternInserted(t *testing.T) {
+func TestInsert_EmptyPatternRejected(t *testing.T) {
 	trie := NewTrie()
 	trie.Insert("")
 
-	// Root becomes an end node, but the loop never inspects it, so empty is unmatchable.
+	// Insert("") is a no-op, so "" never becomes a stored pattern.
 	if trie.HasPrefixMatch("anything") {
-		t.Error("expected false; an inserted empty pattern is not matchable")
+		t.Error("HasPrefixMatch: expected false after Insert(\"\")")
+	}
+	if got, ok := trie.MatchLongestPrefix("anything"); ok || got != "" {
+		t.Errorf("MatchLongestPrefix: expected (\"\", false), got (%q, %v)", got, ok)
 	}
 }
 
