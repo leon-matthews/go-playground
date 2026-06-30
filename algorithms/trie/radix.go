@@ -1,4 +1,4 @@
-package main
+package trie
 
 // edge is a labelled link to a child node; the label is the substring consumed along the link.
 type edge struct {
@@ -14,6 +14,7 @@ type RadixTrie struct {
 	pattern  string
 }
 
+// NewRadixTrie returns an empty RadixTrie, ready for Insert.
 func NewRadixTrie() *RadixTrie {
 	return &RadixTrie{children: make(map[byte]edge)}
 }
@@ -26,6 +27,7 @@ func newLeaf(pattern string) *RadixTrie {
 	return leaf
 }
 
+// Insert adds pattern to the trie; inserting the empty string is a no-op.
 func (t *RadixTrie) Insert(pattern string) {
 	// "" is a prefix of every input, so it is not a valid stored pattern.
 	if pattern == "" {
@@ -75,6 +77,7 @@ func (t *RadixTrie) Insert(pattern string) {
 	node.pattern = pattern
 }
 
+// MatchLongestPrefix returns the longest stored pattern prefixing input, and whether one was found.
 func (t *RadixTrie) MatchLongestPrefix(input string) (string, bool) {
 	node := t
 	remaining := input
@@ -97,6 +100,7 @@ func (t *RadixTrie) MatchLongestPrefix(input string) (string, bool) {
 	return last, last != ""
 }
 
+// HasPrefixMatch reports whether any stored pattern is a prefix of input.
 func (t *RadixTrie) HasPrefixMatch(input string) bool {
 	node := t
 	remaining := input
