@@ -2,91 +2,81 @@ package main
 
 import "testing"
 
-// --- Insert & MatchPrefix (shortest) ---
+// --- Insert & HasPrefixMatch ---
 
-func TestMatchPrefix_SinglePattern(t *testing.T) {
+func TestHasPrefixMatch_SinglePattern(t *testing.T) {
 	trie := NewTrie()
 	trie.Insert("foo")
 
-	got, ok := trie.MatchPrefix("foobar")
-	if !ok || got != "foo" {
-		t.Errorf("expected (foo, true), got (%q, %v)", got, ok)
+	if !trie.HasPrefixMatch("foobar") {
+		t.Error("expected true for input with a matching prefix")
 	}
 }
 
-func TestMatchPrefix_ExactMatch(t *testing.T) {
+func TestHasPrefixMatch_ExactMatch(t *testing.T) {
 	trie := NewTrie()
 	trie.Insert("foo")
 
-	got, ok := trie.MatchPrefix("foo")
-	if !ok || got != "foo" {
-		t.Errorf("expected (foo, true), got (%q, %v)", got, ok)
+	if !trie.HasPrefixMatch("foo") {
+		t.Error("expected true when input exactly equals a pattern")
 	}
 }
 
-func TestMatchPrefix_NoMatch(t *testing.T) {
+func TestHasPrefixMatch_NoMatch(t *testing.T) {
 	trie := NewTrie()
 	trie.Insert("foo")
 
-	got, ok := trie.MatchPrefix("bar")
-	if ok || got != "" {
-		t.Errorf("expected ('', false), got (%q, %v)", got, ok)
+	if trie.HasPrefixMatch("bar") {
+		t.Error("expected false when no pattern is a prefix")
 	}
 }
 
-func TestMatchPrefix_PartialInputNoMatch(t *testing.T) {
+func TestHasPrefixMatch_PartialInputNoMatch(t *testing.T) {
 	trie := NewTrie()
 	trie.Insert("foobar")
 
-	// input is a prefix of the pattern, but pattern never ends
-	got, ok := trie.MatchPrefix("foo")
-	if ok || got != "" {
-		t.Errorf("expected ('', false), got (%q, %v)", got, ok)
+	// Input is a prefix of the pattern, but the pattern never ends.
+	if trie.HasPrefixMatch("foo") {
+		t.Error("expected false when the pattern never ends within the input")
 	}
 }
 
-func TestMatchPrefix_ReturnsShortest(t *testing.T) {
+func TestHasPrefixMatch_StopsAtShortest(t *testing.T) {
 	trie := NewTrie()
 	trie.Insert("fo")
 	trie.Insert("foo")
 	trie.Insert("foobar")
 
-	// Should return the shortest match "fo", not "foo" or "foobar"
-	got, ok := trie.MatchPrefix("foobar")
-	if !ok || got != "fo" {
-		t.Errorf("expected (fo, true), got (%q, %v)", got, ok)
+	// "fo" already satisfies existence; the deeper patterns don't change it.
+	if !trie.HasPrefixMatch("foobar") {
+		t.Error("expected true once any prefix matches")
 	}
 }
 
-func TestMatchPrefix_EmptyTrie(t *testing.T) {
+func TestHasPrefixMatch_EmptyTrie(t *testing.T) {
 	trie := NewTrie()
 
-	got, ok := trie.MatchPrefix("anything")
-	if ok || got != "" {
-		t.Errorf("expected ('', false), got (%q, %v)", got, ok)
+	if trie.HasPrefixMatch("anything") {
+		t.Error("expected false from an empty trie")
 	}
 }
 
-func TestMatchPrefix_EmptyInput(t *testing.T) {
+func TestHasPrefixMatch_EmptyInput(t *testing.T) {
 	trie := NewTrie()
 	trie.Insert("foo")
 
-	got, ok := trie.MatchPrefix("")
-	if ok || got != "" {
-		t.Errorf("expected ('', false), got (%q, %v)", got, ok)
+	if trie.HasPrefixMatch("") {
+		t.Error("expected false for empty input")
 	}
 }
 
-func TestMatchPrefix_EmptyPatternInserted(t *testing.T) {
+func TestHasPrefixMatch_EmptyPatternInserted(t *testing.T) {
 	trie := NewTrie()
 	trie.Insert("")
 
-	// The root is immediately an end node, but the loop never runs
-	// so last stays "" and the function returns ("", false).
-	// This documents the current behaviour.
-	got, ok := trie.MatchPrefix("anything")
-	if ok || got != "" {
-		t.Errorf("expected ('', false), got (%q, %v)", got, ok)
+	// Root becomes an end node, but the loop never inspects it, so empty is unmatchable.
+	if trie.HasPrefixMatch("anything") {
+		t.Error("expected false; an inserted empty pattern is not matchable")
 	}
 }
 
@@ -140,46 +130,40 @@ func TestMatchLongestPrefix_InputShorterThanLongestPattern(t *testing.T) {
 	trie.Insert("fo")
 	trie.Insert("foobar")
 
-	// "foo" can only reach "fo" as a complete match
+	// "foo" can only reach "fo" as a complete match.
 	got, ok := trie.MatchLongestPrefix("foo")
 	if !ok || got != "fo" {
 		t.Errorf("expected (fo, true), got (%q, %v)", got, ok)
 	}
 }
 
-// --- Multiple patterns, disjoint ---
-
-func TestMatchPrefix_DisjointPatterns(t *testing.T) {
+func TestMatchLongestPrefix_DisjointPatterns(t *testing.T) {
 	trie := NewTrie()
 	trie.Insert("abc")
 	trie.Insert("xyz")
 
-	got, ok := trie.MatchPrefix("xyzzy")
+	got, ok := trie.MatchLongestPrefix("xyzzy")
 	if !ok || got != "xyz" {
 		t.Errorf("expected (xyz, true), got (%q, %v)", got, ok)
 	}
 
-	got, ok = trie.MatchPrefix("abcdef")
+	got, ok = trie.MatchLongestPrefix("abcdef")
 	if !ok || got != "abc" {
 		t.Errorf("expected (abc, true), got (%q, %v)", got, ok)
 	}
 }
 
-// --- Binary / high-byte safety ---
-
-func TestMatchPrefix_BinaryBytes(t *testing.T) {
+func TestMatchLongestPrefix_BinaryBytes(t *testing.T) {
 	trie := NewTrie()
 	pattern := string([]byte{0x01, 0x02, 0x03})
 	trie.Insert(pattern)
 
 	input := string([]byte{0x01, 0x02, 0x03, 0x04})
-	got, ok := trie.MatchPrefix(input)
+	got, ok := trie.MatchLongestPrefix(input)
 	if !ok || got != pattern {
 		t.Errorf("expected (%q, true), got (%q, %v)", pattern, got, ok)
 	}
 }
-
-// --- Table-driven broader coverage ---
 
 func TestMatchLongestPrefix_Table(t *testing.T) {
 	patterns := []string{"a", "ab", "abc", "abcd"}

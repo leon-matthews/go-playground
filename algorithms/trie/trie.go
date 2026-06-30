@@ -23,15 +23,7 @@ func (t *Trie) Insert(pattern string) {
 	node.pattern = pattern
 }
 
-func (t *Trie) MatchPrefix(input string) (string, bool) {
-	return t.matchPrefix(input, false)
-}
-
 func (t *Trie) MatchLongestPrefix(input string) (string, bool) {
-	return t.matchPrefix(input, true)
-}
-
-func (t *Trie) matchPrefix(input string, longest bool) (string, bool) {
 	node := t
 	last := ""
 	for i := 0; i < len(input); i++ {
@@ -41,11 +33,23 @@ func (t *Trie) matchPrefix(input string, longest bool) (string, bool) {
 		}
 		node = node.children[b]
 		if node.isEnd {
-			if !longest {
-				return node.pattern, true
-			}
 			last = node.pattern
 		}
 	}
 	return last, last != ""
+}
+
+func (t *Trie) HasPrefixMatch(input string) bool {
+	node := t
+	for i := 0; i < len(input); i++ {
+		b := input[i]
+		if node.children[b] == nil {
+			break
+		}
+		node = node.children[b]
+		if node.isEnd {
+			return true
+		}
+	}
+	return false
 }

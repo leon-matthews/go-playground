@@ -104,6 +104,31 @@ func (t *RadixTrie) MatchLongestPrefix(input string) (string, bool) {
 	return last, last != ""
 }
 
+func (t *RadixTrie) HasPrefixMatch(input string) bool {
+	node := t
+	remaining := input
+
+	for remaining != "" {
+		matched := false
+		for edge, child := range node.children {
+			if hasPrefix(remaining, edge) {
+				node = child
+				remaining = remaining[len(edge):]
+				if node.isEnd {
+					return true
+				}
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			break
+		}
+	}
+
+	return false
+}
+
 func commonPrefix(a, b string) string {
 	i := 0
 	for i < len(a) && i < len(b) && a[i] == b[i] {
