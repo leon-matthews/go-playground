@@ -22,7 +22,7 @@ type Heap[T any] struct {
 
 // NewHeap builds an empty heap of any basic ordered type
 func NewHeap[T cmp.Ordered]() *Heap[T] {
-	return NewHeapFunc[T](cmp.Compare[T])
+	return NewHeapFunc(cmp.Compare[T])
 }
 
 // NewHeapFunc builds an empty heap of any custom type, but requires a comparison function

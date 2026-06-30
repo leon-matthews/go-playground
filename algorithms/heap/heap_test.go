@@ -151,19 +151,19 @@ func TestNewHeapFunc(t *testing.T) {
 	t.Parallel()
 
 	t.Run("new heap is empty", func(t *testing.T) {
-		h := heap.NewHeapFunc[testItem](testItem.compare)
+		h := heap.NewHeapFunc(testItem.compare)
 		assert.Equal(t, 0, h.Len())
 	})
 
 	t.Run("push adds value", func(t *testing.T) {
-		h := heap.NewHeapFunc[testItem](testItem.compare)
+		h := heap.NewHeapFunc(testItem.compare)
 		assert.Equal(t, 0, h.Len())
 		h.Push(testItem{1, 2})
 		assert.Equal(t, 1, h.Len())
 	})
 
 	t.Run("peek does not remove value", func(t *testing.T) {
-		h := heap.NewHeapFunc[testItem](testItem.compare)
+		h := heap.NewHeapFunc(testItem.compare)
 		h.Push(testItem{2, 4})
 		assert.Equal(t, 1, h.Len())
 
@@ -175,7 +175,7 @@ func TestNewHeapFunc(t *testing.T) {
 	})
 
 	t.Run("pop removes value", func(t *testing.T) {
-		h := heap.NewHeapFunc[testItem](testItem.compare)
+		h := heap.NewHeapFunc(testItem.compare)
 		h.Push(testItem{3, 8})
 		assert.Equal(t, 1, h.Len())
 
