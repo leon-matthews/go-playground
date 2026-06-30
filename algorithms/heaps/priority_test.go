@@ -1,4 +1,4 @@
-package heap_test
+package heaps_test
 
 import (
 	"cmp"
@@ -7,17 +7,17 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"local.dev/heap"
+	"local.dev/heaps"
 )
 
 func TestPriorityQueue(t *testing.T) {
 	t.Run("NewHeap queue is empty", func(t *testing.T) {
-		q := heap.NewPriorityQueue[string]()
+		q := heaps.NewPriorityQueue[string]()
 		assert.Equal(t, 0, q.Len())
 	})
 
 	t.Run("Push adds value", func(t *testing.T) {
-		q := heap.NewPriorityQueue[string]()
+		q := heaps.NewPriorityQueue[string]()
 
 		q.Push(1, "Hello")
 
@@ -25,7 +25,7 @@ func TestPriorityQueue(t *testing.T) {
 	})
 
 	t.Run("pop on an empty heap returns zero value", func(t *testing.T) {
-		q := heap.NewPriorityQueue[string]()
+		q := heaps.NewPriorityQueue[string]()
 
 		i, v, ok := q.Pop()
 
@@ -35,7 +35,7 @@ func TestPriorityQueue(t *testing.T) {
 	})
 
 	t.Run("Pop removes value", func(t *testing.T) {
-		q := heap.NewPriorityQueue[string]()
+		q := heaps.NewPriorityQueue[string]()
 		q.Push(3, "Ephemeral")
 		assert.Equal(t, 1, q.Len())
 
@@ -48,7 +48,7 @@ func TestPriorityQueue(t *testing.T) {
 	})
 
 	t.Run("peek on an empty heap returns zero value", func(t *testing.T) {
-		q := heap.NewPriorityQueue[string]()
+		q := heaps.NewPriorityQueue[string]()
 
 		i, v, ok := q.Peek()
 
@@ -58,7 +58,7 @@ func TestPriorityQueue(t *testing.T) {
 	})
 
 	t.Run("Peek does not remove value", func(t *testing.T) {
-		q := heap.NewPriorityQueue[string]()
+		q := heaps.NewPriorityQueue[string]()
 		q.Push(2, "World!")
 		assert.Equal(t, 1, q.Len())
 
@@ -71,7 +71,7 @@ func TestPriorityQueue(t *testing.T) {
 	})
 
 	t.Run("Values pops values by ascending priority", func(t *testing.T) {
-		q := heap.NewPriorityQueue[string]()
+		q := heaps.NewPriorityQueue[string]()
 		q.Push(3, "black")
 		q.Push(2, "of")
 		q.Push(4, "quartz")
@@ -91,7 +91,7 @@ func TestPriorityQueue(t *testing.T) {
 	})
 
 	t.Run("Values partially consumes queue if interrupted", func(t *testing.T) {
-		q := heap.NewPriorityQueue[string]()
+		q := heaps.NewPriorityQueue[string]()
 		q.Push(3, "black")
 		q.Push(2, "of")
 		q.Push(4, "quartz")
@@ -119,7 +119,7 @@ func TestPriorityQueue(t *testing.T) {
 
 func TestPriorityQueueStability(t *testing.T) {
 	t.Run("equal priorities pop in insertion order", func(t *testing.T) {
-		q := heap.NewPriorityQueue[string]()
+		q := heaps.NewPriorityQueue[string]()
 		q.Push(1, "first")
 		q.Push(1, "second")
 		q.Push(1, "third")
@@ -130,7 +130,7 @@ func TestPriorityQueueStability(t *testing.T) {
 
 	t.Run("acts as a stable sort across duplicate priorities", func(t *testing.T) {
 		const n = 1000
-		q := heap.NewPriorityQueue[int]()
+		q := heaps.NewPriorityQueue[int]()
 		priorities := make([]int, n)
 		for i := range n {
 			priorities[i] = i % 5 // many ties across five priority levels

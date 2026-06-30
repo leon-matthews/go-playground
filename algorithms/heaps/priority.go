@@ -1,4 +1,4 @@
-package heap
+package heaps
 
 import (
 	"cmp"

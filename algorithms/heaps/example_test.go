@@ -1,4 +1,4 @@
-package heap_test
+package heaps_test
 
 import (
 	"cmp"
@@ -6,19 +6,19 @@ import (
 	"slices"
 	"strings"
 
-	"local.dev/heap"
+	"local.dev/heaps"
 )
 
 // Example_sorting builds a heap, peeks the smallest value, and drains it in order.
 func Example_sorting() {
-	h := heap.Heapify([]int{5, 3, 1, 4, 2})
+	h := heaps.Heapify([]int{5, 3, 1, 4, 2})
 	smallest, _ := h.Peek()
 	fmt.Println("smallest:  ", smallest)
 	fmt.Println("ascending: ", slices.Collect(h.All()))
 
 	// A descending comparator builds a max-heap.
 	descending := func(a, b int) int { return cmp.Compare(b, a) }
-	maxHeap := heap.HeapifyFunc([]int{5, 3, 1, 4, 2}, descending)
+	maxHeap := heaps.HeapifyFunc([]int{5, 3, 1, 4, 2}, descending)
 	fmt.Println("descending:", slices.Collect(maxHeap.All()))
 	// Output:
 	// smallest:   1
@@ -31,7 +31,7 @@ func Example_topN() {
 	const n = 3
 	stream := []int{7, 3, 11, 1, 9, 2, 12, 5, 8, 4, 10, 6}
 
-	h := heap.NewHeap[int]()
+	h := heaps.NewHeap[int]()
 	for _, v := range stream {
 		h.Push(v)
 		if h.Len() > n {
@@ -46,7 +46,7 @@ func Example_topN() {
 
 // Example_priorityQueue pops values by ascending priority, whatever the push order.
 func Example_priorityQueue() {
-	q := heap.NewPriorityQueue[string]()
+	q := heaps.NewPriorityQueue[string]()
 	q.Push(3, "black")
 	q.Push(1, "Sphinx")
 	q.Push(4, "quartz")

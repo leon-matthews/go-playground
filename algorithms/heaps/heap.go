@@ -1,5 +1,5 @@
-// Package heap is a generic Heap and PriorityQueue implementation
-package heap
+// Package heaps is a generic Heap and PriorityQueue implementation
+package heaps
 
 import (
 	"cmp"

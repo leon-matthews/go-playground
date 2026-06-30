@@ -1,4 +1,4 @@
-module local.dev/heap
+module local.dev/heaps
 
 go 1.26.4
 

@@ -1,4 +1,4 @@
-package heap_test
+package heaps_test
 
 import (
 	"cmp"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"local.dev/heap"
+	"local.dev/heaps"
 )
 
 func TestHeap(t *testing.T) {
@@ -15,19 +15,19 @@ func TestHeap(t *testing.T) {
 	unordered := []int{5, 3, 1, 2, 4}
 
 	t.Run("new heap is empty", func(t *testing.T) {
-		h := heap.NewHeap[int]()
+		h := heaps.NewHeap[int]()
 		assert.Equal(t, 0, h.Len())
 	})
 
 	t.Run("push adds value", func(t *testing.T) {
-		h := heap.NewHeap[int]()
+		h := heaps.NewHeap[int]()
 		assert.Equal(t, 0, h.Len())
 		h.Push(42)
 		assert.Equal(t, 1, h.Len())
 	})
 
 	t.Run("pushing same value is okay", func(t *testing.T) {
-		h := heap.NewHeap[int]()
+		h := heaps.NewHeap[int]()
 		h.Push(42)
 		h.Push(42)
 		h.Push(42)
@@ -37,7 +37,7 @@ func TestHeap(t *testing.T) {
 
 	t.Run("peek returns smallest value", func(t *testing.T) {
 		unordered := slices.Clone(unordered)
-		h := heap.Heapify(unordered)
+		h := heaps.Heapify(unordered)
 		v, ok := h.Peek()
 		assert.True(t, ok)
 		assert.Equal(t, 1, v)
@@ -49,14 +49,14 @@ func TestHeap(t *testing.T) {
 	})
 
 	t.Run("peek on an empty heap returns zero value", func(t *testing.T) {
-		h := heap.NewHeap[string]()
+		h := heaps.NewHeap[string]()
 		v, ok := h.Peek()
 		assert.False(t, ok)
 		assert.Equal(t, "", v)
 	})
 
 	t.Run("peek does not remove value", func(t *testing.T) {
-		h := heap.NewHeap[int]()
+		h := heaps.NewHeap[int]()
 		h.Push(42)
 		assert.Equal(t, 1, h.Len())
 
@@ -69,7 +69,7 @@ func TestHeap(t *testing.T) {
 
 	t.Run("pop returns smallest value", func(t *testing.T) {
 		unordered := slices.Clone(unordered)
-		h := heap.Heapify(unordered)
+		h := heaps.Heapify(unordered)
 		v, ok := h.Pop()
 		assert.True(t, ok)
 		assert.Equal(t, 1, v)
@@ -81,7 +81,7 @@ func TestHeap(t *testing.T) {
 	})
 
 	t.Run("pop removes value", func(t *testing.T) {
-		h := heap.NewHeap[int]()
+		h := heaps.NewHeap[int]()
 		h.Push(42)
 		assert.Equal(t, 1, h.Len())
 
@@ -92,7 +92,7 @@ func TestHeap(t *testing.T) {
 	})
 
 	t.Run("pop on an empty heap returns zero value", func(t *testing.T) {
-		h := heap.NewHeap[string]()
+		h := heaps.NewHeap[string]()
 		v, ok := h.Pop()
 		assert.False(t, ok)
 		assert.Equal(t, "", v)
@@ -100,7 +100,7 @@ func TestHeap(t *testing.T) {
 
 	t.Run("all pops off every value, in order", func(t *testing.T) {
 		unordered := slices.Clone(unordered)
-		h := heap.Heapify(unordered)
+		h := heaps.Heapify(unordered)
 		out := make([]int, 0, len(unordered))
 		assert.Equal(t, 5, h.Len()) // Heap now has 5 values on it
 
@@ -113,7 +113,7 @@ func TestHeap(t *testing.T) {
 
 	t.Run("all partially consumes heap if interrupted", func(t *testing.T) {
 		unordered := slices.Clone(unordered)
-		h := heap.Heapify(unordered)
+		h := heaps.Heapify(unordered)
 		out := make([]int, 0, len(unordered))
 		assert.Equal(t, "[1 2 5 3 4]", h.String())
 
@@ -132,11 +132,11 @@ func TestHeap(t *testing.T) {
 func TestHeapify(t *testing.T) {
 	// Build using Heapify()
 	unordered := []int{5, 3, 1, 2, 4}
-	heapified := heap.Heapify(slices.Clone(unordered))
+	heapified := heaps.Heapify(slices.Clone(unordered))
 	assert.Equal(t, 5, heapified.Len())
 
 	// Build by iterative pushing
-	pushed := heap.NewHeap[int]()
+	pushed := heaps.NewHeap[int]()
 	for _, v := range slices.Clone(unordered) {
 		pushed.Push(v)
 	}
@@ -151,19 +151,19 @@ func TestNewHeapFunc(t *testing.T) {
 	t.Parallel()
 
 	t.Run("new heap is empty", func(t *testing.T) {
-		h := heap.NewHeapFunc(testItem.compare)
+		h := heaps.NewHeapFunc(testItem.compare)
 		assert.Equal(t, 0, h.Len())
 	})
 
 	t.Run("push adds value", func(t *testing.T) {
-		h := heap.NewHeapFunc(testItem.compare)
+		h := heaps.NewHeapFunc(testItem.compare)
 		assert.Equal(t, 0, h.Len())
 		h.Push(testItem{1, 2})
 		assert.Equal(t, 1, h.Len())
 	})
 
 	t.Run("peek does not remove value", func(t *testing.T) {
-		h := heap.NewHeapFunc(testItem.compare)
+		h := heaps.NewHeapFunc(testItem.compare)
 		h.Push(testItem{2, 4})
 		assert.Equal(t, 1, h.Len())
 
@@ -175,7 +175,7 @@ func TestNewHeapFunc(t *testing.T) {
 	})
 
 	t.Run("pop removes value", func(t *testing.T) {
-		h := heap.NewHeapFunc(testItem.compare)
+		h := heaps.NewHeapFunc(testItem.compare)
 		h.Push(testItem{3, 8})
 		assert.Equal(t, 1, h.Len())
 
@@ -191,7 +191,7 @@ func TestHeapifyFunc(t *testing.T) {
 	unordered := makeItems(5)
 	slices.Reverse(unordered)
 
-	h := heap.HeapifyFunc(unordered, testItem.compare)
+	h := heaps.HeapifyFunc(unordered, testItem.compare)
 	assert.Equal(t, 5, h.Len())
 	// Peek under the covers using the string method.
 	// The first element must be the smallest.

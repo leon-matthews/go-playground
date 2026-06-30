@@ -1,4 +1,4 @@
-package heap_test
+package heaps_test
 
 import (
 	"math/rand/v2"
@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"local.dev/heap"
+	"local.dev/heaps"
 )
 
 // BenchmarkBuildHeap compares methods of building a heap
@@ -21,12 +21,12 @@ func BenchmarkBuildHeap(b *testing.B) {
 	})
 
 	b.Run("using Heapify", func(b *testing.B) {
-		var h *heap.Heap[int]
+		var h *heaps.Heap[int]
 		for b.Loop() {
 			b.StopTimer()
 			numbers := slices.Clone(numbers)
 			b.StartTimer()
-			h = heap.Heapify(numbers)
+			h = heaps.Heapify(numbers)
 		}
 		v, ok := h.Peek()
 		assert.True(b, ok)
@@ -34,13 +34,13 @@ func BenchmarkBuildHeap(b *testing.B) {
 	})
 
 	b.Run("using NewHeap/Push", func(b *testing.B) {
-		var h *heap.Heap[int]
+		var h *heaps.Heap[int]
 		for b.Loop() {
 			b.StopTimer()
 			numbers := slices.Clone(numbers)
 			b.StartTimer()
 
-			h = heap.NewHeap[int]()
+			h = heaps.NewHeap[int]()
 			for _, n := range numbers {
 				h.Push(n)
 			}
@@ -66,7 +66,7 @@ func BenchmarkSort(b *testing.B) {
 			sorted := make([]int, 0, len(numbers))
 			b.StartTimer()
 
-			h := heap.Heapify(numbers)
+			h := heaps.Heapify(numbers)
 			for v := range h.All() {
 				sorted = append(sorted, v)
 			}
@@ -107,10 +107,10 @@ func BenchmarkQueue(b *testing.B) {
 		items[i], items[j] = items[j], items[i]
 	})
 
-	var q *heap.PriorityQueue[int] // Hold on to a queue for later validation
+	var q *heaps.PriorityQueue[int] // Hold on to a queue for later validation
 	for b.Loop() {
 		// Create new queue, then fill it n times
-		q = heap.NewPriorityQueue[int]()
+		q = heaps.NewPriorityQueue[int]()
 		for _, pair := range items {
 			q.Push(pair.index, pair.value)
 		}
