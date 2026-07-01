@@ -1,5 +1,7 @@
 package trie
 
+import "slices"
+
 // edge is a labelled link to a child node; the label is the substring consumed along the link.
 type edge struct {
 	label string
@@ -118,6 +120,50 @@ func (t *RadixTrie) HasPrefixMatch(input string) bool {
 	}
 
 	return false
+}
+
+// KeysWithPrefix returns every stored pattern beginning with prefix, in lexicographic order.
+// An empty prefix returns all stored patterns; an unmatched prefix returns nil.
+func (t *RadixTrie) KeysWithPrefix(prefix string) []string {
+	node := t
+	remaining := prefix
+
+	for remaining != "" {
+		e, ok := node.children[remaining[0]]
+		if !ok {
+			return nil // no edge continues this prefix
+		}
+		if len(e.label) >= len(remaining) {
+			// Prefix ends within this edge, so it must be a prefix of the label.
+			if !hasPrefix(e.label, remaining) {
+				return nil
+			}
+			node = e.child
+			remaining = ""
+		} else {
+			// The whole label must sit at the head of the remaining prefix.
+			if !hasPrefix(remaining, e.label) {
+				return nil
+			}
+			node = e.child
+			remaining = remaining[len(e.label):]
+		}
+	}
+
+	var keys []string
+	node.collectKeys(&keys)
+	slices.Sort(keys)
+	return keys
+}
+
+// collectKeys appends every stored pattern in this subtree to keys, in no particular order.
+func (t *RadixTrie) collectKeys(keys *[]string) {
+	if t.isEnd {
+		*keys = append(*keys, t.pattern)
+	}
+	for _, e := range t.children {
+		e.child.collectKeys(keys)
+	}
 }
 
 // commonPrefix returns the longest byte prefix shared by a and b.

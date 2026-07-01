@@ -1,6 +1,9 @@
 package trie
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 // --- Insert & HasPrefixMatch ---
 
@@ -194,6 +197,44 @@ func TestMatchLongestPrefix_Table(t *testing.T) {
 		if ok != tc.wantBool || got != tc.wantPat {
 			t.Errorf("MatchLongestPrefix(%q): expected (%q, %v), got (%q, %v)",
 				tc.input, tc.wantPat, tc.wantBool, got, ok)
+		}
+	}
+}
+
+// --- KeysWithPrefix ---
+
+func TestKeysWithPrefix(t *testing.T) {
+	patterns := []string{"car", "card", "care", "cat", "dog"}
+
+	tests := []struct {
+		prefix string
+		want   []string
+	}{
+		{"car", []string{"car", "card", "care"}},
+		{"ca", []string{"car", "card", "care", "cat"}},
+		{"c", []string{"car", "card", "care", "cat"}},
+		{"card", []string{"card"}},
+		{"care", []string{"care"}},
+		{"d", []string{"dog"}},
+		{"dog", []string{"dog"}},
+		{"do", []string{"dog"}},
+		{"", []string{"car", "card", "care", "cat", "dog"}}, // empty prefix matches all
+		{"x", nil},
+		{"cb", nil},
+		{"cxy", nil},
+		{"cax", nil},
+		{"cared", nil}, // prefix longer than any stored key
+	}
+
+	trie := NewTrie()
+	for _, p := range patterns {
+		trie.Insert(p)
+	}
+
+	for _, tc := range tests {
+		got := trie.KeysWithPrefix(tc.prefix)
+		if !slices.Equal(got, tc.want) {
+			t.Errorf("KeysWithPrefix(%q) = %v, want %v", tc.prefix, got, tc.want)
 		}
 	}
 }
