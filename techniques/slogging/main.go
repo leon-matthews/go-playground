@@ -42,7 +42,7 @@ func setupLogging() {
 }
 
 // setupJSONLogging installs a slog default logger that writes line-delimited
-// JSON to stderr — the format most log aggregators expect.
+// JSON to stderr - the format most log aggregators expect.
 func setupJSONLogging() {
 	level := slog.LevelInfo
 	switch {
@@ -57,7 +57,7 @@ func setupJSONLogging() {
 }
 
 // setupCharmingLogging installs a slog default backed by Charmbracelet's
-// log package — colourised, with caller info and a short Kitchen timestamp.
+// log package - colourised, with caller info and a short Kitchen timestamp.
 func setupCharmingLogging() {
 	level := charminglog.InfoLevel
 	switch {

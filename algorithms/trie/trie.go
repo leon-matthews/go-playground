@@ -1,9 +1,22 @@
 // Package trie provides prefix matching of inputs against a stored set of byte patterns.
+//
+// It offers two interchangeable implementations with the same API, [Trie] and [RadixTrie],
+// each supporting Insert, MatchLongestPrefix, HasPrefixMatch, and KeysWithPrefix. They differ
+// only in how nodes are stored. Trie keeps one node per byte: simplest to read, but a node per
+// byte costs memory, allocations, and build time. RadixTrie compresses each non-branching chain
+// of bytes into a single labelled edge, holding far fewer nodes - measurably less memory and
+// faster builds and lookups - in exchange for a more intricate insert. Prefer Trie for small
+// pattern sets or maximum simplicity; prefer RadixTrie for large keyspaces or long keys with
+// shared prefixes such as paths, URLs, or identifiers, the better default for real workloads.
 package trie
 
 import "slices"
 
 // Trie is a prefix tree with one node per byte: every stored pattern is a root-to-node path.
+//
+// One node per byte keeps the code simplest but costs the most memory and build time. Prefer it
+// for small pattern sets or maximum simplicity; for large keyspaces reach for [RadixTrie]. See
+// the package overview for the full comparison.
 type Trie struct {
 	// children maps a present byte to its child node; a missing key means there is no such child.
 	children map[byte]*Trie
@@ -68,7 +81,7 @@ func (t *Trie) HasPrefixMatch(input string) bool {
 		}
 		node = child
 		if node.isEnd {
-			return true // first complete pattern is enough — no need to find the longest
+			return true // first complete pattern is enough - no need to find the longest
 		}
 	}
 	return false

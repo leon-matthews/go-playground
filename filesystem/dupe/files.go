@@ -28,7 +28,7 @@ type FolderInfo struct {
 }
 
 // Collector owns the results of a directory walk: the per-folder scans, the absolute paths
-// of the original roots, and a shared logger. One-shot — call Walk once, then read the fields.
+// of the original roots, and a shared logger. One-shot - call Walk once, then read the fields.
 type Collector struct {
 	Folders  []FolderInfo
 	AbsRoots []string

@@ -279,7 +279,7 @@ func TestCacheMigrationFromV1(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, scratch.Close())
 
-	// Reopen with current code — should detect mismatch and rebuild.
+	// Reopen with current code - should detect mismatch and rebuild.
 	reopened, err := openCache(path, nil)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = reopened.Close() })

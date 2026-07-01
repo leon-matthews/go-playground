@@ -9,6 +9,10 @@ type edge struct {
 }
 
 // RadixTrie is a prefix tree whose edges carry whole substrings, compressing non-branching chains.
+//
+// Compressing chains into labelled edges makes it far leaner and faster than a plain [Trie], at
+// the cost of a more intricate insert. Prefer it for large keyspaces or long keys with shared
+// prefixes such as paths, URLs, or identifiers. See the package overview for the full comparison.
 type RadixTrie struct {
 	// children is keyed by each edge's first byte, which the radix invariant keeps unique per node.
 	children map[byte]edge
@@ -41,7 +45,7 @@ func (t *RadixTrie) Insert(pattern string) {
 	for remaining != "" {
 		e, ok := node.children[remaining[0]]
 		if !ok {
-			// Nothing here starts with this byte — hang the rest of pattern as a new leaf.
+			// Nothing here starts with this byte - hang the rest of pattern as a new leaf.
 			node.children[remaining[0]] = edge{label: remaining, child: newLeaf(pattern)}
 			return
 		}
@@ -49,13 +53,13 @@ func (t *RadixTrie) Insert(pattern string) {
 		// e shares remaining[0], so the common prefix is always at least one byte long.
 		prefix := commonPrefix(e.label, remaining)
 		if prefix == e.label {
-			// The whole edge matched — consume it and keep walking down.
+			// The whole edge matched - consume it and keep walking down.
 			node = e.child
 			remaining = remaining[len(e.label):]
 			continue
 		}
 
-		// Input and edge agree on a prefix then diverge — split the edge at that point.
+		// Input and edge agree on a prefix then diverge - split the edge at that point.
 		mid := NewRadixTrie()
 		// Re-hang the old edge's tail (everything after the shared prefix) beneath mid.
 		mid.children[e.label[len(prefix)]] = edge{label: e.label[len(prefix):], child: e.child}
@@ -68,7 +72,7 @@ func (t *RadixTrie) Insert(pattern string) {
 			mid.isEnd = true
 			mid.pattern = pattern
 		} else {
-			// pattern continues past the split — its tail becomes mid's second child.
+			// pattern continues past the split - its tail becomes mid's second child.
 			mid.children[suffix[0]] = edge{label: suffix, child: newLeaf(pattern)}
 		}
 		return
@@ -115,7 +119,7 @@ func (t *RadixTrie) HasPrefixMatch(input string) bool {
 		node = e.child
 		remaining = remaining[len(e.label):]
 		if node.isEnd {
-			return true // first complete pattern is enough — no need to find the longest
+			return true // first complete pattern is enough - no need to find the longest
 		}
 	}
 

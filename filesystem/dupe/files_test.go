@@ -362,7 +362,7 @@ func TestScannerStalePath(t *testing.T) {
 	files := scanner.Process(scans)
 	require.Len(t, files, 1)
 	// Cache file entry matched on size+mtime so the file-level Layer-1 cache served the
-	// (wrong) hash. The folder being stale only means we stat'd it — it doesn't force
+	// (wrong) hash. The folder being stale only means we stat'd it - it doesn't force
 	// re-hashing of a file whose size+mtime still matches.
 	assert.Equal(t, wrong, files[0].Hash)
 }
@@ -377,7 +377,7 @@ func TestScannerForceFlag(t *testing.T) {
 
 	// Cache wrong hash + matching folder mtime → trusted path would serve the wrong hash.
 	// With force=true, the trusted branch is bypassed and we stat each file. The file's
-	// size+mtime still match cache so the file-level cache STILL serves the wrong hash —
+	// size+mtime still match cache so the file-level cache STILL serves the wrong hash -
 	// force only disables the folder-mtime layer, not the file-level cache.
 	wrong := makeHash(0xff)
 	require.NoError(t, c.Set(pathA, CacheEntry{Size: int64(len("real content")), ModTime: scans[0].Mtime, Hash: wrong}))
@@ -387,7 +387,7 @@ func TestScannerForceFlag(t *testing.T) {
 	scanner := newScanner(c, 4, nil, true)
 	files := scanner.Process(scans)
 	require.Len(t, files, 1)
-	// Same as the stale-path test — force makes us re-stat but file-level cache still applies.
+	// Same as the stale-path test - force makes us re-stat but file-level cache still applies.
 	assert.Equal(t, wrong, files[0].Hash)
 }
 
@@ -419,7 +419,7 @@ func TestScannerVerifyCatchesInPlaceEdit(t *testing.T) {
 	require.True(t, folderBefore.ModTime().Equal(folderAfter.ModTime()),
 		"in-place write must not change folder mtime for this test to be meaningful")
 
-	// Second scan: folder is trusted, both files served from cache with matching (old) hash —
+	// Second scan: folder is trusted, both files served from cache with matching (old) hash -
 	// but the verification pass should re-stat them, see a.txt's size changed, re-hash, and
 	// emit divergent hashes.
 	scans2, err := newCollector(nil).collectRoots(root)
@@ -449,7 +449,7 @@ func TestScannerVerifyFailureDrops(t *testing.T) {
 	require.NoError(t, c.Flush())
 
 	// Delete a.txt while the cache still has its entry. The folder mtime WILL bump
-	// because deletion bumps it, so the trusted path won't trigger — but we want to
+	// because deletion bumps it, so the trusted path won't trigger - but we want to
 	// test the verify-failure path. We can manually re-set folder mtime to match.
 	require.NoError(t, os.Remove(pathA))
 	folderInfo, err := os.Stat(scans[0].Path)

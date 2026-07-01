@@ -1,6 +1,6 @@
 # Go Ladders
 
-A Go port of the Python original, `../snakes_and_ladders.py` — a silly benchmark which
+A Go port of the Python original, `../snakes_and_ladders.py` - a silly benchmark which
 plays many, many solo games of snakes and ladders.
 
 The command-line interface matches the Python script, but the internals are idiomatic Go:

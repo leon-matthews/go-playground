@@ -42,7 +42,7 @@ func main() {
 			continue
 		}
 
-		// NOTE: don't put any blocking code here — it would delay every
+		// NOTE: don't put any blocking code here - it would delay every
 		// waiting client. The assertion is safe: Accept on a TCP listener
 		// always returns a *net.TCPConn, whose CloseWrite method proxy needs.
 		go proxy(conn.(*net.TCPConn))
@@ -67,7 +67,7 @@ func proxy(client *net.TCPConn) {
 
 	// TCP is full-duplex and io.Copy blocks until EOF, so each direction
 	// needs its own copy, and hence one more goroutine. CloseWrite sends a
-	// TCP FIN — a "half-close": no more data from this side, the other
+	// TCP FIN - a "half-close": no more data from this side, the other
 	// direction stays open. Forwarding each FIN promptly matters: without it
 	// a hung-up client goes unnoticed by the upstream. The io.Copy errors are
 	// discarded, as peers resetting connections is routine for a proxy.
@@ -85,6 +85,6 @@ func proxy(client *net.TCPConn) {
 	client.CloseWrite()
 
 	// Wait for the other direction to finish before the deferred Closes tear
-	// both sockets down — the client may still be sending.
+	// both sockets down - the client may still be sending.
 	<-done
 }
