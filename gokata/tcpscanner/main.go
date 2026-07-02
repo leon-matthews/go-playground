@@ -11,7 +11,7 @@ import (
 
 func main() {
 	host := "scanme.nmap.org"
-	openports := scan(host, 1, 32_000, 100, 500*time.Millisecond)
+	openports := scan(host, 1, 1025, 100, 500*time.Millisecond)
 	for port := range openports {
 		fmt.Println(port)
 	}
