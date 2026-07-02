@@ -3,11 +3,11 @@ package pwned
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"log/slog"
 	"math"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/dustin/go-humanize"
@@ -18,6 +18,12 @@ import (
 // Report progress at this interval unless [Downloader.Progress] is set
 const defaultProgressInterval = 30 * time.Second
 
+// Run this many fetch workers unless [Downloader.Concurrency] is set
+const defaultConcurrency = 32
+
+// Small channel buffers decouple the pipeline stages a little
+const channelBuffer = 64
+
 // A Downloader fetches every hash list and stores it in the database.
 // Stored ETags let repeat runs skip lists that have not changed, so an
 // interrupted download resumes where it left off.
@@ -25,11 +31,21 @@ type Downloader struct {
 	db      *sql.DB
 	queries *sqlite.Queries
 
-	// Limit stops the run after this many prefixes, if greater than zero
+	// Concurrency is the number of parallel fetch workers
+	Concurrency int
+
+	// Limit stops the run after attempting this many prefixes, if greater than zero
 	Limit int
 
 	// Progress is the interval between progress reports
 	Progress time.Duration
+}
+
+// A result carries one prefix's fetch outcome from a worker to the collector
+type result struct {
+	prefix Prefix
+	resp   *HashResponse
+	err    error
 }
 
 // counters accumulates totals over a whole download run
@@ -46,51 +62,58 @@ func NewDownloader(db *sql.DB, queries *sqlite.Queries) *Downloader {
 	return &Downloader{db: db, queries: queries}
 }
 
-// Run fetches and stores every prefix in sequence, returning early if ctx
+// Run fetches every prefix using parallel workers, returning early if ctx
 // is cancelled. Individual fetch failures are logged and skipped.
 func (d *Downloader) Run(ctx context.Context) error {
 	interval := d.Progress
 	if interval <= 0 {
 		interval = defaultProgressInterval
 	}
+	workers := d.Concurrency
+	if workers <= 0 {
+		workers = defaultConcurrency
+	}
 
+	etags, err := d.loadEtags(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Cancelling shuts down the generator and workers if storing fails
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	prefixes := d.generate(ctx)
+	results := fetchWorkers(ctx, workers, etags, prefixes)
+
+	// Run's own goroutine collects results, and is the sole database writer,
+	// so the counters need no locks and SQLite sees no write contention.
 	start := time.Now()
 	next := start.Add(interval)
 	var c counters
-
-	for prefix := range Prefixes() {
-		if err := ctx.Err(); err != nil {
-			d.report(ctx, start, c, true)
-			return err
+	for res := range results {
+		// Drain remaining results without processing once cancelled
+		if ctx.Err() != nil {
+			continue
 		}
-		if d.Limit > 0 && c.processed >= d.Limit {
-			break
-		}
-
-		etag, err := d.storedEtag(ctx, prefix)
-		if err != nil {
-			return err
-		}
-
-		resp, err := FetchHashes(ctx, prefix, etag)
-		if err != nil {
-			// Cancellation mid-fetch is not a failure; loop top returns
-			if ctx.Err() != nil {
-				continue
-			}
-			slog.Error("fetch failed", "prefix", prefix, "error", err)
+		if res.err != nil {
+			slog.Error("fetch failed", "prefix", res.prefix, "error", res.err)
 			c.failed++
 			continue
 		}
 
-		if resp.HTTPStatus == http.StatusNotModified {
+		if res.resp.HTTPStatus == http.StatusNotModified {
 			c.unchanged++
 		} else {
-			if err := d.store(ctx, resp); err != nil {
-				return fmt.Errorf("storing prefix %q: %w", prefix, err)
+			if err := d.store(ctx, res.resp); err != nil {
+				// Cancellation mid-store is not a failure either
+				if ctx.Err() != nil {
+					continue
+				}
+				return fmt.Errorf("storing prefix %q: %w", res.prefix, err)
 			}
 			c.fetched++
-			c.downloaded += int64(len(resp.Hashes))
+			c.downloaded += int64(len(res.resp.Hashes))
 		}
 
 		c.processed++
@@ -101,19 +124,72 @@ func (d *Downloader) Run(ctx context.Context) error {
 	}
 
 	d.report(ctx, start, c, true)
-	return nil
+	return ctx.Err()
 }
 
-// storedEtag returns the ETag held for prefix, or "" if it is not yet stored.
-func (d *Downloader) storedEtag(ctx context.Context, prefix Prefix) (string, error) {
-	row, err := d.queries.GetPrefix(ctx, string(prefix))
-	if errors.Is(err, sql.ErrNoRows) {
-		return "", nil
-	}
+// loadEtags reads every stored ETag into memory for the fetch workers.
+func (d *Downloader) loadEtags(ctx context.Context) (map[Prefix]string, error) {
+	rows, err := d.queries.GetEtags(ctx)
 	if err != nil {
-		return "", fmt.Errorf("reading prefix %q: %w", prefix, err)
+		return nil, fmt.Errorf("loading etags: %w", err)
 	}
-	return row.Etag.String, nil
+	etags := make(map[Prefix]string, len(rows))
+	for _, row := range rows {
+		if row.Etag.Valid {
+			etags[Prefix(row.Prefix)] = row.Etag.String
+		}
+	}
+	return etags, nil
+}
+
+// generate feeds prefixes into a channel until done, limited, or cancelled.
+func (d *Downloader) generate(ctx context.Context) <-chan Prefix {
+	out := make(chan Prefix, channelBuffer)
+	go func() {
+		defer close(out)
+		count := 0
+		for prefix := range Prefixes() {
+			if d.Limit > 0 && count >= d.Limit {
+				return
+			}
+			select {
+			case out <- prefix:
+				count++
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	return out
+}
+
+// fetchWorkers starts count parallel workers to fetch each prefix's hash list.
+// The results channel closes once the last worker has finished.
+func fetchWorkers(
+	ctx context.Context,
+	count int,
+	etags map[Prefix]string,
+	prefixes <-chan Prefix,
+) <-chan result {
+	out := make(chan result, channelBuffer)
+	var wg sync.WaitGroup
+	for range count {
+		wg.Go(func() {
+			for prefix := range prefixes {
+				resp, err := FetchHashes(ctx, prefix, etags[prefix])
+				select {
+				case out <- result{prefix: prefix, resp: resp, err: err}:
+				case <-ctx.Done():
+					return
+				}
+			}
+		})
+	}
+	go func() {
+		wg.Wait()
+		close(out)
+	}()
+	return out
 }
 
 // store replaces the prefix's hashes and download metadata in one transaction.

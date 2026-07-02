@@ -9,6 +9,25 @@ import (
 	"time"
 )
 
+// Give up on any single request after this long
+const fetchTimeout = 30 * time.Second
+
+// client is shared by all fetch workers
+var client = newClient()
+
+// newClient builds an HTTP client that suits many concurrent workers.
+// The default transport keeps only two idle connections per host, which
+// would force most workers to redo the TCP and TLS handshakes every fetch.
+func newClient() *http.Client {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.MaxIdleConns = 128
+	transport.MaxIdleConnsPerHost = 128
+	return &http.Client{
+		Timeout:   fetchTimeout,
+		Transport: transport,
+	}
+}
+
 // A HashResponse is returned by [FetchHashes]
 type HashResponse struct {
 	Etag       string   // As provided from upstream
@@ -28,16 +47,14 @@ func BuildURL(prefix Prefix) string {
 // hash list that we already have.
 func FetchHashes(ctx context.Context, prefix Prefix, etag string) (*HashResponse, error) {
 	url := BuildURL(prefix)
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("building request: %w", err)
 	}
-
-	req = req.WithContext(ctx)
 	req.Header.Set("If-None-Match", etag)
 
 	start := time.Now()
-	r, err := http.DefaultClient.Do(req)
+	r, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("do request: %w", err)
 	}

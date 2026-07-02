@@ -17,6 +17,7 @@ import (
 )
 
 var (
+	concurrency  = pflag.IntP("concurrency", "c", 32, "number of parallel fetch workers")
 	databasePath = pflag.StringP("database", "d", "pwned.db", "path to the SQLite database")
 	limit        = pflag.Int("limit", 0, "stop after this many prefixes (0 = no limit)")
 	progress     = pflag.Duration("progress", 30*time.Second, "interval between progress reports")
@@ -67,6 +68,7 @@ func run(ctx context.Context) error {
 	defer db.Close()
 
 	downloader := pwned.NewDownloader(db, queries)
+	downloader.Concurrency = *concurrency
 	downloader.Limit = *limit
 	downloader.Progress = *progress
 
