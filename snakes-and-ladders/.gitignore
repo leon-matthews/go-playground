@@ -1,4 +1,5 @@
 .idea
 go_ladders
 *.json
+*.lock
 snakes-and-ladders
