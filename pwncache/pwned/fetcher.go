@@ -14,6 +14,9 @@ import (
 // Give up on any single request after this long
 const fetchTimeout = 30 * time.Second
 
+// Identify ourselves to the pwned passwords API, as good manners request
+const userAgent = "pwncache/0.1"
+
 // Back off between retries starting here, doubling up to maxRetryDelay
 const (
 	retryBaseDelay = 1 * time.Second
@@ -71,6 +74,7 @@ func FetchHashes(ctx context.Context, prefix Prefix, etag string) (*HashResponse
 	if err != nil {
 		return nil, fmt.Errorf("building request: %w", err)
 	}
+	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("If-None-Match", etag)
 
 	start := time.Now()

@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"pwneddb/pwned"
+	"pwncache/pwned"
 )
 
 func TestPrefixes(t *testing.T) {

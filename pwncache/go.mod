@@ -1,4 +1,4 @@
-module pwneddb
+module pwncache
 
 go 1.26
 

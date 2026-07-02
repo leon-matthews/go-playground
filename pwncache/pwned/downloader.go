@@ -12,7 +12,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 
-	"pwneddb/database/sqlite"
+	"pwncache/database/sqlite"
 )
 
 // Report progress at this interval unless [Downloader.Progress] is set

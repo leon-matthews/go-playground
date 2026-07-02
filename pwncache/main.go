@@ -1,4 +1,4 @@
-// Command pwneddb downloads the Have I Been Pwned password database to SQLite.
+// Command pwncache downloads the Have I Been Pwned password database to SQLite.
 package main
 
 import (
@@ -12,8 +12,8 @@ import (
 	charminglog "github.com/charmbracelet/log"
 	"github.com/spf13/pflag"
 
-	"pwneddb/database"
-	"pwneddb/pwned"
+	"pwncache/database"
+	"pwncache/pwned"
 )
 
 var (
@@ -38,7 +38,7 @@ func setupLogging() {
 	}
 
 	handler := charminglog.NewWithOptions(os.Stderr, charminglog.Options{
-		Level:           level,
+		Level: level,
 		// ReportCaller:    true,
 		ReportTimestamp: true,
 		TimeFormat:      time.Kitchen,
