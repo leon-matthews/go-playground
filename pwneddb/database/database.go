@@ -3,10 +3,11 @@ package database
 
 import (
 	"context"
-	_ "embed"
 	"database/sql"
+	_ "embed"
 	"fmt"
 
+	// Registers the "sqlite" driver with database/sql
 	_ "modernc.org/sqlite"
 
 	"pwneddb/database/sqlite"

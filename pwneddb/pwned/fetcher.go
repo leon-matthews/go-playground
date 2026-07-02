@@ -38,7 +38,6 @@ func FetchHashes(ctx context.Context, prefix Prefix, etag string) (*HashResponse
 
 	start := time.Now()
 	r, err := http.DefaultClient.Do(req)
-
 	if err != nil {
 		return nil, fmt.Errorf("do request: %w", err)
 	}
