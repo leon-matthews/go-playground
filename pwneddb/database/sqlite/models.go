@@ -8,10 +8,14 @@ import (
 	"database/sql"
 )
 
+type Hash struct {
+	Hash  []byte
+	Count int64
+}
+
 type Prefix struct {
 	ID      int64
 	Prefix  string
 	Updated sql.NullInt64
 	Etag    sql.NullString
-	Hashes  string
 }

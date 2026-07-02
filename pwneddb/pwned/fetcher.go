@@ -14,7 +14,7 @@ type HashResponse struct {
 	Etag       string   // As provided from upstream
 	Hashes     HashList // Colon-separated SHA1(password):count pairs
 	Prefix     Prefix   // The hexadecimal prefix shared by these hashes
-	HTTPStatus int      // Hopefully 200 or 304
+	HTTPStatus int      // Either 200 or 304
 }
 
 // BuildURL produces URL from a hash prefix
@@ -44,7 +44,7 @@ func FetchHashes(ctx context.Context, prefix Prefix, etag string) (*HashResponse
 	defer r.Body.Close()
 
 	// Not modified?
-	if r.StatusCode == 304 {
+	if r.StatusCode == http.StatusNotModified {
 		elapsed := time.Since(start)
 		slog.LogAttrs(
 			ctx,
@@ -60,6 +60,11 @@ func FetchHashes(ctx context.Context, prefix Prefix, etag string) (*HashResponse
 			Prefix:     prefix,
 		}
 		return &res, nil
+	}
+
+	// Anything other than a fresh hash list is an error, eg. 429 or 500
+	if r.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status %d from %q", r.StatusCode, url)
 	}
 
 	// Body

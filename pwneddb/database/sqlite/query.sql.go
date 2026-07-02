@@ -10,6 +10,20 @@ import (
 	"database/sql"
 )
 
+const deleteHashRange = `-- name: DeleteHashRange :exec
+DELETE FROM hashes WHERE hash BETWEEN ?1 AND ?2
+`
+
+type DeleteHashRangeParams struct {
+	Lower []byte
+	Upper []byte
+}
+
+func (q *Queries) DeleteHashRange(ctx context.Context, arg DeleteHashRangeParams) error {
+	_, err := q.db.ExecContext(ctx, deleteHashRange, arg.Lower, arg.Upper)
+	return err
+}
+
 const deletePrefix = `-- name: DeletePrefix :exec
 DELETE FROM prefixes WHERE id = ?
 `
@@ -52,8 +66,19 @@ func (q *Queries) GetEtags(ctx context.Context) ([]GetEtagsRow, error) {
 	return items, nil
 }
 
+const getHashCount = `-- name: GetHashCount :one
+SELECT count FROM hashes WHERE hash = ?
+`
+
+func (q *Queries) GetHashCount(ctx context.Context, hash []byte) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getHashCount, hash)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getPrefix = `-- name: GetPrefix :one
-SELECT id, prefix, updated, etag, hashes FROM prefixes WHERE prefix = ? LIMIT 1
+SELECT id, prefix, updated, etag FROM prefixes WHERE prefix = ? LIMIT 1
 `
 
 func (q *Queries) GetPrefix(ctx context.Context, prefix string) (Prefix, error) {
@@ -64,32 +89,38 @@ func (q *Queries) GetPrefix(ctx context.Context, prefix string) (Prefix, error) 
 		&i.Prefix,
 		&i.Updated,
 		&i.Etag,
-		&i.Hashes,
 	)
 	return i, err
 }
 
+const insertHash = `-- name: InsertHash :exec
+INSERT INTO hashes (hash, count) VALUES (?, ?)
+`
+
+type InsertHashParams struct {
+	Hash  []byte
+	Count int64
+}
+
+func (q *Queries) InsertHash(ctx context.Context, arg InsertHashParams) error {
+	_, err := q.db.ExecContext(ctx, insertHash, arg.Hash, arg.Count)
+	return err
+}
+
 const upsertPrefix = `-- name: UpsertPrefix :exec
-INSERT INTO prefixes (prefix, updated, etag, hashes) VALUES (?, ?, ?, ?)
+INSERT INTO prefixes (prefix, updated, etag) VALUES (?, ?, ?)
 ON CONFLICT(prefix) DO UPDATE SET
   updated = excluded.updated,
-  etag = excluded.etag,
-  hashes = excluded.hashes
+  etag = excluded.etag
 `
 
 type UpsertPrefixParams struct {
 	Prefix  string
 	Updated sql.NullInt64
 	Etag    sql.NullString
-	Hashes  string
 }
 
 func (q *Queries) UpsertPrefix(ctx context.Context, arg UpsertPrefixParams) error {
-	_, err := q.db.ExecContext(ctx, upsertPrefix,
-		arg.Prefix,
-		arg.Updated,
-		arg.Etag,
-		arg.Hashes,
-	)
+	_, err := q.db.ExecContext(ctx, upsertPrefix, arg.Prefix, arg.Updated, arg.Etag)
 	return err
 }

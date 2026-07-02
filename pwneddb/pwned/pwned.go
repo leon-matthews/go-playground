@@ -16,12 +16,20 @@
 package pwned
 
 import (
+	"encoding/hex"
 	"fmt"
 	"iter"
+	"strings"
 )
 
 // Prefixes are currently 5 hexadecimal characters long
 const prefixLength = 5
+
+// PrefixCount is the number of possible prefixes, and therefore hash lists
+const PrefixCount = 1 << (prefixLength * 4)
+
+// Full SHA-1 hashes are 40 hexadecimal characters long
+const hashHexLength = 40
 
 // A Prefix is a hexadecimal string used to reference a [HashList], eg. "cafe5"
 type Prefix string
@@ -34,6 +42,21 @@ func NewPrefix(prefix string) (Prefix, error) {
 	return Prefix(prefix), nil
 }
 
+// HashRange returns the inclusive bounds of all possible hashes sharing this prefix.
+// The bounds are full 20-byte hashes, suitable for BETWEEN queries on the database.
+func (p Prefix) HashRange() (lower, upper []byte, err error) {
+	const fill = hashHexLength - prefixLength
+	lower, err = hex.DecodeString(string(p) + strings.Repeat("0", fill))
+	if err != nil {
+		return nil, nil, fmt.Errorf("prefix %q is not hexadecimal: %w", p, err)
+	}
+	upper, err = hex.DecodeString(string(p) + strings.Repeat("f", fill))
+	if err != nil {
+		return nil, nil, fmt.Errorf("prefix %q is not hexadecimal: %w", p, err)
+	}
+	return lower, upper, nil
+}
+
 // A HashList is a multi-line string containing password hashes and counts.
 // Specifically, 2 colon-separated values: HEX(SHA1(password)):count
 // eg. "308672AB94BCBE0B2FEE2EC68FC69F9D5E6:8"
@@ -41,9 +64,8 @@ type HashList string
 
 // Prefixes generates all possible hexadecimal prefixes
 func Prefixes() iter.Seq[Prefix] {
-	limit := 0x01 << (prefixLength * 4)
 	return func(yield func(Prefix) bool) {
-		for v := range limit {
+		for v := range PrefixCount {
 			hex := fmt.Sprintf("%0*x", prefixLength, v)
 			if !yield(Prefix(hex)) {
 				return
