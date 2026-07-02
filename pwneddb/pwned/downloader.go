@@ -39,6 +39,9 @@ type Downloader struct {
 
 	// Progress is the interval between progress reports
 	Progress time.Duration
+
+	// MaxRetries is how many times to retry a failed fetch before skipping it
+	MaxRetries int
 }
 
 // A result carries one prefix's fetch outcome from a worker to the collector
@@ -84,7 +87,7 @@ func (d *Downloader) Run(ctx context.Context) error {
 	defer cancel()
 
 	prefixes := d.generate(ctx)
-	results := fetchWorkers(ctx, workers, etags, prefixes)
+	results := fetchWorkers(ctx, workers, d.MaxRetries, etags, prefixes)
 
 	// Run's own goroutine collects results, and is the sole database writer,
 	// so the counters need no locks and SQLite sees no write contention.
@@ -168,6 +171,7 @@ func (d *Downloader) generate(ctx context.Context) <-chan Prefix {
 func fetchWorkers(
 	ctx context.Context,
 	count int,
+	maxRetries int,
 	etags map[Prefix]string,
 	prefixes <-chan Prefix,
 ) <-chan result {
@@ -176,7 +180,7 @@ func fetchWorkers(
 	for range count {
 		wg.Go(func() {
 			for prefix := range prefixes {
-				resp, err := FetchHashes(ctx, prefix, etags[prefix])
+				resp, err := fetchWithRetry(ctx, prefix, etags[prefix], maxRetries)
 				select {
 				case out <- result{prefix: prefix, resp: resp, err: err}:
 				case <-ctx.Done():

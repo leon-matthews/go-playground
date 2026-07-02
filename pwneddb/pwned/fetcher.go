@@ -2,15 +2,23 @@ package pwned
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 )
 
 // Give up on any single request after this long
 const fetchTimeout = 30 * time.Second
+
+// Back off between retries starting here, doubling up to maxRetryDelay
+const (
+	retryBaseDelay = 1 * time.Second
+	maxRetryDelay  = 10 * time.Second
+)
 
 // client is shared by all fetch workers
 var client = newClient()
@@ -26,6 +34,18 @@ func newClient() *http.Client {
 		Timeout:   fetchTimeout,
 		Transport: transport,
 	}
+}
+
+// A fetchError reports an unexpected HTTP status from the pwned API.
+// It carries any Retry-After hint so a caller can back off politely.
+type fetchError struct {
+	StatusCode int
+	RetryAfter time.Duration
+	URL        string
+}
+
+func (e *fetchError) Error() string {
+	return fmt.Sprintf("unexpected status %d from %q", e.StatusCode, e.URL)
 }
 
 // A HashResponse is returned by [FetchHashes]
@@ -81,7 +101,11 @@ func FetchHashes(ctx context.Context, prefix Prefix, etag string) (*HashResponse
 
 	// Anything other than a fresh hash list is an error, eg. 429 or 500
 	if r.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status %d from %q", r.StatusCode, url)
+		return nil, &fetchError{
+			StatusCode: r.StatusCode,
+			RetryAfter: parseRetryAfter(r.Header.Get("Retry-After")),
+			URL:        url,
+		}
 	}
 
 	// Body
@@ -108,4 +132,71 @@ func FetchHashes(ctx context.Context, prefix Prefix, etag string) (*HashResponse
 		HTTPStatus: r.StatusCode,
 	}
 	return &res, nil
+}
+
+// fetchWithRetry fetches a prefix's hash list, retrying transient failures with
+// a capped backoff. It gives up after maxRetries retries, or as soon as ctx is
+// cancelled, since an aborted run is not a failure worth retrying.
+func fetchWithRetry(ctx context.Context, prefix Prefix, etag string, maxRetries int) (*HashResponse, error) {
+	var err error
+	for attempt := 0; ; attempt++ {
+		var resp *HashResponse
+		resp, err = FetchHashes(ctx, prefix, etag)
+		if err == nil {
+			return resp, nil
+		}
+		if ctx.Err() != nil || attempt >= maxRetries {
+			return nil, err
+		}
+
+		delay := retryDelay(attempt, err)
+		slog.LogAttrs(
+			ctx, slog.LevelDebug, "retrying fetch",
+			slog.String("prefix", string(prefix)),
+			slog.Int("attempt", attempt+1),
+			slog.Duration("delay", delay),
+			slog.String("error", err.Error()),
+		)
+		select {
+		case <-time.After(delay):
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+}
+
+// retryDelay returns how long to wait before the next attempt. A server's
+// Retry-After takes precedence; otherwise the delay doubles each attempt, both
+// capped at maxRetryDelay.
+func retryDelay(attempt int, err error) time.Duration {
+	var fe *fetchError
+	if errors.As(err, &fe) && fe.RetryAfter > 0 {
+		return min(fe.RetryAfter, maxRetryDelay)
+	}
+	// A large attempt shifts past int64, so treat overflow as the cap
+	delay := retryBaseDelay << attempt
+	if delay <= 0 || delay > maxRetryDelay {
+		return maxRetryDelay
+	}
+	return delay
+}
+
+// parseRetryAfter interprets a Retry-After header, which is either a whole
+// number of seconds or an HTTP date. It returns zero when absent or invalid.
+func parseRetryAfter(value string) time.Duration {
+	if value == "" {
+		return 0
+	}
+	if seconds, err := strconv.Atoi(value); err == nil {
+		if seconds <= 0 {
+			return 0
+		}
+		return time.Duration(seconds) * time.Second
+	}
+	if when, err := http.ParseTime(value); err == nil {
+		if delay := time.Until(when); delay > 0 {
+			return delay
+		}
+	}
+	return 0
 }

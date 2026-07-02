@@ -21,6 +21,7 @@ var (
 	databasePath = pflag.StringP("database", "d", "pwned.db", "path to the SQLite database")
 	limit        = pflag.Int("limit", 0, "stop after this many prefixes (0 = no limit)")
 	progress     = pflag.Duration("progress", 30*time.Second, "interval between progress reports")
+	retries      = pflag.Int("retries", 10, "retry attempts per failed fetch (0 disables)")
 	verbose      = pflag.BoolP("verbose", "v", false, "debug-level logging")
 	quiet        = pflag.BoolP("quiet", "q", false, "warnings and errors only")
 )
@@ -71,6 +72,7 @@ func run(ctx context.Context) error {
 	downloader.Concurrency = *concurrency
 	downloader.Limit = *limit
 	downloader.Progress = *progress
+	downloader.MaxRetries = *retries
 
 	err = downloader.Run(ctx)
 	if errors.Is(err, context.Canceled) {

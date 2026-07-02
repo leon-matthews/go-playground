@@ -69,6 +69,31 @@ func TestOpenAndUpsert(t *testing.T) {
 	assert.Len(t, etags, 1)
 }
 
+func TestPragmas(t *testing.T) {
+	ctx := context.Background()
+	_, db := open(t)
+
+	// Each tuning pragma should be live on the connection Open handed back
+	cases := []struct {
+		pragma string
+		want   string
+	}{
+		{"journal_mode", "wal"},
+		{"locking_mode", "exclusive"},
+		{"synchronous", "1"}, // NORMAL
+		{"cache_size", "-262144"},
+		{"temp_store", "2"}, // MEMORY
+	}
+	for _, tc := range cases {
+		t.Run(tc.pragma, func(t *testing.T) {
+			var got string
+			err := db.QueryRowContext(ctx, "PRAGMA "+tc.pragma).Scan(&got)
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
 func TestHashQueries(t *testing.T) {
 	ctx := context.Background()
 	queries, _ := open(t)
