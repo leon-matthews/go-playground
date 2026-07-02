@@ -38,7 +38,7 @@ func setupLogging() {
 
 	handler := charminglog.NewWithOptions(os.Stderr, charminglog.Options{
 		Level:           level,
-		ReportCaller:    true,
+		// ReportCaller:    true,
 		ReportTimestamp: true,
 		TimeFormat:      time.Kitchen,
 	})
