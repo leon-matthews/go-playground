@@ -1,6 +1,6 @@
 
 -- Hashes are fetched by their 5-character prefix
-CREATE TABLE prefixes (
+CREATE TABLE IF NOT EXISTS prefixes (
   id      INTEGER PRIMARY KEY,
   prefix  TEXT    NOT NULL UNIQUE,
   updated INTEGER,
