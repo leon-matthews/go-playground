@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/signal"
 	"runtime"
 	"runtime/pprof"
+	"sync"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -77,13 +79,39 @@ func runUpdate(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("creating profile: %w", err)
 		}
-		// Stop CPU profiling, then snapshot the heap, both at exit
+
+		// once ensures exactly one heap snapshot: the earliest trigger wins
+		var once sync.Once
+		captureHeap := func() {
+			once.Do(func() {
+				if err := writeHeapProfile("heap.pprof"); err != nil {
+					slog.Error("writing heap profile", "error", err)
+				}
+			})
+		}
+		// Stop CPU profiling, then snapshot the heap at exit if not already done
 		defer func() {
 			stopProfile()
-			if err := writeHeapProfile("heap.pprof"); err != nil {
-				slog.Error("writing heap profile", "error", err)
+			captureHeap()
+		}()
+
+		// The download ignores the parent's signal cancellation so the handler
+		// below can snapshot the still-live heap before the workers wind down.
+		runCtx, cancel := context.WithCancel(context.WithoutCancel(ctx))
+		defer cancel()
+		go func() {
+			sig := make(chan os.Signal, 1)
+			signal.Notify(sig, os.Interrupt)
+			select {
+			case <-sig:
+				signal.Stop(sig) // a second Ctrl-C now hard-kills the process
+				captureHeap()    // workers still hold their buffers, so RAM is real
+				cancel()         // begin the graceful shutdown
+			case <-runCtx.Done():
+				signal.Stop(sig)
 			}
 		}()
+		ctx = runCtx
 	}
 
 	err = downloader.Run(ctx)
