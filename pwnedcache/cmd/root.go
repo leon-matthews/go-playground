@@ -16,10 +16,10 @@ var (
 	logs logging
 )
 
-// newRootCmd builds the pwncache command tree.
+// newRootCmd builds the pwnedcache command tree.
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:           "pwncache",
+		Use:           "pwnedcache",
 		Short:         "Maintain and query a local mirror of the Have I Been Pwned password database",
 		SilenceUsage:  true,
 		SilenceErrors: true,

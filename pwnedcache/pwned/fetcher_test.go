@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"pwncache/pwned"
+	"pwnedcache/pwned"
 )
 
 func TestBuildURL(t *testing.T) {

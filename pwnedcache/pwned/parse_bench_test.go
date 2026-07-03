@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"pwncache/pwned"
+	"pwnedcache/pwned"
 )
 
 // BenchmarkParseHashList parses a realistically sized list so allocs/op shows

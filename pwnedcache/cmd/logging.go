@@ -12,7 +12,7 @@ import (
 )
 
 // Structured NDJSON run log, truncated on each run
-const logPath = "pwncache.log"
+const logPath = "pwnedcache.log"
 
 // logging holds the loggers built by setupLogging.
 type logging struct {
@@ -23,7 +23,7 @@ type logging struct {
 
 // setupLogging installs a fan-out slog default that writes every log to both a
 // colourised console handler on stderr and an NDJSON file handler on
-// pwncache.log, truncated each run.
+// pwnedcache.log, truncated each run.
 // Progress reporting uses the returned loggers to send friendly text to the
 // console and the matching structured record to the file. The -v and -q flags
 // choose the level, with -v winning if both are set.

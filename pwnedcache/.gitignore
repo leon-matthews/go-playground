@@ -1,4 +1,4 @@
-pwncache
+pwnedcache
 *.db
 *.db-shm
 *.db-wal

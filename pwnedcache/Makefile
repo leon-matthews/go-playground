@@ -7,7 +7,7 @@
 .PHONY: build run test lint vulncheck check clean
 
 build:
-	go build -o pwncache ./cmd
+	go build -o pwnedcache ./cmd
 
 run:
 	go run ./cmd
@@ -24,4 +24,4 @@ vulncheck:
 check: lint test vulncheck
 
 clean:
-	rm -f pwncache *.pprof *.log
+	rm -f pwnedcache *.pprof *.log

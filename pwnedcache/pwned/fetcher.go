@@ -15,7 +15,7 @@ import (
 const fetchTimeout = 30 * time.Second
 
 // Identify ourselves to the pwned passwords API, as good manners request
-const userAgent = "pwncache/0.1"
+const userAgent = "pwnedcache/0.1"
 
 // Back off between retries starting here, doubling up to maxRetryDelay
 const (

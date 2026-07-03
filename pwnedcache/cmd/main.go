@@ -1,4 +1,4 @@
-// Command pwncache maintains and queries a local mirror of the Have I Been Pwned password database.
+// Command pwnedcache maintains and queries a local mirror of the Have I Been Pwned password database.
 package main
 
 import (

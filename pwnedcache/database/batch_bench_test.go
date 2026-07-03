@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"pwncache/database/sqlite"
+	"pwnedcache/database/sqlite"
 )
 
 // BenchmarkChunkSizes measures Insert throughput across chunk sizes, looking

@@ -14,8 +14,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"pwncache/database"
-	"pwncache/pwned"
+	"pwnedcache/database"
+	"pwnedcache/pwned"
 )
 
 var (

@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"pwncache/database"
-	"pwncache/database/sqlite"
+	"pwnedcache/database"
+	"pwnedcache/database/sqlite"
 )
 
 // open builds a fresh database in a per-test temporary folder.

@@ -1,4 +1,4 @@
-module pwncache
+module pwnedcache
 
 go 1.26
 

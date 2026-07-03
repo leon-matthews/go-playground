@@ -11,7 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"pwncache/database"
+	"pwnedcache/database"
 )
 
 // newCheckCmd builds the "check" sub-command, which checks passwords against
