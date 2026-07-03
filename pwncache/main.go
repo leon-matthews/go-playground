@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"runtime/pprof"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -17,10 +18,11 @@ import (
 )
 
 var (
-	concurrency  = pflag.IntP("concurrency", "c", 32, "number of parallel fetch workers")
+	concurrency  = pflag.IntP("concurrency", "c", 64, "number of parallel fetch workers")
 	databasePath = pflag.StringP("database", "d", "pwned.db", "path to the SQLite database")
 	limit        = pflag.Int("limit", 0, "stop after this many prefixes (0 = no limit)")
-	progress     = pflag.Duration("progress", 10*time.Second, "interval between progress reports")
+	progress     = pflag.DurationP("progress", "p", 10*time.Second, "interval between progress reports")
+	profile      = pflag.Bool("profile", false, "Write a CPU profile to default.pgo for PGO builds")
 	retries      = pflag.Int("retries", 10, "retry attempts per failed fetch (0 disables)")
 	verbose      = pflag.BoolP("verbose", "v", false, "debug-level logging")
 	quiet        = pflag.BoolP("quiet", "q", false, "warnings and errors only")
@@ -62,10 +64,39 @@ func run(ctx context.Context, console, file *slog.Logger) error {
 	downloader.ConsoleLog = console
 	downloader.FileLog = file
 
+	if *profile {
+		stopProfile, err := startProfile("default.pgo")
+		if err != nil {
+			return fmt.Errorf("creating profile: %w", err)
+		}
+		defer stopProfile()
+	}
+
 	err = downloader.Run(ctx)
 	if errors.Is(err, context.Canceled) {
 		slog.Warn("interrupted, progress saved")
 		return nil
 	}
 	return err
+}
+
+// startProfile begins writing a CPU profile to the given path.
+//
+// Returns the stop function that ends profiling, closes the file, and reports
+// where the profile went. A plain create suffices here, with none of the care
+// writeResults takes, as a spoiled profile is simply overwritten next run.
+func startProfile(path string) (func(), error) {
+	file, err := os.Create(path)
+	if err != nil {
+		return nil, err
+	}
+	if err := pprof.StartCPUProfile(file); err != nil {
+		file.Close()
+		return nil, err
+	}
+	return func() {
+		pprof.StopCPUProfile()
+		file.Close()
+		fmt.Fprintf(os.Stderr, "CPU profile written to %s\n", path)
+	}, nil
 }
