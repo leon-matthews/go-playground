@@ -3,3 +3,4 @@ pwncache
 *.db-shm
 *.db-wal
 *.log
+*.pprof

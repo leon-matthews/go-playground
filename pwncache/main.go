@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"runtime"
 	"runtime/pprof"
 	"time"
 
@@ -22,7 +23,7 @@ var (
 	databasePath = pflag.StringP("database", "d", "pwned.db", "path to the SQLite database")
 	limit        = pflag.Int("limit", 0, "stop after this many prefixes (0 = no limit)")
 	progress     = pflag.DurationP("progress", "p", 10*time.Second, "interval between progress reports")
-	profile      = pflag.Bool("profile", false, "Write a CPU profile to default.pgo for PGO builds")
+	profile      = pflag.Bool("profile", false, "Write CPU (cpu.pprof) and heap (heap.pprof) profiles")
 	retries      = pflag.Int("retries", 10, "retry attempts per failed fetch (0 disables)")
 	verbose      = pflag.BoolP("verbose", "v", false, "debug-level logging")
 	quiet        = pflag.BoolP("quiet", "q", false, "warnings and errors only")
@@ -65,11 +66,17 @@ func run(ctx context.Context, console, file *slog.Logger) error {
 	downloader.FileLog = file
 
 	if *profile {
-		stopProfile, err := startProfile("default.pgo")
+		stopProfile, err := startProfile("cpu.pprof")
 		if err != nil {
 			return fmt.Errorf("creating profile: %w", err)
 		}
-		defer stopProfile()
+		// Stop CPU profiling, then snapshot the heap, both at exit
+		defer func() {
+			stopProfile()
+			if err := writeHeapProfile("heap.pprof"); err != nil {
+				slog.Error("writing heap profile", "error", err)
+			}
+		}()
 	}
 
 	err = downloader.Run(ctx)
@@ -99,4 +106,23 @@ func startProfile(path string) (func(), error) {
 		file.Close()
 		fmt.Fprintf(os.Stderr, "CPU profile written to %s\n", path)
 	}, nil
+}
+
+// writeHeapProfile writes a snapshot of the heap to the given path.
+//
+// A heap profile is a point-in-time sample, not a recording, so it is taken
+// once at exit. A GC first settles the in-use figures; the cumulative
+// alloc_space view does not depend on when the snapshot is taken.
+func writeHeapProfile(path string) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	runtime.GC() // settle live heap so in-use space is accurate
+	if err := pprof.WriteHeapProfile(file); err != nil {
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "heap profile written to %s\n", path)
+	return nil
 }

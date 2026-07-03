@@ -34,6 +34,42 @@ func TestPrefixes(t *testing.T) {
 	})
 }
 
+func TestPrefixIndex(t *testing.T) {
+	t.Run("maps a prefix to its integer value", func(t *testing.T) {
+		cases := map[pwned.Prefix]int{
+			"00000": 0,
+			"00001": 1,
+			"0000f": 15,
+			"00010": 16,
+			"fffff": pwned.PrefixCount - 1,
+		}
+		for prefix, want := range cases {
+			got, err := prefix.Index()
+			assert.NoError(t, err)
+			assert.Equal(t, want, got)
+		}
+	})
+
+	t.Run("round-trips the start of Prefixes", func(t *testing.T) {
+		want := 0
+		for prefix := range pwned.Prefixes() {
+			got, err := prefix.Index()
+			assert.NoError(t, err)
+			assert.Equal(t, want, got)
+			if want++; want >= 5 {
+				break
+			}
+		}
+	})
+
+	t.Run("rejects invalid prefixes", func(t *testing.T) {
+		for _, bad := range []pwned.Prefix{"", "abcd", "abcdef", "ghijk"} {
+			_, err := bad.Index()
+			assert.Error(t, err)
+		}
+	})
+}
+
 func BenchmarkPrefixes(b *testing.B) {
 	const expectedLength = 1_048_576
 	for b.Loop() {

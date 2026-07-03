@@ -40,7 +40,7 @@ func TestParseHashList(t *testing.T) {
 	})
 
 	t.Run("empty list", func(t *testing.T) {
-		hashes, err := pwned.ParseHashList("cafe5", "")
+		hashes, err := pwned.ParseHashList("cafe5", pwned.HashList(""))
 		require.NoError(t, err)
 		assert.Empty(t, hashes)
 	})
@@ -51,24 +51,24 @@ func TestParseHashList(t *testing.T) {
 			wantErr string
 		}{
 			"no separator": {
-				list:    "003D68EB55068C33ACE09247EE4C639306B\r\n",
+				list:    pwned.HashList("003D68EB55068C33ACE09247EE4C639306B\r\n"),
 				wantErr: "hash list line 1: no colon separator",
 			},
 			"short suffix": {
-				list:    "003D68EB:3\r\n",
+				list:    pwned.HashList("003D68EB:3\r\n"),
 				wantErr: "suffix must contain 35 characters",
 			},
 			"bad hex": {
-				list:    "ZZZD68EB55068C33ACE09247EE4C639306B:3\r\n",
+				list:    pwned.HashList("ZZZD68EB55068C33ACE09247EE4C639306B:3\r\n"),
 				wantErr: "hash list line 1",
 			},
 			"bad count": {
-				list:    "003D68EB55068C33ACE09247EE4C639306B:many\r\n",
+				list:    pwned.HashList("003D68EB55068C33ACE09247EE4C639306B:many\r\n"),
 				wantErr: "hash list line 1",
 			},
 			"error reports line number": {
-				list: "003D68EB55068C33ACE09247EE4C639306B:3\r\n" +
-					"012C192B2F16F82EA0EB9EF18D9D539B0DD\r\n",
+				list: pwned.HashList("003D68EB55068C33ACE09247EE4C639306B:3\r\n" +
+					"012C192B2F16F82EA0EB9EF18D9D539B0DD\r\n"),
 				wantErr: "hash list line 2: no colon separator",
 			},
 		}

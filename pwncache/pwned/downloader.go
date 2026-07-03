@@ -19,7 +19,7 @@ import (
 const defaultProgressInterval = 10 * time.Second
 
 // Run this many fetch workers unless [Downloader.Concurrency] is set
-const defaultConcurrency = 32
+const defaultConcurrency = 64
 
 // Small channel buffers decouple the pipeline stages a little
 const channelBuffer = 64
@@ -82,11 +82,11 @@ func (d *Downloader) Run(ctx context.Context) error {
 		workers = defaultConcurrency
 	}
 
-	etags, err := d.loadEtags(ctx)
+	etags, cached, err := d.loadEtags(ctx)
 	if err != nil {
 		return err
 	}
-	d.reportCacheLoaded(ctx, len(etags))
+	d.reportCacheLoaded(ctx, cached)
 
 	// Cancelling shuts down the generator and workers if storing fails
 	ctx, cancel := context.WithCancel(ctx)
@@ -141,19 +141,39 @@ func (d *Downloader) Run(ctx context.Context) error {
 	return ctx.Err()
 }
 
-// loadEtags reads every stored ETag into memory for the fetch workers.
-func (d *Downloader) loadEtags(ctx context.Context) (map[Prefix]string, error) {
+// loadEtags reads every stored ETag into a slice indexed by prefix value, and
+// reports how many prefixes are cached. The dense prefix keyspace makes a slice
+// cheaper than a map: the index is the key, so no keys are stored.
+func (d *Downloader) loadEtags(ctx context.Context) ([]string, int, error) {
 	rows, err := d.queries.GetEtags(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("loading etags: %w", err)
+		return nil, 0, fmt.Errorf("loading etags: %w", err)
 	}
-	etags := make(map[Prefix]string, len(rows))
+	etags := make([]string, PrefixCount)
+	cached := 0
 	for _, row := range rows {
-		if row.Etag.Valid {
-			etags[Prefix(row.Prefix)] = row.Etag.String
+		if !row.Etag.Valid {
+			continue
 		}
+		index, err := Prefix(row.Prefix).Index()
+		if err != nil {
+			// An unplaceable prefix is skipped; it simply gets re-fetched
+			slog.Warn("skipping malformed cached prefix", "prefix", row.Prefix, "error", err)
+			continue
+		}
+		etags[index] = row.Etag.String
+		cached++
 	}
-	return etags, nil
+	return etags, cached, nil
+}
+
+// etagFor returns the stored ETag for a prefix, or "" when it is not cached.
+func etagFor(etags []string, prefix Prefix) string {
+	index, err := prefix.Index()
+	if err != nil {
+		return ""
+	}
+	return etags[index]
 }
 
 // reportCacheLoaded announces how much of the database is already cached, both
@@ -199,7 +219,7 @@ func fetchWorkers(
 	ctx context.Context,
 	count int,
 	maxRetries int,
-	etags map[Prefix]string,
+	etags []string,
 	prefixes <-chan Prefix,
 ) <-chan result {
 	out := make(chan result, channelBuffer)
@@ -207,7 +227,7 @@ func fetchWorkers(
 	for range count {
 		wg.Go(func() {
 			for prefix := range prefixes {
-				resp, err := fetchWithRetry(ctx, prefix, etags[prefix], maxRetries)
+				resp, err := fetchWithRetry(ctx, prefix, etagFor(etags, prefix), maxRetries)
 				select {
 				case out <- result{prefix: prefix, resp: resp, err: err}:
 				case <-ctx.Done():

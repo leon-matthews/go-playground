@@ -7,6 +7,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"fmt"
 )
 
 type DBTX interface {
@@ -20,12 +21,128 @@ func New(db DBTX) *Queries {
 	return &Queries{db: db}
 }
 
+func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
+	q := Queries{db: db}
+	var err error
+	if q.deleteHashRangeStmt, err = db.PrepareContext(ctx, deleteHashRange); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteHashRange: %w", err)
+	}
+	if q.deletePrefixStmt, err = db.PrepareContext(ctx, deletePrefix); err != nil {
+		return nil, fmt.Errorf("error preparing query DeletePrefix: %w", err)
+	}
+	if q.getEtagsStmt, err = db.PrepareContext(ctx, getEtags); err != nil {
+		return nil, fmt.Errorf("error preparing query GetEtags: %w", err)
+	}
+	if q.getHashCountStmt, err = db.PrepareContext(ctx, getHashCount); err != nil {
+		return nil, fmt.Errorf("error preparing query GetHashCount: %w", err)
+	}
+	if q.getPrefixStmt, err = db.PrepareContext(ctx, getPrefix); err != nil {
+		return nil, fmt.Errorf("error preparing query GetPrefix: %w", err)
+	}
+	if q.insertHashStmt, err = db.PrepareContext(ctx, insertHash); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertHash: %w", err)
+	}
+	if q.upsertPrefixStmt, err = db.PrepareContext(ctx, upsertPrefix); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertPrefix: %w", err)
+	}
+	return &q, nil
+}
+
+func (q *Queries) Close() error {
+	var err error
+	if q.deleteHashRangeStmt != nil {
+		if cerr := q.deleteHashRangeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteHashRangeStmt: %w", cerr)
+		}
+	}
+	if q.deletePrefixStmt != nil {
+		if cerr := q.deletePrefixStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deletePrefixStmt: %w", cerr)
+		}
+	}
+	if q.getEtagsStmt != nil {
+		if cerr := q.getEtagsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getEtagsStmt: %w", cerr)
+		}
+	}
+	if q.getHashCountStmt != nil {
+		if cerr := q.getHashCountStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getHashCountStmt: %w", cerr)
+		}
+	}
+	if q.getPrefixStmt != nil {
+		if cerr := q.getPrefixStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getPrefixStmt: %w", cerr)
+		}
+	}
+	if q.insertHashStmt != nil {
+		if cerr := q.insertHashStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertHashStmt: %w", cerr)
+		}
+	}
+	if q.upsertPrefixStmt != nil {
+		if cerr := q.upsertPrefixStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertPrefixStmt: %w", cerr)
+		}
+	}
+	return err
+}
+
+func (q *Queries) exec(ctx context.Context, stmt *sql.Stmt, query string, args ...interface{}) (sql.Result, error) {
+	switch {
+	case stmt != nil && q.tx != nil:
+		return q.tx.StmtContext(ctx, stmt).ExecContext(ctx, args...)
+	case stmt != nil:
+		return stmt.ExecContext(ctx, args...)
+	default:
+		return q.db.ExecContext(ctx, query, args...)
+	}
+}
+
+func (q *Queries) query(ctx context.Context, stmt *sql.Stmt, query string, args ...interface{}) (*sql.Rows, error) {
+	switch {
+	case stmt != nil && q.tx != nil:
+		return q.tx.StmtContext(ctx, stmt).QueryContext(ctx, args...)
+	case stmt != nil:
+		return stmt.QueryContext(ctx, args...)
+	default:
+		return q.db.QueryContext(ctx, query, args...)
+	}
+}
+
+func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, args ...interface{}) *sql.Row {
+	switch {
+	case stmt != nil && q.tx != nil:
+		return q.tx.StmtContext(ctx, stmt).QueryRowContext(ctx, args...)
+	case stmt != nil:
+		return stmt.QueryRowContext(ctx, args...)
+	default:
+		return q.db.QueryRowContext(ctx, query, args...)
+	}
+}
+
 type Queries struct {
-	db DBTX
+	db                  DBTX
+	tx                  *sql.Tx
+	deleteHashRangeStmt *sql.Stmt
+	deletePrefixStmt    *sql.Stmt
+	getEtagsStmt        *sql.Stmt
+	getHashCountStmt    *sql.Stmt
+	getPrefixStmt       *sql.Stmt
+	insertHashStmt      *sql.Stmt
+	upsertPrefixStmt    *sql.Stmt
 }
 
 func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
-		db: tx,
+		db:                  tx,
+		tx:                  tx,
+		deleteHashRangeStmt: q.deleteHashRangeStmt,
+		deletePrefixStmt:    q.deletePrefixStmt,
+		getEtagsStmt:        q.getEtagsStmt,
+		getHashCountStmt:    q.getHashCountStmt,
+		getPrefixStmt:       q.getPrefixStmt,
+		insertHashStmt:      q.insertHashStmt,
+		upsertPrefixStmt:    q.upsertPrefixStmt,
 	}
 }

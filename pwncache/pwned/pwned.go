@@ -19,6 +19,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"iter"
+	"strconv"
 	"strings"
 )
 
@@ -57,10 +58,24 @@ func (p Prefix) HashRange() (lower, upper []byte, err error) {
 	return lower, upper, nil
 }
 
-// A HashList is a multi-line string containing password hashes and counts.
-// Specifically, 2 colon-separated values: HEX(SHA1(password)):count
+// Index returns the prefix's position in the dense keyspace, from 0 to PrefixCount-1.
+// A valid prefix always lands in range, so it is safe to index a slice sized to
+// PrefixCount.
+func (p Prefix) Index() (int, error) {
+	if len(p) != prefixLength {
+		return 0, fmt.Errorf("prefix must contain %d characters: %q", prefixLength, string(p))
+	}
+	value, err := strconv.ParseUint(string(p), 16, 32)
+	if err != nil {
+		return 0, fmt.Errorf("prefix %q is not hexadecimal: %w", p, err)
+	}
+	return int(value), nil
+}
+
+// A HashList is the raw bytes of a multi-line hash list.
+// Each line carries 2 colon-separated values: HEX(SHA1(password)):count
 // eg. "308672AB94BCBE0B2FEE2EC68FC69F9D5E6:8"
-type HashList string
+type HashList []byte
 
 // Prefixes generates all possible hexadecimal prefixes
 func Prefixes() iter.Seq[Prefix] {

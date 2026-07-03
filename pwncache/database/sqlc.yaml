@@ -7,3 +7,4 @@ sql:
       go:
         package: "sqlite"
         out: "sqlite"
+        emit_prepared_queries: true

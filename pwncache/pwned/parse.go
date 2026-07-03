@@ -1,10 +1,10 @@
 package pwned
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"strconv"
-	"strings"
 )
 
 // A Hash is a single entry parsed from a [HashList]
@@ -18,17 +18,17 @@ type Hash struct {
 // prefix completes to a full 40-character hash. Lines end with CRLF.
 func ParseHashList(prefix Prefix, list HashList) ([]Hash, error) {
 	const suffixLength = hashHexLength - prefixLength
-	hashes := make([]Hash, 0, strings.Count(string(list), "\n")+1)
+	hashes := make([]Hash, 0, bytes.Count(list, []byte("\n"))+1)
 	number := 0
-	for line := range strings.Lines(string(list)) {
+	for line := range bytes.Lines(list) {
 		number++
-		line = strings.TrimRight(line, "\r\n")
+		line = bytes.TrimRight(line, "\r\n")
 		// Tolerate a trailing newline on the last line
-		if line == "" {
+		if len(line) == 0 {
 			continue
 		}
 
-		suffix, countField, found := strings.Cut(line, ":")
+		suffix, countField, found := bytes.Cut(line, []byte(":"))
 		if !found {
 			return nil, fmt.Errorf("hash list line %d: no colon separator", number)
 		}
@@ -39,11 +39,11 @@ func ParseHashList(prefix Prefix, list HashList) ([]Hash, error) {
 			)
 		}
 
-		sha1, err := hex.DecodeString(string(prefix) + suffix)
+		sha1, err := hex.DecodeString(string(prefix) + string(suffix))
 		if err != nil {
 			return nil, fmt.Errorf("hash list line %d: %w", number, err)
 		}
-		count, err := strconv.ParseInt(countField, 10, 64)
+		count, err := strconv.ParseInt(string(countField), 10, 64)
 		if err != nil {
 			return nil, fmt.Errorf("hash list line %d: %w", number, err)
 		}

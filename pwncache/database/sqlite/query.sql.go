@@ -20,7 +20,7 @@ type DeleteHashRangeParams struct {
 }
 
 func (q *Queries) DeleteHashRange(ctx context.Context, arg DeleteHashRangeParams) error {
-	_, err := q.db.ExecContext(ctx, deleteHashRange, arg.Lower, arg.Upper)
+	_, err := q.exec(ctx, q.deleteHashRangeStmt, deleteHashRange, arg.Lower, arg.Upper)
 	return err
 }
 
@@ -29,7 +29,7 @@ DELETE FROM prefixes WHERE id = ?
 `
 
 func (q *Queries) DeletePrefix(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deletePrefix, id)
+	_, err := q.exec(ctx, q.deletePrefixStmt, deletePrefix, id)
 	return err
 }
 
@@ -44,7 +44,7 @@ type GetEtagsRow struct {
 }
 
 func (q *Queries) GetEtags(ctx context.Context) ([]GetEtagsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getEtags)
+	rows, err := q.query(ctx, q.getEtagsStmt, getEtags)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ SELECT count FROM hashes WHERE hash = ?
 `
 
 func (q *Queries) GetHashCount(ctx context.Context, hash []byte) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getHashCount, hash)
+	row := q.queryRow(ctx, q.getHashCountStmt, getHashCount, hash)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -82,7 +82,7 @@ SELECT id, prefix, updated, etag FROM prefixes WHERE prefix = ? LIMIT 1
 `
 
 func (q *Queries) GetPrefix(ctx context.Context, prefix string) (Prefix, error) {
-	row := q.db.QueryRowContext(ctx, getPrefix, prefix)
+	row := q.queryRow(ctx, q.getPrefixStmt, getPrefix, prefix)
 	var i Prefix
 	err := row.Scan(
 		&i.ID,
@@ -103,7 +103,7 @@ type InsertHashParams struct {
 }
 
 func (q *Queries) InsertHash(ctx context.Context, arg InsertHashParams) error {
-	_, err := q.db.ExecContext(ctx, insertHash, arg.Hash, arg.Count)
+	_, err := q.exec(ctx, q.insertHashStmt, insertHash, arg.Hash, arg.Count)
 	return err
 }
 
@@ -121,6 +121,6 @@ type UpsertPrefixParams struct {
 }
 
 func (q *Queries) UpsertPrefix(ctx context.Context, arg UpsertPrefixParams) error {
-	_, err := q.db.ExecContext(ctx, upsertPrefix, arg.Prefix, arg.Updated, arg.Etag)
+	_, err := q.exec(ctx, q.upsertPrefixStmt, upsertPrefix, arg.Prefix, arg.Updated, arg.Etag)
 	return err
 }

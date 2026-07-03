@@ -57,5 +57,11 @@ func Open(ctx context.Context, path string) (*sqlite.Queries, *sql.DB, error) {
 		return nil, nil, fmt.Errorf("applying schema: %w", err)
 	}
 
-	return sqlite.New(db), db, nil
+	// Prepare every query once; closing db later also closes the statements
+	queries, err := sqlite.Prepare(ctx, db)
+	if err != nil {
+		db.Close()
+		return nil, nil, fmt.Errorf("preparing queries: %w", err)
+	}
+	return queries, db, nil
 }
