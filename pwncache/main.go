@@ -4,12 +4,12 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
 	"time"
 
-	charminglog "github.com/charmbracelet/log"
 	"github.com/spf13/pflag"
 
 	"pwncache/database"
@@ -20,48 +20,34 @@ var (
 	concurrency  = pflag.IntP("concurrency", "c", 32, "number of parallel fetch workers")
 	databasePath = pflag.StringP("database", "d", "pwned.db", "path to the SQLite database")
 	limit        = pflag.Int("limit", 0, "stop after this many prefixes (0 = no limit)")
-	progress     = pflag.Duration("progress", 30*time.Second, "interval between progress reports")
+	progress     = pflag.Duration("progress", 10*time.Second, "interval between progress reports")
 	retries      = pflag.Int("retries", 10, "retry attempts per failed fetch (0 disables)")
 	verbose      = pflag.BoolP("verbose", "v", false, "debug-level logging")
 	quiet        = pflag.BoolP("quiet", "q", false, "warnings and errors only")
 )
 
-// setupLogging installs a colourised charmbracelet logger as the slog default.
-func setupLogging() {
-	// Level is chosen from the -v and -q flags; -v wins if both are set.
-	level := charminglog.InfoLevel
-	switch {
-	case *verbose:
-		level = charminglog.DebugLevel
-	case *quiet:
-		level = charminglog.WarnLevel
-	}
-
-	handler := charminglog.NewWithOptions(os.Stderr, charminglog.Options{
-		Level: level,
-		// ReportCaller:    true,
-		ReportTimestamp: true,
-		TimeFormat:      time.Kitchen,
-	})
-	slog.SetDefault(slog.New(handler))
-}
-
 func main() {
 	pflag.Parse()
-	setupLogging()
+
+	logs, err := setupLogging(*verbose, *quiet)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "logging setup:", err)
+		os.Exit(1)
+	}
+	defer logs.logFile.Close()
 
 	// Cancel the run cleanly on Ctrl-C; state is safe in the database
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	if err := run(ctx); err != nil {
+	if err := run(ctx, logs.console, logs.file); err != nil {
 		slog.Error("download failed", "error", err)
 		os.Exit(1)
 	}
 }
 
 // run downloads hash lists until finished, limited, or interrupted.
-func run(ctx context.Context) error {
+func run(ctx context.Context, console, file *slog.Logger) error {
 	queries, db, err := database.Open(ctx, *databasePath)
 	if err != nil {
 		return err
@@ -73,6 +59,8 @@ func run(ctx context.Context) error {
 	downloader.Limit = *limit
 	downloader.Progress = *progress
 	downloader.MaxRetries = *retries
+	downloader.ConsoleLog = console
+	downloader.FileLog = file
 
 	err = downloader.Run(ctx)
 	if errors.Is(err, context.Canceled) {

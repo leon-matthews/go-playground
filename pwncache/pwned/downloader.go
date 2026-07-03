@@ -16,7 +16,7 @@ import (
 )
 
 // Report progress at this interval unless [Downloader.Progress] is set
-const defaultProgressInterval = 30 * time.Second
+const defaultProgressInterval = 10 * time.Second
 
 // Run this many fetch workers unless [Downloader.Concurrency] is set
 const defaultConcurrency = 32
@@ -42,6 +42,11 @@ type Downloader struct {
 
 	// MaxRetries is how many times to retry a failed fetch before skipping it
 	MaxRetries int
+
+	// ConsoleLog receives friendly one-line progress; FileLog receives the
+	// matching structured record. Both fall back to slog.Default() when nil.
+	ConsoleLog *slog.Logger
+	FileLog    *slog.Logger
 }
 
 // A result carries one prefix's fetch outcome from a worker to the collector
@@ -81,6 +86,7 @@ func (d *Downloader) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	d.reportCacheLoaded(ctx, len(etags))
 
 	// Cancelling shuts down the generator and workers if storing fails
 	ctx, cancel := context.WithCancel(ctx)
@@ -92,6 +98,7 @@ func (d *Downloader) Run(ctx context.Context) error {
 	// Run's own goroutine collects results, and is the sole database writer,
 	// so the counters need no locks and SQLite sees no write contention.
 	start := time.Now()
+	since, sinceProcessed := start, 0
 	next := start.Add(interval)
 	var c counters
 	for res := range results {
@@ -120,13 +127,17 @@ func (d *Downloader) Run(ctx context.Context) error {
 		}
 
 		c.processed++
-		if time.Now().After(next) {
-			d.report(ctx, start, c, false)
-			next = time.Now().Add(interval)
+		if now := time.Now(); now.After(next) {
+			rate := ratePerSecond(c.processed-sinceProcessed, now.Sub(since))
+			d.report(ctx, c, rate, now.Sub(start), false)
+			since, sinceProcessed = now, c.processed
+			next = now.Add(interval)
 		}
 	}
 
-	d.report(ctx, start, c, true)
+	// The summary covers the whole run, so its rate is the overall average
+	end := time.Now()
+	d.report(ctx, c, ratePerSecond(c.processed, end.Sub(start)), end.Sub(start), true)
 	return ctx.Err()
 }
 
@@ -143,6 +154,22 @@ func (d *Downloader) loadEtags(ctx context.Context) (map[Prefix]string, error) {
 		}
 	}
 	return etags, nil
+}
+
+// reportCacheLoaded announces how much of the database is already cached, both
+// as a sign of life and as a completeness figure before the download begins.
+func (d *Downloader) reportCacheLoaded(ctx context.Context, cached int) {
+	percent := 100 * float64(cached) / PrefixCount
+	d.fileLogger().LogAttrs(
+		ctx, slog.LevelInfo, "cache loaded",
+		slog.Int("cached", cached),
+		slog.Int("total", PrefixCount),
+		slog.Float64("percent", math.Round(percent*10)/10),
+	)
+	d.consoleLogger().Info(fmt.Sprintf(
+		"%s of %s prefixes already cached (%.1f%%) - starting download",
+		humanize.Comma(int64(cached)), humanize.Comma(int64(PrefixCount)), percent,
+	))
 }
 
 // generate feeds prefixes into a channel until done, limited, or cancelled.
@@ -237,11 +264,14 @@ func (d *Downloader) store(ctx context.Context, resp *HashResponse) error {
 	return tx.Commit()
 }
 
-// report logs overall counters and rates, as either "progress" or a final "summary".
-func (d *Downloader) report(ctx context.Context, start time.Time, c counters, final bool) {
-	elapsed := time.Since(start)
-	rate := float64(c.processed) / elapsed.Seconds()
+// report writes a friendly line to the console and the matching structured
+// record to the file, as either "progress" or a final "summary". rate is the
+// per-second rate over the reporting window; elapsed is the whole run so far.
+func (d *Downloader) report(ctx context.Context, c counters, rate float64, elapsed time.Duration, final bool) {
 	percent := 100 * float64(c.processed) / PrefixCount
+	remaining, etaKnown := eta(c.processed, d.Limit, rate)
+
+	// Structured record for the log file
 	attrs := []slog.Attr{
 		slog.Float64("percent", math.Round(percent*10)/10),
 		slog.Int("processed", c.processed),
@@ -252,24 +282,86 @@ func (d *Downloader) report(ctx context.Context, start time.Time, c counters, fi
 		slog.Float64("per_second", math.Round(rate*10)/10),
 		slog.Duration("elapsed", elapsed.Round(time.Second)),
 	}
-
-	msg := "summary"
+	kind := "summary"
 	if !final {
-		msg = "progress"
-		attrs = append(attrs, slog.Duration("eta", eta(c.processed, d.Limit, rate)))
+		kind = "progress"
+		// A stalled window has no estimate, so omit eta rather than log a false 0
+		if etaKnown {
+			attrs = append(attrs, slog.Duration("eta", remaining))
+		}
 	}
-	slog.LogAttrs(ctx, slog.LevelInfo, msg, attrs...)
+	d.fileLogger().LogAttrs(ctx, slog.LevelInfo, kind, attrs...)
+
+	// Friendly one-line version for the console
+	d.consoleLogger().Info(humanReport(c, rate, percent, elapsed, remaining, etaKnown, final))
 }
 
-// eta estimates the time remaining to finish the run at the given rate.
-func eta(processed, limit int, rate float64) time.Duration {
+// humanReport renders a friendly one-line progress or summary message.
+func humanReport(c counters, rate, percent float64, elapsed, remaining time.Duration, etaKnown, final bool) string {
+	counts := fmt.Sprintf(
+		"%s fetched, %s unchanged, %s failed",
+		humanize.Comma(int64(c.fetched)),
+		humanize.Comma(int64(c.unchanged)),
+		humanize.Comma(int64(c.failed)),
+	)
+	size := humanize.Bytes(uint64(c.downloaded))
+	perSecond := humanize.Comma(int64(math.Round(rate)))
+
+	if final {
+		return fmt.Sprintf(
+			"Finished %s of %s prefixes: %s - %s at %s/s in %s",
+			humanize.Comma(int64(c.processed)), humanize.Comma(int64(PrefixCount)),
+			counts, size, perSecond, elapsed.Round(time.Second),
+		)
+	}
+	etaText := "unknown"
+	if etaKnown {
+		etaText = remaining.String()
+	}
+	return fmt.Sprintf(
+		"Processed %s prefixes (%.1f%%): %s - %s at %s/s, ETA %s",
+		humanize.Comma(int64(c.processed)),
+		percent, counts, size, perSecond, etaText,
+	)
+}
+
+// consoleLogger returns the friendly console logger, or the default if unset.
+func (d *Downloader) consoleLogger() *slog.Logger {
+	if d.ConsoleLog != nil {
+		return d.ConsoleLog
+	}
+	return slog.Default()
+}
+
+// fileLogger returns the structured file logger, or the default if unset.
+func (d *Downloader) fileLogger() *slog.Logger {
+	if d.FileLog != nil {
+		return d.FileLog
+	}
+	return slog.Default()
+}
+
+// ratePerSecond is processed items per second over window, guarding a zero window.
+func ratePerSecond(processed int, window time.Duration) float64 {
+	if window <= 0 {
+		return 0
+	}
+	return float64(processed) / window.Seconds()
+}
+
+// eta estimates the time remaining to finish the run at the given rate. ok is
+// false when the rate is too low to estimate, i.e. the run has stalled.
+func eta(processed, limit int, rate float64) (remaining time.Duration, ok bool) {
 	target := PrefixCount
 	if limit > 0 && limit < PrefixCount {
 		target = limit
 	}
-	remaining := target - processed
-	if rate <= 0 || remaining <= 0 {
-		return 0
+	left := target - processed
+	if left <= 0 {
+		return 0, true // essentially done, so zero is honest
 	}
-	return time.Duration(float64(remaining) / rate * float64(time.Second)).Round(time.Second)
+	if rate <= 0 {
+		return 0, false // stalled: no basis for an estimate
+	}
+	return time.Duration(float64(left) / rate * float64(time.Second)).Round(time.Second), true
 }
