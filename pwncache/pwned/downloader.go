@@ -54,6 +54,8 @@ type Downloader struct {
 type result struct {
 	prefix Prefix
 	resp   *HashResponse
+	rows   []sqlite.InsertHashParams // Parsed and ready to insert; nil for 304s
+	bytes  int                       // Size of the fetched hash list body
 	err    error
 }
 
@@ -72,7 +74,7 @@ func NewDownloader(db *sql.DB, queries *sqlite.Queries) *Downloader {
 }
 
 // Run fetches every prefix using parallel workers, returning early if ctx
-// is cancelled. Individual fetch failures are logged and skipped.
+// is cancelled. Individual fetch or parse failures are logged and skipped.
 func (d *Downloader) Run(ctx context.Context) error {
 	interval := d.Progress
 	if interval <= 0 {
@@ -114,7 +116,7 @@ func (d *Downloader) Run(ctx context.Context) error {
 			continue
 		}
 		if res.err != nil {
-			slog.Error("fetch failed", "prefix", res.prefix, "error", res.err)
+			slog.Error("prefix failed", "prefix", res.prefix, "error", res.err)
 			c.failed++
 			continue
 		}
@@ -122,7 +124,7 @@ func (d *Downloader) Run(ctx context.Context) error {
 		if res.resp.HTTPStatus == http.StatusNotModified {
 			c.unchanged++
 		} else {
-			if err := d.store(ctx, inserter, res.resp); err != nil {
+			if err := d.store(ctx, inserter, res.resp, res.rows); err != nil {
 				// Cancellation mid-store is not a failure either
 				if ctx.Err() != nil {
 					continue
@@ -130,7 +132,7 @@ func (d *Downloader) Run(ctx context.Context) error {
 				return fmt.Errorf("storing prefix %q: %w", res.prefix, err)
 			}
 			c.fetched++
-			c.downloaded += int64(len(res.resp.Hashes))
+			c.downloaded += int64(res.bytes)
 		}
 
 		c.processed++
@@ -220,8 +222,10 @@ func (d *Downloader) generate(ctx context.Context) <-chan Prefix {
 	return out
 }
 
-// fetchWorkers starts count parallel workers to fetch each prefix's hash list.
-// The results channel closes once the last worker has finished.
+// fetchWorkers starts count parallel workers, each fetching and parsing hash
+// lists. The results channel closes once the last worker has finished.
+// Parsing happens here rather than in the collector, so the one goroutine
+// allowed to write to the database spends its time only on database work.
 func fetchWorkers(
 	ctx context.Context,
 	count int,
@@ -234,9 +238,16 @@ func fetchWorkers(
 	for range count {
 		wg.Go(func() {
 			for prefix := range prefixes {
-				resp, err := fetchWithRetry(ctx, prefix, etagFor(etags, prefix), maxRetries)
+				res := result{prefix: prefix}
+				res.resp, res.err = fetchWithRetry(ctx, prefix, etagFor(etags, prefix), maxRetries)
+				if res.err == nil && res.resp.HTTPStatus == http.StatusOK {
+					res.bytes = len(res.resp.Hashes)
+					res.rows, res.err = parseRows(res.resp)
+					// The raw body is dead weight once parsed
+					res.resp.Hashes = nil
+				}
 				select {
-				case out <- result{prefix: prefix, resp: resp, err: err}:
+				case out <- res:
 				case <-ctx.Done():
 					return
 				}
@@ -250,12 +261,26 @@ func fetchWorkers(
 	return out
 }
 
-// store replaces the prefix's hashes and download metadata in one transaction.
-func (d *Downloader) store(ctx context.Context, inserter *database.HashInserter, resp *HashResponse) error {
+// parseRows converts a fetched hash list into rows ready for insertion.
+func parseRows(resp *HashResponse) ([]sqlite.InsertHashParams, error) {
 	hashes, err := ParseHashList(resp.Prefix, resp.Hashes)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("parsing hash list: %w", err)
 	}
+	rows := make([]sqlite.InsertHashParams, len(hashes))
+	for i, hash := range hashes {
+		rows[i] = sqlite.InsertHashParams{Hash: hash.SHA1, Count: hash.Count}
+	}
+	return rows, nil
+}
+
+// store replaces the prefix's hashes and download metadata in one transaction.
+func (d *Downloader) store(
+	ctx context.Context,
+	inserter *database.HashInserter,
+	resp *HashResponse,
+	rows []sqlite.InsertHashParams,
+) error {
 	lower, upper, err := resp.Prefix.HashRange()
 	if err != nil {
 		return err
@@ -272,10 +297,6 @@ func (d *Downloader) store(ctx context.Context, inserter *database.HashInserter,
 	bounds := sqlite.DeleteHashRangeParams{Lower: lower, Upper: upper}
 	if err := qtx.DeleteHashRange(ctx, bounds); err != nil {
 		return fmt.Errorf("deleting old hashes: %w", err)
-	}
-	rows := make([]sqlite.InsertHashParams, len(hashes))
-	for i, hash := range hashes {
-		rows[i] = sqlite.InsertHashParams{Hash: hash.SHA1, Count: hash.Count}
 	}
 	if err := inserter.Insert(ctx, tx, rows); err != nil {
 		return err
