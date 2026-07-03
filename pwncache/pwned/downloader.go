@@ -12,6 +12,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 
+	"pwncache/database"
 	"pwncache/database/sqlite"
 )
 
@@ -88,6 +89,12 @@ func (d *Downloader) Run(ctx context.Context) error {
 	}
 	d.reportCacheLoaded(ctx, cached)
 
+	inserter, err := database.NewHashInserter(ctx, d.db)
+	if err != nil {
+		return err
+	}
+	defer inserter.Close()
+
 	// Cancelling shuts down the generator and workers if storing fails
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -115,7 +122,7 @@ func (d *Downloader) Run(ctx context.Context) error {
 		if res.resp.HTTPStatus == http.StatusNotModified {
 			c.unchanged++
 		} else {
-			if err := d.store(ctx, res.resp); err != nil {
+			if err := d.store(ctx, inserter, res.resp); err != nil {
 				// Cancellation mid-store is not a failure either
 				if ctx.Err() != nil {
 					continue
@@ -244,7 +251,7 @@ func fetchWorkers(
 }
 
 // store replaces the prefix's hashes and download metadata in one transaction.
-func (d *Downloader) store(ctx context.Context, resp *HashResponse) error {
+func (d *Downloader) store(ctx context.Context, inserter *database.HashInserter, resp *HashResponse) error {
 	hashes, err := ParseHashList(resp.Prefix, resp.Hashes)
 	if err != nil {
 		return err
@@ -266,11 +273,12 @@ func (d *Downloader) store(ctx context.Context, resp *HashResponse) error {
 	if err := qtx.DeleteHashRange(ctx, bounds); err != nil {
 		return fmt.Errorf("deleting old hashes: %w", err)
 	}
-	for _, hash := range hashes {
-		row := sqlite.InsertHashParams{Hash: hash.SHA1, Count: hash.Count}
-		if err := qtx.InsertHash(ctx, row); err != nil {
-			return fmt.Errorf("inserting hash: %w", err)
-		}
+	rows := make([]sqlite.InsertHashParams, len(hashes))
+	for i, hash := range hashes {
+		rows[i] = sqlite.InsertHashParams{Hash: hash.SHA1, Count: hash.Count}
+	}
+	if err := inserter.Insert(ctx, tx, rows); err != nil {
+		return err
 	}
 
 	err = qtx.UpsertPrefix(ctx, sqlite.UpsertPrefixParams{

@@ -16,7 +16,7 @@ import (
 )
 
 // open builds a fresh database in a per-test temporary folder.
-func open(t *testing.T) (*sqlite.Queries, *sql.DB) {
+func open(t testing.TB) (*sqlite.Queries, *sql.DB) {
 	t.Helper()
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "test.db")
@@ -81,7 +81,7 @@ func TestPragmas(t *testing.T) {
 		{"journal_mode", "wal"},
 		{"locking_mode", "exclusive"},
 		{"synchronous", "1"}, // NORMAL
-		{"cache_size", "-262144"},
+		{"cache_size", "-65536"},
 		{"temp_store", "2"}, // MEMORY
 	}
 	for _, tc := range cases {
