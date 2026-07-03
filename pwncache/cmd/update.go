@@ -1,4 +1,3 @@
-// Command pwncache downloads the Have I Been Pwned password database to SQLite.
 package main
 
 import (
@@ -7,77 +6,73 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/signal"
 	"runtime"
 	"runtime/pprof"
 	"time"
 
-	"github.com/spf13/pflag"
+	"github.com/spf13/cobra"
 
 	"pwncache/database"
 	"pwncache/pwned"
 )
 
 var (
-	concurrency  = pflag.IntP("concurrency", "c", 64, "number of parallel fetch workers")
-	databasePath = pflag.StringP("database", "d", "pwned.db", "path to the SQLite database")
-	limit        = pflag.Int("limit", 0, "stop after this many prefixes (0 = no limit)")
-	progress     = pflag.DurationP("progress", "p", 10*time.Second, "interval between progress reports")
-	profile      = pflag.Bool("profile", false, "Write CPU (cpu.pprof) and heap (heap.pprof) profiles")
-	retries      = pflag.Int("retries", 10, "retry attempts per failed fetch (0 disables)")
-	verbose      = pflag.BoolP("verbose", "v", false, "debug-level logging")
-	quiet        = pflag.BoolP("quiet", "q", false, "warnings and errors only")
+	concurrency int
+	limit       int
+	progress    time.Duration
+	profile     bool
+	retries     int
 )
 
-func main() {
-	pflag.Parse()
-
-	logs, err := setupLogging(*verbose, *quiet)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "logging setup:", err)
-		os.Exit(1)
+// newUpdateCmd builds the "update" sub-command, which downloads or refreshes
+// the local mirror of the password hash database.
+func newUpdateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "update",
+		Short: "Download or refresh the local password hash database",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			defer logs.logFile.Close()
+			return runUpdate(cmd.Context())
+		},
 	}
-	defer logs.logFile.Close()
 
-	// Cancel the run cleanly on Ctrl-C; state is safe in the database
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer stop()
-
-	if err := run(ctx, logs.console, logs.file); err != nil {
-		slog.Error("download failed", "error", err)
-		os.Exit(1)
-	}
+	cmd.Flags().IntVarP(&concurrency, "concurrency", "c", 64, "number of parallel fetch workers")
+	cmd.Flags().IntVar(&limit, "limit", 0, "stop after this many prefixes (0 = no limit)")
+	cmd.Flags().DurationVarP(&progress, "progress", "p", 10*time.Second, "interval between progress reports")
+	cmd.Flags().BoolVar(&profile, "profile", false, "write CPU (cpu.pprof) and heap (heap.pprof) profiles")
+	cmd.Flags().IntVar(&retries, "retries", 10, "retry attempts per failed fetch (0 disables)")
+	return cmd
 }
 
-// run downloads hash lists until finished, limited, or interrupted.
-func run(ctx context.Context, console, file *slog.Logger) error {
-	file.Info(
+// runUpdate downloads hash lists until finished, limited, or interrupted.
+func runUpdate(ctx context.Context) error {
+	logs.file.Info(
 		"starting run",
-		"concurrency", *concurrency,
-		"database", *databasePath,
-		"limit", *limit,
+		"concurrency", concurrency,
+		"database", databasePath,
+		"limit", limit,
 		"progress", progress.String(),
-		"profile", *profile,
-		"retries", *retries,
-		"verbose", *verbose,
-		"quiet", *quiet,
+		"profile", profile,
+		"retries", retries,
+		"verbose", verbose,
+		"quiet", quiet,
 	)
 
-	queries, db, err := database.Open(ctx, *databasePath)
+	queries, db, err := database.Open(ctx, databasePath)
 	if err != nil {
 		return err
 	}
 	defer db.Close()
 
 	downloader := pwned.NewDownloader(db, queries)
-	downloader.Concurrency = *concurrency
-	downloader.Limit = *limit
-	downloader.Progress = *progress
-	downloader.MaxRetries = *retries
-	downloader.ConsoleLog = console
-	downloader.FileLog = file
+	downloader.Concurrency = concurrency
+	downloader.Limit = limit
+	downloader.Progress = progress
+	downloader.MaxRetries = retries
+	downloader.ConsoleLog = logs.console
+	downloader.FileLog = logs.file
 
-	if *profile {
+	if profile {
 		stopProfile, err := startProfile("cpu.pprof")
 		if err != nil {
 			return fmt.Errorf("creating profile: %w", err)
