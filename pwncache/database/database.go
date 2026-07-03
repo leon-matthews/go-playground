@@ -26,7 +26,7 @@ var bulkLoadPragmas = []string{
 	"journal_mode(WAL)",
 	"synchronous(NORMAL)",
 	"locking_mode(EXCLUSIVE)",
-	"cache_size(-262144)",
+	"cache_size(-65536)",
 	"temp_store(MEMORY)",
 }
 
