@@ -1,6 +1,7 @@
 package pwned
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"fmt"
@@ -237,9 +238,11 @@ func fetchWorkers(
 	var wg sync.WaitGroup
 	for range count {
 		wg.Go(func() {
+			// One buffer per worker, reused for every body that worker reads
+			buf := new(bytes.Buffer)
 			for prefix := range prefixes {
 				res := result{prefix: prefix}
-				res.resp, res.err = fetchWithRetry(ctx, prefix, etagFor(etags, prefix), maxRetries)
+				res.resp, res.err = fetchWithRetry(ctx, prefix, etagFor(etags, prefix), maxRetries, buf)
 				if res.err == nil && res.resp.HTTPStatus == http.StatusOK {
 					res.bytes = len(res.resp.Hashes)
 					res.rows, res.err = parseRows(res.resp)

@@ -1,10 +1,10 @@
 package pwned
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -65,10 +65,11 @@ func BuildURL(prefix Prefix) string {
 	return url
 }
 
-// FetchHashes gets passwords hashes from the pwned passwords API
-// An ETag can optionally be provided to avoid having to re-download a
-// hash list that we already have.
-func FetchHashes(ctx context.Context, prefix Prefix, etag string) (*HashResponse, error) {
+// FetchHashes gets password hashes from the pwned passwords API.
+//
+// An optional ETag avoids re-downloading a hash list we already have. The body
+// is read into buf, so the returned Hashes stay valid only until buf is reused.
+func FetchHashes(ctx context.Context, prefix Prefix, etag string, buf *bytes.Buffer) (*HashResponse, error) {
 	url := BuildURL(prefix)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -112,11 +113,12 @@ func FetchHashes(ctx context.Context, prefix Prefix, etag string) (*HashResponse
 		}
 	}
 
-	// Body
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
+	// Reusing buf spares a hot worker from regrowing a read buffer every prefix
+	buf.Reset()
+	if _, err := buf.ReadFrom(r.Body); err != nil {
 		return nil, fmt.Errorf("read body: %w", err)
 	}
+	body := buf.Bytes()
 	elapsed := time.Since(start)
 	rEtag := r.Header.Get("Etag")
 	slog.LogAttrs(
@@ -141,11 +143,11 @@ func FetchHashes(ctx context.Context, prefix Prefix, etag string) (*HashResponse
 // fetchWithRetry fetches a prefix's hash list, retrying transient failures with
 // a capped backoff. It gives up after maxRetries retries, or as soon as ctx is
 // cancelled, since an aborted run is not a failure worth retrying.
-func fetchWithRetry(ctx context.Context, prefix Prefix, etag string, maxRetries int) (*HashResponse, error) {
+func fetchWithRetry(ctx context.Context, prefix Prefix, etag string, maxRetries int, buf *bytes.Buffer) (*HashResponse, error) {
 	var err error
 	for attempt := 0; ; attempt++ {
 		var resp *HashResponse
-		resp, err = FetchHashes(ctx, prefix, etag)
+		resp, err = FetchHashes(ctx, prefix, etag, buf)
 		if err == nil {
 			return resp, nil
 		}
