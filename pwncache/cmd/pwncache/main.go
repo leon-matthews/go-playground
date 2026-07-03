@@ -51,6 +51,18 @@ func main() {
 
 // run downloads hash lists until finished, limited, or interrupted.
 func run(ctx context.Context, console, file *slog.Logger) error {
+	file.Info(
+		"starting run",
+		"concurrency", *concurrency,
+		"database", *databasePath,
+		"limit", *limit,
+		"progress", progress.String(),
+		"profile", *profile,
+		"retries", *retries,
+		"verbose", *verbose,
+		"quiet", *quiet,
+	)
+
 	queries, db, err := database.Open(ctx, *databasePath)
 	if err != nil {
 		return err
