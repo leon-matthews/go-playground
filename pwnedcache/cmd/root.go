@@ -33,7 +33,7 @@ func newRootCmd() *cobra.Command {
 		},
 	}
 
-	cmd.PersistentFlags().StringVarP(&databasePath, "database", "d", "pwned.db", "path to the SQLite database")
+	cmd.PersistentFlags().StringVarP(&databasePath, "database", "d", "pwnedcache.db", "path to the SQLite database")
 	cmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "debug-level logging")
 
 	// cobra always lists a command named "help" regardless of Hidden, so

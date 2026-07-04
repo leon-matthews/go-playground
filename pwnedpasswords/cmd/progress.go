@@ -136,7 +136,7 @@ func humanProgress(kind string, c tally, filtered bool) string {
 		count, label = c.hashQueries, "processed"
 	}
 	line := fmt.Sprintf(
-		"%s %s, %s database hits, %s changed",
+		"%s %s > %s database hits > %s changed",
 		humanize.Comma(count),
 		label,
 		humanize.Comma(c.found),
