@@ -87,7 +87,7 @@ func runImport(ctx context.Context, logs logging, opts importOptions) error {
 
 	chk := &checker{write: writeQueries, cache: cacheQueries, filter: found}
 	prog := &progress{}
-	rep := startReporter(prog, logs.console, logs.file, opts.progress, found != nil)
+	rep := startReporter(opts.progress, prog.reportTo(logs.console, logs.file, found != nil))
 	defer rep.stopAndReport()
 
 	for _, file := range opts.files {

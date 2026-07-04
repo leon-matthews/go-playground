@@ -19,9 +19,16 @@ var schema string
 
 // writePragmas tune the writable database for its single-connection workload.
 var writePragmas = []string{
-	"journal_mode(WAL)",
-	"synchronous(NORMAL)",
 	"busy_timeout(5000)",
+	"cache_size(-262144)", // 256MiB page cache
+	"synchronous(NORMAL)",
+	"journal_mode(WAL)",
+}
+
+// readPragmas tune the read-only cache for its scan-and-point-lookup workload.
+var readPragmas = []string{
+	"cache_size(-65536)",      // 64MiB, keeps the hash B-tree's interior pages hot
+	"locking_mode(exclusive)", // static single-process file: skip per-query lock syscalls
 }
 
 // pragmaQuery builds the modernc DSN query that runs each pragma once on open.
@@ -55,7 +62,7 @@ func Open(ctx context.Context, path string) (*sqlite.Queries, *sql.DB, error) {
 // The file is treated as a static snapshot and is never modified.
 func OpenCache(ctx context.Context, path string) (*sqlite.Queries, *sql.DB, error) {
 	// The file: scheme is required for modernc to honour the mode=ro URI param
-	db, err := sql.Open("sqlite", "file:"+path+"?mode=ro")
+	db, err := sql.Open("sqlite", "file:"+path+pragmaQuery(readPragmas...)+"&mode=ro")
 	if err != nil {
 		return nil, nil, fmt.Errorf("opening cache %q: %w", path, err)
 	}

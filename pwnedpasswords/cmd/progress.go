@@ -64,30 +64,25 @@ func (p *progress) snapshot() tally {
 	return t
 }
 
-// reporter periodically logs a progress line and, once stopped, a final summary.
+// reporter periodically invokes a report function and, once stopped, invokes it
+// a final time for a summary. The report function renders and emits one line; its
+// argument is "progress" for a periodic tick or "summary" for the final call.
 type reporter struct {
-	prog     *progress
-	console  *slog.Logger
-	file     *slog.Logger
-	filtered bool // whether a filter is in use, for the leading count's label
-	stop     chan struct{}
-	done     chan struct{}
+	report func(kind string)
+	stop   chan struct{}
+	done   chan struct{}
 }
 
-// startReporter begins logging prog every interval until the returned reporter
-// is stopped. A friendly line goes to the console and the matching structured
-// record to the file. filtered selects the leading count's label.
-func startReporter(prog *progress, console, file *slog.Logger, interval time.Duration, filtered bool) *reporter {
+// startReporter calls report("progress") every interval until the returned
+// reporter is stopped with stopAndReport.
+func startReporter(interval time.Duration, report func(kind string)) *reporter {
 	if interval <= 0 {
 		interval = defaultProgressInterval
 	}
 	r := &reporter{
-		prog:     prog,
-		console:  console,
-		file:     file,
-		filtered: filtered,
-		stop:     make(chan struct{}),
-		done:     make(chan struct{}),
+		report: report,
+		stop:   make(chan struct{}),
+		done:   make(chan struct{}),
 	}
 	go func() {
 		defer close(r.done)
@@ -105,25 +100,28 @@ func startReporter(prog *progress, console, file *slog.Logger, interval time.Dur
 	return r
 }
 
-// stopAndReport halts the ticker and logs a final summary of the whole run.
+// stopAndReport halts the ticker and emits a final summary.
 func (r *reporter) stopAndReport() {
 	close(r.stop)
 	<-r.done
 	r.report("summary")
 }
 
-// report writes one progress or summary line to the console and the matching
-// structured record to the file.
-func (r *reporter) report(kind string) {
-	c := r.prog.snapshot()
-	r.file.Info(
-		kind,
-		"filter_queries", c.filterQueries,
-		"hash_queries", c.hashQueries,
-		"found", c.found,
-		"changed", c.changed,
-	)
-	r.console.Info(humanProgress(kind, c, r.filtered))
+// reportTo returns a report function that logs the shared progress as a friendly
+// console line and the matching structured record to the file. filtered selects
+// the leading count's label.
+func (p *progress) reportTo(console, file *slog.Logger, filtered bool) func(kind string) {
+	return func(kind string) {
+		c := p.snapshot()
+		file.Info(
+			kind,
+			"filter_queries", c.filterQueries,
+			"hash_queries", c.hashQueries,
+			"found", c.found,
+			"changed", c.changed,
+		)
+		console.Info(humanProgress(kind, c, filtered))
+	}
 }
 
 // humanProgress renders a friendly one-line progress or summary message. The

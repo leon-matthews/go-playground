@@ -56,21 +56,6 @@ func setupLogging(verbose bool) (logging, error) {
 	}, nil
 }
 
-// newLogger builds a stderr-only console logger whose level follows the -v flag.
-//
-// It serves the commands not yet migrated to the dual console and file loggers.
-func newLogger(verbose bool) *charmlog.Logger {
-	level := charmlog.InfoLevel
-	if verbose {
-		level = charmlog.DebugLevel
-	}
-	return charmlog.NewWithOptions(os.Stderr, charmlog.Options{
-		Level:           level,
-		ReportTimestamp: true,
-		TimeFormat:      time.Kitchen,
-	})
-}
-
 // fanout is an slog.Handler that dispatches each record to every child handler.
 type fanout []slog.Handler
 

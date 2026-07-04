@@ -69,6 +69,7 @@ per size for the lowest false-positive rate on the ~2 billion hash corpus:
 - `--8GB` - 8 GiB filter (default), false positives ~1 in 270,000
 - `--16GB` - 16 GiB filter, false positives ~1 in 175 million
 - `--filter` - output filter path (default `pwnedpasswords.filter`)
+- `-p`, `--progress` - interval between progress reports (default 10s)
 
 `bruteforce` flags:
 
@@ -77,6 +78,7 @@ per size for the lowest false-positive rate on the ~2 billion hash corpus:
 - `--resume` - continue from this pattern (as logged when interrupted)
 - `--filter` - membership filter path (default `pwnedpasswords.filter`)
 - `-w`, `--workers` - number of parallel workers (default: number of CPUs)
+- `-p`, `--progress` - interval between progress reports (default 10s)
 
 `export` flags:
 

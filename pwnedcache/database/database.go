@@ -22,7 +22,7 @@ var bulkLoadPragmas = []string{
 	"journal_mode(WAL)",       // WAL keeps the file crash-consistent
 	"synchronous(NORMAL)",     // Drop the per-commit fsync
 	"locking_mode(EXCLUSIVE)", // Keep the wal-index in heap (no -shm file)
-	"cache_size(-65536)",      // 64MiB write working set
+	"cache_size(-65536)",      // 64MiB disk cache
 	"temp_store(MEMORY)",      // Keep temp tables etc. in RAM
 }
 
