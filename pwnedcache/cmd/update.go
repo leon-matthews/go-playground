@@ -57,7 +57,6 @@ func runUpdate(ctx context.Context) error {
 		"profile", profile,
 		"retries", retries,
 		"verbose", verbose,
-		"quiet", quiet,
 	)
 
 	queries, db, err := database.Open(ctx, databasePath)

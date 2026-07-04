@@ -25,15 +25,12 @@ type logging struct {
 // colourised console handler on stderr and an NDJSON file handler on
 // pwnedcache.log, truncated each run.
 // Progress reporting uses the returned loggers to send friendly text to the
-// console and the matching structured record to the file. The -v and -q flags
-// choose the level, with -v winning if both are set.
-func setupLogging(verbose, quiet bool) (logging, error) {
+// console and the matching structured record to the file. The -v flag raises
+// the level to debug.
+func setupLogging(verbose bool) (logging, error) {
 	consoleLevel, fileLevel := charminglog.InfoLevel, slog.LevelInfo
-	switch {
-	case verbose:
+	if verbose {
 		consoleLevel, fileLevel = charminglog.DebugLevel, slog.LevelDebug
-	case quiet:
-		consoleLevel, fileLevel = charminglog.WarnLevel, slog.LevelWarn
 	}
 
 	logFile, err := os.Create(logPath)
