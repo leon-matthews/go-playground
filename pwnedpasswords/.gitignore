@@ -1,0 +1,7 @@
+pwnedpasswords
+*.db
+*.db-shm
+*.db-wal
+*.filter
+*.log
+*.pprof
