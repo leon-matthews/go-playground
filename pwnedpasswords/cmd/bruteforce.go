@@ -2,20 +2,17 @@ package main
 
 import (
 	"context"
-	"crypto/sha1"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"runtime"
 	"sync"
-	"sync/atomic"
 	"time"
 
-	charmlog "github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 
 	"pwnedpasswords/database"
-	"pwnedpasswords/database/sqlite"
 	"pwnedpasswords/filter"
 )
 
@@ -23,7 +20,6 @@ import (
 const (
 	chunkSize       = 1 << 20   // candidates handed to a worker at a time
 	ctxCheckMask    = 1<<14 - 1 // check for cancellation this often within a chunk
-	progressEvery   = 60 * time.Second
 	bruteforceUsage = "Generate candidate passwords in order and record breach matches"
 )
 
@@ -43,6 +39,7 @@ type bruteforceOptions struct {
 	alphabet   []byte
 	resume     string
 	workers    int
+	progress   time.Duration
 }
 
 // newBruteforceCmd builds the "bruteforce" sub-command.
@@ -51,23 +48,29 @@ func newBruteforceCmd() *cobra.Command {
 	var resume string
 	var filterPath string
 	var workers int
+	var progressInterval time.Duration
 	cmd := &cobra.Command{
 		Use:   "bruteforce",
 		Short: bruteforceUsage,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			logger := newLogger(verbose, quiet)
+			logs, err := setupLogging(verbose)
+			if err != nil {
+				return err
+			}
+			defer logs.logFile.Close()
 			alphabet, err := alphabetForLevel(level)
 			if err != nil {
 				return err
 			}
-			return runBruteforce(cmd.Context(), logger, bruteforceOptions{
+			return runBruteforce(cmd.Context(), logs, bruteforceOptions{
 				dbPath:     databasePath,
 				cachePath:  pwnedcachePath,
 				filterPath: filterPath,
 				alphabet:   alphabet,
 				resume:     resume,
 				workers:    workers,
+				progress:   progressInterval,
 			})
 		},
 	}
@@ -79,6 +82,8 @@ func newBruteforceCmd() *cobra.Command {
 		"membership filter used to skip database lookups")
 	cmd.Flags().IntVarP(&workers, "workers", "w", 0,
 		"number of parallel workers (default: number of CPUs)")
+	cmd.Flags().DurationVarP(&progressInterval, "progress", "p", 10*time.Second,
+		"interval between progress reports")
 	return cmd
 }
 
@@ -100,7 +105,7 @@ func alphabetForLevel(level int) ([]byte, error) {
 
 // runBruteforce opens the databases, loads the filter if present, and runs the
 // parallel search; without a filter it falls back to a slow serial scan.
-func runBruteforce(ctx context.Context, logger *charmlog.Logger, opts bruteforceOptions) error {
+func runBruteforce(ctx context.Context, logs logging, opts bruteforceOptions) error {
 	writeQueries, writeDB, err := database.Open(ctx, opts.dbPath)
 	if err != nil {
 		return err
@@ -112,6 +117,7 @@ func runBruteforce(ctx context.Context, logger *charmlog.Logger, opts bruteforce
 		return err
 	}
 	defer cacheDB.Close()
+	slog.Info("using databases", "output", opts.dbPath, "pwnedcache", opts.cachePath)
 
 	length, indices, err := resumeStart(opts.alphabet, opts.resume)
 	if err != nil {
@@ -121,83 +127,54 @@ func runBruteforce(ctx context.Context, logger *charmlog.Logger, opts bruteforce
 	found, err := filter.Open(opts.filterPath, opts.cachePath)
 	switch {
 	case errors.Is(err, os.ErrNotExist):
-		logger.Warn("no filter found; every candidate will hit the database. Build one with 'buildfilter'.",
+		slog.Warn("no filter found; every candidate will hit the hashes table - build one with 'buildfilter'",
 			"path", opts.filterPath)
-		return bruteforceSerial(ctx, logger, writeQueries, cacheQueries, opts.alphabet, length, indices)
+		found = nil
 	case errors.Is(err, filter.ErrStale):
 		return fmt.Errorf("filter %q is stale; rebuild it with 'buildfilter'", opts.filterPath)
 	case err != nil:
 		return err
+	default:
+		defer found.Close()
+		slog.Info("using filter", "path", opts.filterPath, "elements", found.Elements, "blocks", found.NumBlocks)
 	}
-	defer found.Close()
+
+	chk := &checker{write: writeQueries, cache: cacheQueries, filter: found}
+	prog := &progress{}
+	rep := startReporter(prog, logs.console, logs.file, opts.progress)
+	defer rep.stopAndReport()
+
+	if found == nil {
+		return bruteforceSerial(ctx, chk, prog, opts.alphabet, length, indices)
+	}
 
 	workers := opts.workers
 	if workers < 1 {
 		workers = runtime.NumCPU()
 	}
-	logger.Info("loaded filter", "elements", found.Elements, "blocks", found.NumBlocks, "workers", workers)
-	return bruteforceParallel(ctx, logger, workerContext{
-		write:    writeQueries,
-		cache:    cacheQueries,
-		filter:   found,
-		alphabet: opts.alphabet,
-		workers:  workers,
-	}, length, indices)
-}
-
-// workerContext holds the read-only state every worker shares.
-type workerContext struct {
-	write    *sqlite.Queries
-	cache    *sqlite.Queries
-	filter   *filter.Filter
-	alphabet []byte
-	workers  int
+	slog.Info("parallel search", "workers", workers)
+	return bruteforceParallel(ctx, chk, prog, opts.alphabet, workers, length, indices)
 }
 
 // bruteforceParallel enumerates candidates length by length, sharding each
 // length across workers and consulting the filter before any database lookup.
-func bruteforceParallel(ctx context.Context, logger *charmlog.Logger, wc workerContext, startLength int, startCur []int) error {
+func bruteforceParallel(ctx context.Context, chk *checker, prog *progress, alphabet []byte, workers, startLength int, startCur []int) error {
 	runCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	var tried, matched, currentLength atomic.Int64
 	var firstErr error
 	var once sync.Once
 
-	stopTicker := make(chan struct{})
-	tickerDone := make(chan struct{})
-	go func() {
-		defer close(tickerDone)
-		ticker := time.NewTicker(progressEvery)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-stopTicker:
-				return
-			case <-ticker.C:
-				logger.Info("progress", "tried", tried.Load(), "matched", matched.Load(), "length", currentLength.Load())
-			}
-		}
-	}()
-	stop := func() {
-		close(stopTicker)
-		<-tickerDone
-	}
-
-	co := &coord{base: len(wc.alphabet), chunk: chunkSize}
+	co := &coord{base: len(alphabet), chunk: chunkSize}
 	length := startLength
 	cur := startCur
 	for {
-		currentLength.Store(int64(length))
 		co.reset(cur)
 
 		var wg sync.WaitGroup
-		for range wc.workers {
+		for range workers {
 			wg.Go(func() {
-				workerTried, workerMatched, err := bruteWorker(runCtx, co, wc, length)
-				tried.Add(workerTried)
-				matched.Add(workerMatched)
-				if err != nil {
+				if err := bruteWorker(runCtx, chk, co, prog, alphabet, length); err != nil {
 					once.Do(func() { firstErr = err })
 					cancel()
 				}
@@ -206,75 +183,69 @@ func bruteforceParallel(ctx context.Context, logger *charmlog.Logger, wc workerC
 		wg.Wait()
 
 		if firstErr != nil {
-			stop()
 			return firstErr
 		}
 		if ctx.Err() != nil {
-			resume := pattern(co.frontier(wc.workers), wc.alphabet)
-			stop()
-			logger.Info("interrupted", "tried", tried.Load(), "matched", matched.Load(), "resume", resume)
+			slog.Info("interrupted", "resume", pattern(co.frontier(workers), alphabet))
 			return nil
 		}
 
 		length++
 		cur = make([]int, length)
-		logger.Info("length", "n", length)
+		slog.Info("length", "n", length)
 	}
 }
 
-// bruteWorker pulls chunks from the coordinator and processes each candidate:
-// generate, hash, filter, and only on a filter hit touch the database.
-func bruteWorker(ctx context.Context, co *coord, wc workerContext, length int) (tried, matched int64, err error) {
-	base := len(wc.alphabet)
+// bruteWorker pulls chunks from the coordinator and runs each candidate through
+// the checker, folding its counts into the shared progress once per chunk.
+func bruteWorker(ctx context.Context, chk *checker, co *coord, prog *progress, alphabet []byte, length int) error {
+	base := len(alphabet)
 	indices := make([]int, length)
 	buf := make([]byte, length)
+	var t tally
+	defer prog.add(&t)
 	for {
 		if ctx.Err() != nil {
-			return tried, matched, nil
+			return nil
 		}
 		start, ok := co.next()
 		if !ok {
-			return tried, matched, nil
+			return nil
 		}
 		copy(indices, start)
 
 		for step := 0; step < co.chunk; step++ {
 			if step&ctxCheckMask == 0 && ctx.Err() != nil {
-				return tried, matched, nil
+				return nil
 			}
 			for i, index := range indices {
-				buf[i] = wc.alphabet[index]
+				buf[i] = alphabet[index]
 			}
-			sum := sha1.Sum(buf)
-			if wc.filter.Contains(sum[:]) {
-				hit, err := recordCandidate(ctx, wc.write, wc.cache, string(buf))
-				if err != nil {
-					if errors.Is(err, context.Canceled) {
-						return tried, matched, nil
-					}
-					return tried, matched, err
+			if err := chk.check(ctx, &t, buf); err != nil {
+				if errors.Is(err, context.Canceled) {
+					return nil
 				}
-				if hit {
-					matched++
-				}
+				return err
 			}
-			tried++
 			if !advance(indices, base) {
 				break // reached the end of this length
 			}
 		}
+		prog.add(&t)
 	}
 }
 
-// bruteforceSerial is the fallback used when no filter is available: it checks
-// every candidate against the database directly.
-func bruteforceSerial(ctx context.Context, logger *charmlog.Logger, write, cache *sqlite.Queries, alphabet []byte, length int, indices []int) error {
+// bruteforceSerial is the fallback used when no filter is available: it runs
+// every candidate through the checker, which then hits the database directly.
+func bruteforceSerial(ctx context.Context, chk *checker, prog *progress, alphabet []byte, length int, indices []int) error {
 	base := len(alphabet)
-	var tried, matched int64
 	buf := make([]byte, length)
+	var t tally
+	defer prog.add(&t)
+	sinceFlush := 0
 	for {
 		if ctx.Err() != nil {
-			logger.Info("interrupted", "tried", tried, "matched", matched, "resume", pattern(indices, alphabet))
+			slog.Info("interrupted", "resume", pattern(indices, alphabet))
 			return nil
 		}
 		if len(buf) != length {
@@ -284,22 +255,21 @@ func bruteforceSerial(ctx context.Context, logger *charmlog.Logger, write, cache
 			buf[i] = alphabet[index]
 		}
 
-		hit, err := recordCandidate(ctx, write, cache, string(buf))
-		if err != nil {
+		if err := chk.check(ctx, &t, buf); err != nil {
 			if errors.Is(err, context.Canceled) {
-				logger.Info("interrupted", "tried", tried, "matched", matched, "resume", pattern(indices, alphabet))
+				slog.Info("interrupted", "resume", pattern(indices, alphabet))
 				return nil
 			}
 			return err
 		}
-		tried++
-		if hit {
-			matched++
+		if sinceFlush++; sinceFlush >= flushEvery {
+			prog.add(&t)
+			sinceFlush = 0
 		}
 		if !advance(indices, base) {
 			length++
 			indices = make([]int, length)
-			logger.Info("length", "n", length)
+			slog.Info("length", "n", length)
 		}
 	}
 }

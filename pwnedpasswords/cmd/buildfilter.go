@@ -22,7 +22,7 @@ func newBuildFilterCmd() *cobra.Command {
 		Short: "Build the membership filter from the pwnedcache hashes",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			logger := newLogger(verbose, quiet)
+			logger := newLogger(verbose)
 			return runBuildFilter(cmd.Context(), logger, pwnedcachePath, filterPath, sizeGiB)
 		},
 	}
