@@ -1,10 +1,11 @@
 // Package filter implements a split-block Bloom filter over 20-byte SHA-1
 // hashes, tuned for fast, lock-free, parallel membership queries.
 //
-// Each element maps to a single 512-bit block (one cache line) and sets one bit
-// in each of the block's eight 64-bit words. A query therefore touches exactly
-// one cache line. The bit positions are sliced directly from the SHA-1, which is
-// already uniformly random, so no extra hashing is needed.
+// Each element maps to a single 512-bit block (one cache line) and sets a tunable
+// number of probe bits spread round-robin across the block's eight 64-bit words. A
+// query therefore touches exactly one cache line. Probe positions are generated
+// from the SHA-1 by enhanced double hashing; the digest is already uniformly
+// random, so no separate hash function is needed.
 //
 // A built filter is immutable: [Filter.Contains] only reads, so any number of
 // goroutines may query it concurrently without synchronisation.
@@ -23,7 +24,7 @@ import (
 
 const (
 	magic         = "PWNDBF01"
-	version       = 1
+	version       = 2
 	headerSize    = 4096 // one page, so the mmap'd data region is page-aligned
 	bytesPerBlock = 64   // 512 bits, one x86-64 cache line
 	wordsPerBlock = 8
@@ -38,6 +39,7 @@ var ErrStale = errors.New("filter is stale: source database has changed")
 type Filter struct {
 	blocks  []uint64 // NumBlocks * wordsPerBlock words
 	mask    uint64   // NumBlocks - 1, for the block index
+	probes  int      // bits set per element, spread across the eight words
 	mmapped []byte   // backing mmap region, non-nil when loaded from disk
 	file    *os.File // backing file, non-nil when loaded from disk
 
@@ -58,27 +60,34 @@ func BlocksForBytes(size uint64) uint64 {
 }
 
 // New allocates an empty in-memory filter with numBlocks blocks, which must be a
-// power of two.
-func New(numBlocks uint64) (*Filter, error) {
+// power of two, setting probes bits per element.
+func New(numBlocks uint64, probes int) (*Filter, error) {
 	if numBlocks == 0 || numBlocks&(numBlocks-1) != 0 {
 		return nil, fmt.Errorf("numBlocks must be a power of two, got %d", numBlocks)
+	}
+	if probes < 1 {
+		return nil, fmt.Errorf("probes must be at least 1, got %d", probes)
 	}
 	return &Filter{
 		blocks:    make([]uint64, numBlocks*wordsPerBlock),
 		mask:      numBlocks - 1,
+		probes:    probes,
 		NumBlocks: numBlocks,
 	}, nil
 }
 
-// locate derives the block's word offset and the eight per-word bit masks from a
-// hash. The block index comes from the first 8 bytes; the bit positions from the
-// next 8, so the two draw on disjoint parts of the digest.
-func locate(hash []byte, mask uint64) (base uint64, masks [wordsPerBlock]uint64) {
+// locate derives the block's word offset and the per-word bit masks from a hash.
+// The block index comes from the first 8 bytes; the probe positions are generated
+// by enhanced double hashing over the remaining 12 and dealt round-robin to the
+// eight words, so each word receives one to three bits.
+func locate(hash []byte, mask uint64, probes int) (base uint64, masks [wordsPerBlock]uint64) {
 	h1 := binary.LittleEndian.Uint64(hash[0:8])
-	h2 := binary.LittleEndian.Uint64(hash[8:16])
+	pos := binary.LittleEndian.Uint64(hash[8:16])
+	step := uint64(binary.LittleEndian.Uint32(hash[16:20]))<<1 | 1 // odd, coprime to 64
 	base = (h1 & mask) * wordsPerBlock
-	for i := range uint(wordsPerBlock) {
-		masks[i] = uint64(1) << ((h2 >> (i * 6)) & 63)
+	for j := range probes {
+		masks[j&(wordsPerBlock-1)] |= uint64(1) << (pos & 63)
+		pos += step
 	}
 	return base, masks
 }
@@ -86,7 +95,7 @@ func locate(hash []byte, mask uint64) (base uint64, masks [wordsPerBlock]uint64)
 // Add inserts a 20-byte hash. It is not safe for concurrent use and is only
 // called while building, before the filter is published to readers.
 func (f *Filter) Add(hash []byte) {
-	base, masks := locate(hash, f.mask)
+	base, masks := locate(hash, f.mask, f.probes)
 	for i := range wordsPerBlock {
 		f.blocks[base+uint64(i)] |= masks[i]
 	}
@@ -96,9 +105,9 @@ func (f *Filter) Add(hash []byte) {
 // possible; false negatives are not. It is read-only and safe for any number of
 // goroutines to call concurrently.
 func (f *Filter) Contains(hash []byte) bool {
-	base, masks := locate(hash, f.mask)
+	base, masks := locate(hash, f.mask, f.probes)
 	for i := range wordsPerBlock {
-		if f.blocks[base+uint64(i)]&masks[i] == 0 {
+		if f.blocks[base+uint64(i)]&masks[i] != masks[i] {
 			return false
 		}
 	}
@@ -128,6 +137,7 @@ func (f *Filter) Write(path, sourcePath string) error {
 	binary.LittleEndian.PutUint64(header[20:28], f.Elements)
 	binary.LittleEndian.PutUint64(header[28:36], uint64(info.Size()))
 	binary.LittleEndian.PutUint64(header[36:44], uint64(info.ModTime().UnixNano()))
+	binary.LittleEndian.PutUint32(header[44:48], uint32(f.probes))
 	if _, err := file.Write(header[:]); err != nil {
 		file.Close()
 		return err
@@ -175,6 +185,7 @@ func Open(path, sourcePath string) (*Filter, error) {
 	elements := binary.LittleEndian.Uint64(header[20:28])
 	sourceSize := binary.LittleEndian.Uint64(header[28:36])
 	sourceMtime := binary.LittleEndian.Uint64(header[36:44])
+	probes := binary.LittleEndian.Uint32(header[44:48])
 
 	info, err := os.Stat(sourcePath)
 	if err != nil {
@@ -207,6 +218,7 @@ func Open(path, sourcePath string) (*Filter, error) {
 	return &Filter{
 		blocks:    blocks,
 		mask:      numBlocks - 1,
+		probes:    int(probes),
 		mmapped:   data,
 		file:      file,
 		Elements:  elements,

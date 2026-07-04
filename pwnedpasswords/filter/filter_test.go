@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"math/bits"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -25,14 +26,32 @@ func makeHashes(n int) [][]byte {
 
 func TestFilter(t *testing.T) {
 	t.Run("New rejects non-power-of-two block counts", func(t *testing.T) {
-		_, err := New(0)
+		_, err := New(0, 8)
 		require.Error(t, err)
-		_, err = New(1000)
+		_, err = New(1000, 8)
 		require.Error(t, err)
 
-		f, err := New(1024)
+		f, err := New(1024, 8)
 		require.NoError(t, err)
 		assert.Equal(t, uint64(1024), f.NumBlocks)
+	})
+
+	t.Run("New rejects a non-positive probe count", func(t *testing.T) {
+		_, err := New(1024, 0)
+		require.Error(t, err)
+	})
+
+	t.Run("sets exactly probes distinct bits per element", func(t *testing.T) {
+		for _, k := range []int{8, 10, 16, 21} {
+			f, err := New(1024, k)
+			require.NoError(t, err)
+			f.Add(makeHashes(1)[0])
+			set := 0
+			for _, w := range f.blocks {
+				set += bits.OnesCount64(w)
+			}
+			assert.Equal(t, k, set, "one element should set exactly k distinct bits")
+		}
 	})
 
 	t.Run("BlocksForBytes rounds down to a power of two", func(t *testing.T) {
@@ -44,7 +63,7 @@ func TestFilter(t *testing.T) {
 	})
 
 	t.Run("Contains finds every added hash", func(t *testing.T) {
-		f, err := New(4096)
+		f, err := New(4096, 16)
 		require.NoError(t, err)
 		hashes := makeHashes(2000)
 		for _, h := range hashes {
@@ -56,7 +75,7 @@ func TestFilter(t *testing.T) {
 	})
 
 	t.Run("never returns a false negative", func(t *testing.T) {
-		f, err := New(1 << 16)
+		f, err := New(1<<16, 21)
 		require.NoError(t, err)
 		hashes := makeHashes(50000)
 		for _, h := range hashes {
@@ -68,7 +87,7 @@ func TestFilter(t *testing.T) {
 	})
 
 	t.Run("false-positive rate stays low for absent hashes", func(t *testing.T) {
-		f, err := New(1 << 16)
+		f, err := New(1<<16, 8)
 		require.NoError(t, err)
 		for _, h := range makeHashes(1000) {
 			f.Add(h)
@@ -94,7 +113,7 @@ func TestFilter(t *testing.T) {
 		require.NoError(t, os.WriteFile(source, []byte("pretend database"), 0o644))
 		path := filepath.Join(dir, "test.filter")
 
-		built, err := New(2048)
+		built, err := New(2048, 16)
 		require.NoError(t, err)
 		hashes := makeHashes(500)
 		for _, h := range hashes {
@@ -109,6 +128,7 @@ func TestFilter(t *testing.T) {
 
 		assert.Equal(t, uint64(500), loaded.Elements)
 		assert.Equal(t, uint64(2048), loaded.NumBlocks)
+		assert.Equal(t, 16, loaded.probes)
 		for _, h := range hashes {
 			assert.True(t, loaded.Contains(h))
 		}
@@ -120,7 +140,7 @@ func TestFilter(t *testing.T) {
 		require.NoError(t, os.WriteFile(source, []byte("original"), 0o644))
 		path := filepath.Join(dir, "test.filter")
 
-		built, err := New(1024)
+		built, err := New(1024, 8)
 		require.NoError(t, err)
 		built.Add(makeHashes(1)[0])
 		require.NoError(t, built.Write(path, source))

@@ -27,11 +27,12 @@ pwnedpasswords import rockyou.txt other-list.txt
 
 Build the membership filter once from the pwnedcache hashes. It is a split-block Bloom
 filter, memory-mapped read-only at query time, that lets `bruteforce` skip ~99.9% of
-database lookups. Rebuild it whenever `pwnedcache.db` changes:
+database lookups. Rebuild it whenever `pwnedcache.db` changes (it will not overwrite an
+existing filter, so remove the old one first):
 
 ```
-pwnedpasswords buildfilter                    # ~16 GiB filter -> pwnedpasswords.filter
-pwnedpasswords buildfilter --size 8           # smaller filter, higher false-positive rate
+pwnedpasswords buildfilter                    # 8 GiB filter (default) -> pwnedpasswords.filter
+pwnedpasswords buildfilter --4GB              # smaller filter, higher false-positive rate
 ```
 
 Generate candidates by brute force in odometer order, shortest first, recording matches as
@@ -61,10 +62,12 @@ Persistent flags, valid on every command:
 - `-v`, `--verbose` - debug-level logging
 - `-q`, `--quiet` - warnings and errors only
 
-`buildfilter` flags:
+`buildfilter` flags. The three size flags are mutually exclusive; the probe count is tuned
+per size for the lowest false-positive rate on the ~2 billion hash corpus:
 
-- `-s`, `--size` - target filter size in GiB (default 16, rounded down to a power-of-two
-  block count)
+- `--4GB` - 4 GiB filter, false positives ~1 in 1,500
+- `--8GB` - 8 GiB filter (default), false positives ~1 in 270,000
+- `--16GB` - 16 GiB filter, false positives ~1 in 175 million
 - `--filter` - output filter path (default `pwnedpasswords.filter`)
 
 `bruteforce` flags:
@@ -79,3 +82,29 @@ Persistent flags, valid on every command:
 
 - `-n`, `--top` - number of passwords to write (default 1000)
 - `-f`, `--format` - output format, `text` or `json` (default `text`)
+
+
+## Bloom Filter
+
+Database lookups are the bottleneck for bruteforce guessing, where the overwhelming
+majority of candidates are misses. I have to use a database, as I can't fit the 
+full 50GB hash list in RAM, but we can vastly reduce the number of queries that
+we pass on to the database using a Bloom Filter.
+
+A bloom filter is a fascinating *probabistic* data structure that trades huge
+space savings for a lack of certainty. Its weakness is false-positives: it is
+*always* correct when it says that a key is absent, but sometimes wrong when
+it says the key is present.
+
+The best part is that you can tune the filter to get more certainty by spending 
+more bytes. For this application we have built support for three different
+filter sizes:
+
+| size              | num hashes | false positives   |
+|-------------------|------------|-------------------|
+| `--4GB`           | 10         | ~1 in 1,500       |
+| `--8GB` (default) | 16         | ~1 in 270,000     |
+| `--16GB`          | 21         | ~1 in 175 million |
+
+Choose a size that fits comfortably into your system's RAM, while leaving plenty 
+free to allow for file-system caching of the input and output database files.
