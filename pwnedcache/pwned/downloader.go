@@ -97,6 +97,14 @@ func (d *Downloader) Run(ctx context.Context) error {
 	}
 	d.reportCacheLoaded(ctx, cached)
 
+	// An empty cache means every prefix is a fresh download regardless, so
+	// bursting buys nothing; only burst when there is cached data to check
+	burst := workers
+	if cached > 0 {
+		burst = workers * burstMultiplier
+		d.reportChecking(ctx, burst)
+	}
+
 	inserter, err := database.NewHashInserter(ctx, d.db)
 	if err != nil {
 		return err
@@ -108,7 +116,7 @@ func (d *Downloader) Run(ctx context.Context) error {
 	defer cancel()
 
 	prefixes := d.generate(ctx)
-	results := fetchWorkers(ctx, workers*burstMultiplier, workers, d.MaxRetries, etags, prefixes)
+	results := d.fetchWorkers(ctx, burst, workers, d.MaxRetries, etags, prefixes)
 
 	// Run's own goroutine collects results, and is the sole database writer,
 	// so the counters need no locks and SQLite sees no write contention.
@@ -207,6 +215,25 @@ func (d *Downloader) reportCacheLoaded(ctx context.Context, cached int) {
 	))
 }
 
+// reportChecking announces the burst worker count used while cached prefixes
+// are expected to make most requests cheap conditional checks.
+func (d *Downloader) reportChecking(ctx context.Context, burst int) {
+	d.fileLogger().LogAttrs(ctx, slog.LevelInfo, "checking with burst concurrency", slog.Int("workers", burst))
+	d.consoleLogger().Info(fmt.Sprintf("Checking using %d workers", burst))
+}
+
+// reportThrottled announces the fallback from burst to normal concurrency,
+// triggered by the first fresh download since conditional requests are cheap
+// but real payloads are not.
+func (d *Downloader) reportThrottled(ctx context.Context, prefix Prefix, normal int) {
+	d.fileLogger().LogAttrs(
+		ctx, slog.LevelInfo, "concurrency reduced",
+		slog.String("prefix", string(prefix)),
+		slog.Int("workers", normal),
+	)
+	d.consoleLogger().Info(fmt.Sprintf("Downloading using %d workers", normal))
+}
+
 // generate feeds prefixes into a channel until done, limited, or cancelled.
 func (d *Downloader) generate(ctx context.Context) <-chan Prefix {
 	out := make(chan Prefix, channelBuffer)
@@ -235,7 +262,7 @@ func (d *Downloader) generate(ctx context.Context) <-chan Prefix {
 // last worker has finished.
 // Parsing happens here rather than in the collector, so the one goroutine
 // allowed to write to the database spends its time only on database work.
-func fetchWorkers(
+func (d *Downloader) fetchWorkers(
 	ctx context.Context,
 	burst, normal int,
 	maxRetries int,
@@ -263,8 +290,8 @@ func fetchWorkers(
 				res := result{prefix: prefix}
 				res.resp, res.err = fetchWithRetry(ctx, prefix, etagFor(etags, prefix), maxRetries, buf)
 				if res.err == nil && res.resp.HTTPStatus == http.StatusOK {
-					if throttled.CompareAndSwap(false, true) {
-						slog.Debug("fresh download received, reverting to normal concurrency", "prefix", prefix)
+					if burst > normal && throttled.CompareAndSwap(false, true) {
+						d.reportThrottled(ctx, prefix, normal)
 					}
 					res.bytes = len(res.resp.Hashes)
 					res.rows, res.err = parseRows(res.resp)
