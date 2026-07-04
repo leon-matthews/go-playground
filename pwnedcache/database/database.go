@@ -17,17 +17,13 @@ import (
 //go:embed schema.sql
 var schema string
 
-// bulkLoadPragmas tunes SQLite for a single-writer bulk load. WAL keeps the
-// file crash-consistent, synchronous=NORMAL drops the per-commit fsync,
-// EXCLUSIVE locking keeps the wal-index in heap (no -shm file), and a 256 MB
-// page cache holds the write working set. The driver sorts pragmas before
-// running them, which lands EXCLUSIVE after WAL but before the first write.
+// bulkLoadPragmas tunes SQLite for a single-writer bulk load.
 var bulkLoadPragmas = []string{
-	"journal_mode(WAL)",
-	"synchronous(NORMAL)",
-	"locking_mode(EXCLUSIVE)",
-	"cache_size(-65536)",
-	"temp_store(MEMORY)",
+	"journal_mode(WAL)",       // WAL keeps the file crash-consistent
+	"synchronous(NORMAL)",     // Drop the per-commit fsync
+	"locking_mode(EXCLUSIVE)", // Keep the wal-index in heap (no -shm file)
+	"cache_size(-65536)",      // 64MiB write working set
+	"temp_store(MEMORY)",      // Keep temp tables etc. in RAM
 }
 
 // pragmaQuery builds the modernc-sqlite DSN query that runs each pragma once on
