@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math/bits"
 	"os"
 	"runtime"
 	"sync"
@@ -18,7 +19,15 @@ import (
 
 // Tuning for the parallel search.
 const (
-	chunkSize       = 1 << 20   // candidates handed to a worker at a time
+	// maxChunk caps the candidates handed to a worker at once. Shorter lengths
+	// use a smaller chunk (see chunkForSpace) so every worker still gets work.
+	maxChunk = 1 << 20
+	// minChunk floors the chunk size, keeping coordinator lock overhead negligible.
+	minChunk = 1 << 10
+	// chunksPerWorker is the number of chunks aimed at each worker, so uneven
+	// per-candidate cost still balances out across them.
+	chunksPerWorker = 8
+
 	ctxCheckMask    = 1<<14 - 1 // check for cancellation this often within a chunk
 	bruteforceUsage = "Generate candidate passwords in order and record breach matches"
 )
@@ -141,7 +150,7 @@ func runBruteforce(ctx context.Context, logs logging, opts bruteforceOptions) er
 
 	chk := &checker{write: writeQueries, cache: cacheQueries, filter: found}
 	prog := &progress{}
-	rep := startReporter(prog, logs.console, logs.file, opts.progress)
+	rep := startReporter(prog, logs.console, logs.file, opts.progress, found != nil)
 	defer rep.stopAndReport()
 
 	if found == nil {
@@ -165,10 +174,11 @@ func bruteforceParallel(ctx context.Context, chk *checker, prog *progress, alpha
 	var firstErr error
 	var once sync.Once
 
-	co := &coord{base: len(alphabet), chunk: chunkSize}
+	co := &coord{base: len(alphabet)}
 	length := startLength
 	cur := startCur
 	for {
+		co.chunk = chunkForSpace(powSat(uint64(len(alphabet)), uint64(length)), workers)
 		co.reset(cur)
 
 		var wg sync.WaitGroup
@@ -197,13 +207,15 @@ func bruteforceParallel(ctx context.Context, chk *checker, prog *progress, alpha
 }
 
 // bruteWorker pulls chunks from the coordinator and runs each candidate through
-// the checker, folding its counts into the shared progress once per chunk.
+// the checker, folding its counts into the shared progress every flushEvery
+// candidates so a long chunk still reports steady progress.
 func bruteWorker(ctx context.Context, chk *checker, co *coord, prog *progress, alphabet []byte, length int) error {
 	base := len(alphabet)
 	indices := make([]int, length)
 	buf := make([]byte, length)
 	var t tally
 	defer prog.add(&t)
+	sinceFlush := 0
 	for {
 		if ctx.Err() != nil {
 			return nil
@@ -226,6 +238,10 @@ func bruteWorker(ctx context.Context, chk *checker, co *coord, prog *progress, a
 					return nil
 				}
 				return err
+			}
+			if sinceFlush++; sinceFlush >= flushEvery {
+				prog.add(&t)
+				sinceFlush = 0
 			}
 			if !advance(indices, base) {
 				break // reached the end of this length
@@ -387,4 +403,35 @@ func subN(indices []int, base, n int) {
 			indices[i] = 0
 		}
 	}
+}
+
+// chunkForSpace picks the chunk size for a candidate space of the given size so
+// that each worker gets about chunksPerWorker chunks, clamped to [minChunk,
+// maxChunk]. A small space therefore still splits across workers instead of
+// landing on one, while a huge space keeps chunks bounded.
+func chunkForSpace(space uint64, workers int) int {
+	target := space / (uint64(workers) * chunksPerWorker)
+	switch {
+	case target < minChunk:
+		return minChunk
+	case target > maxChunk:
+		return maxChunk
+	default:
+		return int(target)
+	}
+}
+
+// powSat returns base**exp, saturating at the maximum uint64 rather than
+// wrapping, so callers can compare an astronomically large candidate space
+// against ordinary bounds without overflow.
+func powSat(base, exp uint64) uint64 {
+	result := uint64(1)
+	for range exp {
+		hi, lo := bits.Mul64(result, base)
+		if hi != 0 {
+			return ^uint64(0)
+		}
+		result = lo
+	}
+	return result
 }

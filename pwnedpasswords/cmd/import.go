@@ -87,7 +87,7 @@ func runImport(ctx context.Context, logs logging, opts importOptions) error {
 
 	chk := &checker{write: writeQueries, cache: cacheQueries, filter: found}
 	prog := &progress{}
-	rep := startReporter(prog, logs.console, logs.file, opts.progress)
+	rep := startReporter(prog, logs.console, logs.file, opts.progress, found != nil)
 	defer rep.stopAndReport()
 
 	for _, file := range opts.files {
@@ -102,7 +102,8 @@ func runImport(ctx context.Context, logs logging, opts importOptions) error {
 		slog.Info("imported word list", "file", file,
 			"filter_queries", after.filterQueries-before.filterQueries,
 			"hash_queries", after.hashQueries-before.hashQueries,
-			"found", after.found-before.found)
+			"found", after.found-before.found,
+			"changed", after.changed-before.changed)
 	}
 	return nil
 }

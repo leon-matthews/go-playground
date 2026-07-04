@@ -123,4 +123,31 @@ func TestBruteforce(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("powSat computes powers and saturates on overflow", func(t *testing.T) {
+		assert.Equal(t, uint64(1), powSat(95, 0))
+		assert.Equal(t, uint64(95), powSat(95, 1))
+		assert.Equal(t, uint64(9025), powSat(95, 2))
+		assert.Equal(t, uint64(857375), powSat(95, 3))
+		assert.Equal(t, uint64(1)<<63, powSat(2, 63))
+		assert.Equal(t, ^uint64(0), powSat(2, 64), "2**64 overflows and saturates")
+		assert.Equal(t, ^uint64(0), powSat(95, 10), "95**10 overflows and saturates")
+	})
+
+	t.Run("chunkForSpace splits short lengths and clamps", func(t *testing.T) {
+		const workers = 32
+		// A one-character space is smaller than the floor, so it clamps up.
+		assert.Equal(t, minChunk, chunkForSpace(powSat(95, 1), workers))
+
+		// Length three splits into many chunks instead of landing on one worker.
+		space := powSat(95, 3)
+		chunk := chunkForSpace(space, workers)
+		assert.GreaterOrEqual(t, chunk, minChunk)
+		assert.LessOrEqual(t, chunk, maxChunk)
+		assert.Greater(t, space/uint64(chunk), uint64(workers),
+			"length 3 should yield more chunks than workers")
+
+		// A saturated space is bounded by the ceiling.
+		assert.Equal(t, maxChunk, chunkForSpace(^uint64(0), workers))
+	})
 }

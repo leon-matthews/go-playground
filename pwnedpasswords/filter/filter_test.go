@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -130,4 +131,63 @@ func TestFilter(t *testing.T) {
 		_, err = Open(path, source)
 		assert.ErrorIs(t, err, ErrStale)
 	})
+}
+
+// BenchmarkContains measures Contains throughput against the real, resident
+// on-disk filter, isolating the filter's per-query cost from the import
+// pipeline's database work. Override the defaults with FILTER_PATH and
+// FILTER_SOURCE; the benchmark skips when the files are absent or stale.
+func BenchmarkContains(b *testing.B) {
+	path := envOr("FILTER_PATH", "../pwnedpasswords.filter")
+	source := envOr("FILTER_SOURCE", "../pwnedcache.db")
+
+	f, err := Open(path, source)
+	if err != nil {
+		b.Skipf("real filter unavailable: %v", err)
+	}
+	defer f.Close()
+
+	// A million distinct random hashes probe a million random blocks across the
+	// 16 GiB mapping. They almost all miss, but hit and miss touch the same one
+	// cache line, so this still measures the dominant cost: the random fetch.
+	const pool = 1 << 20
+	hashes := makeHashes(pool)
+
+	// Warm the mapping: a freshly mmap'd region has no page-table entries even
+	// when the file is fully cached, so the first touch of each page is a minor
+	// fault. Fault them all in now so the timed loops measure query cost, not
+	// one-off faults.
+	var warm bool
+	for _, h := range hashes {
+		warm = f.Contains(h)
+	}
+	runtime.KeepAlive(warm)
+
+	b.Run("serial", func(b *testing.B) {
+		i := 0
+		for b.Loop() {
+			f.Contains(hashes[i&(pool-1)])
+			i++
+		}
+	})
+
+	b.Run("parallel", func(b *testing.B) {
+		b.RunParallel(func(pb *testing.PB) {
+			i := 0
+			var sink bool
+			for pb.Next() {
+				sink = f.Contains(hashes[i&(pool-1)])
+				i++
+			}
+			runtime.KeepAlive(sink)
+		})
+	})
+}
+
+// envOr returns the environment variable named key, or fallback when it is unset.
+func envOr(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }

@@ -47,9 +47,10 @@ func (q *Queries) TopPasswords(ctx context.Context, limit int64) ([]Password, er
 	return items, nil
 }
 
-const upsertPassword = `-- name: UpsertPassword :exec
+const upsertPassword = `-- name: UpsertPassword :execrows
 INSERT INTO passwords (password, count) VALUES (?, ?)
 ON CONFLICT(password) DO UPDATE SET count = excluded.count
+WHERE count != excluded.count
 `
 
 type UpsertPasswordParams struct {
@@ -57,7 +58,10 @@ type UpsertPasswordParams struct {
 	Count    int64
 }
 
-func (q *Queries) UpsertPassword(ctx context.Context, arg UpsertPasswordParams) error {
-	_, err := q.db.ExecContext(ctx, upsertPassword, arg.Password, arg.Count)
-	return err
+func (q *Queries) UpsertPassword(ctx context.Context, arg UpsertPasswordParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, upsertPassword, arg.Password, arg.Count)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

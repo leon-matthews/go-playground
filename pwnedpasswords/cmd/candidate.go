@@ -41,9 +41,14 @@ func (c *checker) check(ctx context.Context, t *tally, candidate []byte) error {
 	}
 
 	params := sqlite.UpsertPasswordParams{Password: string(candidate), Count: count}
-	if err := c.write.UpsertPassword(ctx, params); err != nil {
+	changed, err := c.write.UpsertPassword(ctx, params)
+	if err != nil {
 		return err
 	}
 	t.found++
+	t.sample = params.Password
+	if changed > 0 {
+		t.changed++
+	}
 	return nil
 }
