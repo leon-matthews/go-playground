@@ -25,7 +25,7 @@ import (
 const (
 	magic         = "PWNDBF01"
 	version       = 2
-	headerSize    = 4096 // one page, so the mmap'd data region is page-aligned
+	headerSize    = 4096 // header bytes before the data; multiple of 8 keeps words aligned
 	bytesPerBlock = 64   // 512 bits, one x86-64 cache line
 	wordsPerBlock = 8
 )
@@ -105,15 +105,18 @@ func Create(path string, numBlocks uint64, probes int) (*Filter, error) {
 		return nil, err
 	}
 
-	// Size the file to the header page plus the bit array, then map the data
-	// region so writes land in the file instead of anonymous memory.
+	// Size the file to the header plus the bit array, then map the whole file so
+	// writes to the data region land in the file instead of anonymous memory. We
+	// map from offset zero, which is always page-aligned, and index past the
+	// header, so the mapping works whatever the system page size.
 	dataLen := int(numBlocks * bytesPerBlock)
-	if err := file.Truncate(int64(headerSize) + int64(dataLen)); err != nil {
+	mapLen := headerSize + dataLen
+	if err := file.Truncate(int64(mapLen)); err != nil {
 		file.Close()
 		os.Remove(tmp)
 		return nil, err
 	}
-	data, err := syscall.Mmap(int(file.Fd()), headerSize, dataLen,
+	data, err := syscall.Mmap(int(file.Fd()), 0, mapLen,
 		syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
 	if err != nil {
 		file.Close()
@@ -121,7 +124,7 @@ func Create(path string, numBlocks uint64, probes int) (*Filter, error) {
 		return nil, fmt.Errorf("mmap filter: %w", err)
 	}
 
-	blocks := unsafe.Slice((*uint64)(unsafe.Pointer(&data[0])), len(data)/8)
+	blocks := unsafe.Slice((*uint64)(unsafe.Pointer(&data[headerSize])), dataLen/8)
 	return &Filter{
 		blocks:    blocks,
 		mask:      numBlocks - 1,
@@ -254,15 +257,18 @@ func Open(path, sourcePath string) (*Filter, error) {
 	}
 
 	dataLen := int(numBlocks * bytesPerBlock)
+	mapLen := headerSize + dataLen
 	if fi, err := file.Stat(); err != nil {
 		file.Close()
 		return nil, err
-	} else if fi.Size() != headerSize+int64(dataLen) {
+	} else if fi.Size() != int64(mapLen) {
 		file.Close()
 		return nil, fmt.Errorf("filter %q is truncated", path)
 	}
 
-	data, err := syscall.Mmap(int(file.Fd()), headerSize, dataLen, syscall.PROT_READ, syscall.MAP_SHARED)
+	// Map from offset zero, which is always page-aligned, and index past the
+	// header, so the mapping works whatever the system page size.
+	data, err := syscall.Mmap(int(file.Fd()), 0, mapLen, syscall.PROT_READ, syscall.MAP_SHARED)
 	if err != nil {
 		file.Close()
 		return nil, fmt.Errorf("mmap filter: %w", err)
@@ -270,7 +276,7 @@ func Open(path, sourcePath string) (*Filter, error) {
 	// Queries are uniformly random, so suppress read-ahead
 	_ = syscall.Madvise(data, syscall.MADV_RANDOM)
 
-	blocks := unsafe.Slice((*uint64)(unsafe.Pointer(&data[0])), len(data)/8)
+	blocks := unsafe.Slice((*uint64)(unsafe.Pointer(&data[headerSize])), dataLen/8)
 	return &Filter{
 		blocks:    blocks,
 		mask:      numBlocks - 1,
