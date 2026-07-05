@@ -85,11 +85,10 @@ func runBuildFilter(ctx context.Context, logs logging, cachePath, filterPath str
 	}
 	defer cacheDB.Close()
 
-	built, err := filter.Create(filterPath, preset.blocks, preset.probes)
+	built, err := filter.New(preset.blocks, preset.probes)
 	if err != nil {
 		return err
 	}
-	defer built.Close() // aborts the build if runBuildFilter returns early
 
 	slog.Info("building filter",
 		"blocks", preset.blocks,
@@ -100,13 +99,12 @@ func runBuildFilter(ctx context.Context, logs logging, cachePath, filterPath str
 	if err != nil {
 		return err
 	}
-	built.Elements = uint64(count)
 
 	slog.Info("writing filter",
 		"elements", count,
 		"bits_per_element", float64(preset.blocks*512)/float64(count),
 		"path", filterPath)
-	if err := built.Write(cachePath); err != nil {
+	if err := built.Write(filterPath, cachePath); err != nil {
 		return err
 	}
 	slog.Info("filter complete", "elements", count, "path", filterPath)
@@ -132,7 +130,7 @@ func scanIntoFilter(ctx context.Context, logs logging, cacheDB *sql.DB, built *f
 		if err := rows.Scan(&hash); err != nil {
 			return count, err
 		}
-		built.Add(hash)
+		built.Add(filter.SHA1Hash(hash))
 		count++
 		if count%flushEvery == 0 {
 			prog.added.Store(count)

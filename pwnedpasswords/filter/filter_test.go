@@ -13,18 +13,24 @@ import (
 )
 
 // makeHashes returns n deterministic pseudo-random 20-byte hashes.
-func makeHashes(n int) [][]byte {
+func makeHashes(n int) []SHA1Hash {
 	r := rand.New(rand.NewSource(1))
-	hashes := make([][]byte, n)
+	hashes := make([]SHA1Hash, n)
 	for i := range hashes {
-		h := make([]byte, 20)
-		r.Read(h)
-		hashes[i] = h
+		r.Read(hashes[i][:])
 	}
 	return hashes
 }
 
 func TestFilter(t *testing.T) {
+	t.Run("BlocksForBytes finds the largest power of two that fits", func(t *testing.T) {
+		assert.Equal(t, uint64(1), BlocksForBytes(0))
+		assert.Equal(t, uint64(1), BlocksForBytes(bytesPerBlock))
+		assert.Equal(t, uint64(2), BlocksForBytes(3*bytesPerBlock))
+		// 16 GiB divides into exactly 2^28 blocks
+		assert.Equal(t, uint64(1)<<28, BlocksForBytes(16<<30))
+	})
+
 	t.Run("New rejects non-power-of-two block counts", func(t *testing.T) {
 		_, err := New(0, 8)
 		require.Error(t, err)
@@ -52,14 +58,6 @@ func TestFilter(t *testing.T) {
 			}
 			assert.Equal(t, k, set, "one element should set exactly k distinct bits")
 		}
-	})
-
-	t.Run("BlocksForBytes rounds down to a power of two", func(t *testing.T) {
-		assert.Equal(t, uint64(1), BlocksForBytes(0))
-		assert.Equal(t, uint64(1), BlocksForBytes(bytesPerBlock))
-		assert.Equal(t, uint64(2), BlocksForBytes(3*bytesPerBlock))
-		// 16 GiB divides into exactly 2^28 blocks
-		assert.Equal(t, uint64(1)<<28, BlocksForBytes(16<<30))
 	})
 
 	t.Run("Contains finds every added hash", func(t *testing.T) {
@@ -97,9 +95,9 @@ func TestFilter(t *testing.T) {
 		r := rand.New(rand.NewSource(99))
 		const trials = 100000
 		positives := 0
-		probe := make([]byte, 20)
+		var probe SHA1Hash
 		for range trials {
-			r.Read(probe)
+			r.Read(probe[:])
 			if f.Contains(probe) {
 				positives++
 			}
@@ -113,20 +111,19 @@ func TestFilter(t *testing.T) {
 		require.NoError(t, os.WriteFile(source, []byte("pretend database"), 0o644))
 		path := filepath.Join(dir, "test.filter")
 
-		built, err := Create(path, 2048, 16)
+		built, err := New(2048, 16)
 		require.NoError(t, err)
 		hashes := makeHashes(500)
 		for _, h := range hashes {
 			built.Add(h)
 		}
-		built.Elements = uint64(len(hashes))
-		require.NoError(t, built.Write(source))
+		require.NoError(t, built.Write(path, source))
 
 		loaded, err := Open(path, source)
 		require.NoError(t, err)
 		defer loaded.Close()
 
-		assert.Equal(t, uint64(500), loaded.Elements)
+		assert.Equal(t, uint64(500), loaded.NumEntries)
 		assert.Equal(t, uint64(2048), loaded.NumBlocks)
 		assert.Equal(t, 16, loaded.probes)
 		for _, h := range hashes {
@@ -140,30 +137,16 @@ func TestFilter(t *testing.T) {
 		require.NoError(t, os.WriteFile(source, []byte("original"), 0o644))
 		path := filepath.Join(dir, "test.filter")
 
-		built, err := Create(path, 1024, 8)
+		built, err := New(1024, 8)
 		require.NoError(t, err)
 		built.Add(makeHashes(1)[0])
-		built.Elements = 1
-		require.NoError(t, built.Write(source))
+		require.NoError(t, built.Write(path, source))
 
 		// Rewriting the source changes its size and modification time
 		require.NoError(t, os.WriteFile(source, []byte("changed content"), 0o644))
 
 		_, err = Open(path, source)
 		assert.ErrorIs(t, err, ErrStale)
-	})
-
-	t.Run("aborting a build never touches disk", func(t *testing.T) {
-		path := filepath.Join(t.TempDir(), "aborted.filter")
-		built, err := Create(path, 1024, 8)
-		require.NoError(t, err)
-		built.Add(makeHashes(1)[0])
-		require.NoError(t, built.Close())
-
-		_, err = os.Stat(path)
-		assert.ErrorIs(t, err, os.ErrNotExist, "final path never created")
-		_, err = os.Stat(path + ".tmp")
-		assert.ErrorIs(t, err, os.ErrNotExist, "temp file never created")
 	})
 }
 

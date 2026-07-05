@@ -82,7 +82,7 @@ func runImport(ctx context.Context, logs logging, opts importOptions) (err error
 		return err
 	default:
 		defer found.Close()
-		slog.Info("using filter", "path", opts.filterPath, "elements", found.Elements, "blocks", found.NumBlocks)
+		slog.Info("using filter", "path", opts.filterPath, "elements", found.NumEntries, "blocks", found.NumBlocks)
 	}
 
 	writer := newBatchWriter(writeDB)

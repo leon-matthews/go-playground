@@ -26,7 +26,7 @@ func (c *checker) check(ctx context.Context, t *tally, candidate []byte) error {
 	sum := sha1.Sum(candidate)
 	if c.filter != nil {
 		t.filterQueries++
-		if !c.filter.Contains(sum[:]) {
+		if !c.filter.Contains(sum) {
 			return nil
 		}
 	}

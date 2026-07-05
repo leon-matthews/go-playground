@@ -67,11 +67,6 @@ func OpenCache(ctx context.Context, path string) (*sqlite.Queries, *sql.DB, erro
 		return nil, nil, fmt.Errorf("opening cache %q: %w", path, err)
 	}
 
-	// The exclusive locking mode above lets only one connection hold the file
-	// open at a time, so keep a single persistent reader instead of letting the
-	// pool cycle through opens under concurrent load.
-	db.SetMaxOpenConns(1)
-
 	// sql.Open is lazy, so ping now to fail early on a missing or bad file
 	if err := db.PingContext(ctx); err != nil {
 		db.Close()

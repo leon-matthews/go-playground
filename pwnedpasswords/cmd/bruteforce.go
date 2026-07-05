@@ -145,7 +145,7 @@ func runBruteforce(ctx context.Context, logs logging, opts bruteforceOptions) (e
 		return err
 	default:
 		defer found.Close()
-		slog.Info("using filter", "path", opts.filterPath, "elements", found.Elements, "blocks", found.NumBlocks)
+		slog.Info("using filter", "path", opts.filterPath, "elements", found.NumEntries, "blocks", found.NumBlocks)
 	}
 
 	writer := newBatchWriter(writeDB)
