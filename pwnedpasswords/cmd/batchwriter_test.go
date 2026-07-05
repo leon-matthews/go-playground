@@ -78,16 +78,14 @@ func TestBatchWriter(t *testing.T) {
 		const workers, each = 8, 2000
 		var wg sync.WaitGroup
 		for w := range workers {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				for i := range each {
 					if _, err := bw.upsert(ctx, fmt.Sprintf("w%d-%d", w, i), int64(i)); err != nil {
 						t.Errorf("upsert: %v", err)
 						return
 					}
 				}
-			}()
+			})
 		}
 		wg.Wait()
 		require.NoError(t, bw.close())

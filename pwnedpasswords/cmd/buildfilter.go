@@ -84,10 +84,12 @@ func runBuildFilter(ctx context.Context, logs logging, cachePath, filterPath str
 	}
 	defer cacheDB.Close()
 
-	built, err := filter.New(preset.blocks, preset.probes)
+	built, err := filter.Create(filterPath, preset.blocks, preset.probes)
 	if err != nil {
 		return err
 	}
+	defer built.Close() // discards the temp file unless Seal has already consumed it
+
 	slog.Info("building filter",
 		"blocks", preset.blocks,
 		"probes", preset.probes,
@@ -103,7 +105,7 @@ func runBuildFilter(ctx context.Context, logs logging, cachePath, filterPath str
 		"elements", count,
 		"bits_per_element", float64(preset.blocks*512)/float64(count),
 		"path", filterPath)
-	if err := built.Write(filterPath, cachePath); err != nil {
+	if err := built.Seal(cachePath); err != nil {
 		return err
 	}
 	slog.Info("filter complete", "elements", count, "path", filterPath)

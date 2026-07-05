@@ -107,20 +107,20 @@ func TestFilter(t *testing.T) {
 		assert.Less(t, positives, trials/1000, "false positives should be well under 0.1%")
 	})
 
-	t.Run("survives a write and mmap round trip", func(t *testing.T) {
+	t.Run("survives a build and mmap round trip", func(t *testing.T) {
 		dir := t.TempDir()
 		source := filepath.Join(dir, "source.db")
 		require.NoError(t, os.WriteFile(source, []byte("pretend database"), 0o644))
 		path := filepath.Join(dir, "test.filter")
 
-		built, err := New(2048, 16)
+		built, err := Create(path, 2048, 16)
 		require.NoError(t, err)
 		hashes := makeHashes(500)
 		for _, h := range hashes {
 			built.Add(h)
 		}
 		built.Elements = uint64(len(hashes))
-		require.NoError(t, built.Write(path, source))
+		require.NoError(t, built.Seal(source))
 
 		loaded, err := Open(path, source)
 		require.NoError(t, err)
@@ -140,16 +140,30 @@ func TestFilter(t *testing.T) {
 		require.NoError(t, os.WriteFile(source, []byte("original"), 0o644))
 		path := filepath.Join(dir, "test.filter")
 
-		built, err := New(1024, 8)
+		built, err := Create(path, 1024, 8)
 		require.NoError(t, err)
 		built.Add(makeHashes(1)[0])
-		require.NoError(t, built.Write(path, source))
+		built.Elements = 1
+		require.NoError(t, built.Seal(source))
 
 		// Rewriting the source changes its size and modification time
 		require.NoError(t, os.WriteFile(source, []byte("changed content"), 0o644))
 
 		_, err = Open(path, source)
 		assert.ErrorIs(t, err, ErrStale)
+	})
+
+	t.Run("aborting a build leaves no file behind", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "aborted.filter")
+		built, err := Create(path, 1024, 8)
+		require.NoError(t, err)
+		built.Add(makeHashes(1)[0])
+		require.NoError(t, built.Close())
+
+		_, err = os.Stat(path)
+		assert.ErrorIs(t, err, os.ErrNotExist, "final path never created")
+		_, err = os.Stat(path + ".tmp")
+		assert.ErrorIs(t, err, os.ErrNotExist, "temp file removed on abort")
 	})
 }
 
