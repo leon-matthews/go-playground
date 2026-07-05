@@ -1,4 +1,4 @@
-package main
+package database
 
 import (
 	"context"
@@ -20,11 +20,11 @@ const (
 	batchTick    = 5 * time.Second
 )
 
-// batchWriter groups password upserts into transactions, committing when a batch
+// BatchWriter groups password upserts into transactions, committing when a batch
 // fills or ages out and checkpointing the WAL after each commit so it stays
 // bounded. Its methods are safe for concurrent use by the bruteforce workers; the
 // mutex serialises the single write connection that autocommit relied on before.
-type batchWriter struct {
+type BatchWriter struct {
 	db *sql.DB
 
 	mu   sync.Mutex
@@ -38,10 +38,10 @@ type batchWriter struct {
 	done chan struct{}
 }
 
-// newBatchWriter returns a writer with a running flusher that ages out batches.
-// The caller must call close to commit the final batch and stop the flusher.
-func newBatchWriter(db *sql.DB) *batchWriter {
-	b := &batchWriter{
+// NewBatchWriter returns a writer with a running flusher that ages out batches.
+// The caller must call Close to commit the final batch and stop the flusher.
+func NewBatchWriter(db *sql.DB) *BatchWriter {
+	b := &BatchWriter{
 		db:   db,
 		stop: make(chan struct{}),
 		done: make(chan struct{}),
@@ -50,11 +50,11 @@ func newBatchWriter(db *sql.DB) *batchWriter {
 	return b
 }
 
-// upsert records one password, opening a batch if none is in progress and
+// Upsert records one password, opening a batch if none is in progress and
 // committing once the batch is full. It returns the rows changed, exactly as
 // [sqlite.Queries.UpsertPassword] reports, so callers keep their found/changed
 // accounting unchanged.
-func (b *batchWriter) upsert(ctx context.Context, password string, count int64) (int64, error) {
+func (b *BatchWriter) Upsert(ctx context.Context, password string, count int64) (int64, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	if b.err != nil {
@@ -82,8 +82,8 @@ func (b *batchWriter) upsert(ctx context.Context, password string, count int64) 
 	return changed, nil
 }
 
-// close stops the flusher, commits any pending batch, and truncates the WAL.
-func (b *batchWriter) close() error {
+// Close stops the flusher, commits any pending batch, and truncates the WAL.
+func (b *BatchWriter) Close() error {
 	close(b.stop)
 	<-b.done
 
@@ -103,7 +103,7 @@ func (b *batchWriter) close() error {
 }
 
 // flushLoop commits the open batch once it has aged past batchMaxAge.
-func (b *batchWriter) flushLoop() {
+func (b *BatchWriter) flushLoop() {
 	defer close(b.done)
 	ticker := time.NewTicker(batchTick)
 	defer ticker.Stop()
@@ -125,7 +125,7 @@ func (b *batchWriter) flushLoop() {
 
 // commitLocked commits the current batch and checkpoints the WAL, leaving no
 // batch open. It is a no-op when none is in progress. The caller must hold b.mu.
-func (b *batchWriter) commitLocked() error {
+func (b *BatchWriter) commitLocked() error {
 	if b.tx == nil {
 		return nil
 	}
@@ -144,7 +144,7 @@ func (b *batchWriter) commitLocked() error {
 // stores it as sticky so later calls and close surface it. Cancellation is the
 // expected interrupt path, so the batch is left for close to commit. It returns
 // err unchanged. The caller must hold b.mu.
-func (b *batchWriter) recordErr(err error) error {
+func (b *BatchWriter) recordErr(err error) error {
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return err
 	}

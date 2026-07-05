@@ -121,7 +121,7 @@ func runBruteforce(ctx context.Context, logs logging, opts bruteforceOptions) (e
 	}
 	defer writeDB.Close()
 
-	cacheQueries, cacheDB, err := database.OpenCache(ctx, opts.cachePath)
+	cacheQueries, cacheDB, err := database.OpenHashes(ctx, opts.cachePath)
 	if err != nil {
 		return err
 	}
@@ -148,9 +148,9 @@ func runBruteforce(ctx context.Context, logs logging, opts bruteforceOptions) (e
 		slog.Info("using filter", "path", opts.filterPath, "elements", found.NumEntries, "blocks", found.NumBlocks)
 	}
 
-	writer := newBatchWriter(writeDB)
+	writer := database.NewBatchWriter(writeDB)
 	defer func() {
-		if cerr := writer.close(); cerr != nil && err == nil {
+		if cerr := writer.Close(); cerr != nil && err == nil {
 			err = cerr
 		}
 	}()

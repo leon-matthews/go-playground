@@ -79,7 +79,7 @@ func runBuildFilter(ctx context.Context, logs logging, cachePath, filterPath str
 		return err
 	}
 
-	_, cacheDB, err := database.OpenCache(ctx, cachePath)
+	_, cacheDB, err := database.OpenHashes(ctx, cachePath)
 	if err != nil {
 		return err
 	}

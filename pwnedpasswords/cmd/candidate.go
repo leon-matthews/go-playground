@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 
+	"pwnedpasswords/database"
 	"pwnedpasswords/database/sqlite"
 	"pwnedpasswords/filter"
 )
@@ -14,7 +15,7 @@ import (
 // filter hit, looks them up in the hashes table, recording any breach match.
 // A nil filter means every candidate is looked up in the hashes table directly.
 type checker struct {
-	writer *batchWriter
+	writer *database.BatchWriter
 	cache  *sqlite.Queries
 	filter *filter.Filter
 }
@@ -41,7 +42,7 @@ func (c *checker) check(ctx context.Context, t *tally, candidate []byte) error {
 	}
 
 	password := string(candidate)
-	changed, err := c.writer.upsert(ctx, password, count)
+	changed, err := c.writer.Upsert(ctx, password, count)
 	if err != nil {
 		return err
 	}
