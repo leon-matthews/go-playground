@@ -35,16 +35,14 @@ const (
 var ErrStale = errors.New("filter is stale: source database has changed")
 
 // Filter is a split-block Bloom filter. The zero value is not usable; build one
-// in memory with [New], build one memory-mapped with [Create], or load one with
-// [Open].
+// in memory with [New] or [Create], or load one memory-mapped with [Open].
 type Filter struct {
 	blocks  []uint64 // NumBlocks * wordsPerBlock words
 	mask    uint64   // NumBlocks - 1, for the block index
 	probes  int      // bits set per element, spread across the eight words
-	mmapped []byte   // backing mmap region, non-nil when memory-mapped
-	file    *os.File // backing file, non-nil when memory-mapped
+	mmapped []byte   // backing mmap region, non-nil when opened with Open
+	file    *os.File // backing file, non-nil when opened with Open
 	path    string   // final path, set while building with Create
-	tmp     string   // temporary path being built, cleared once sealed
 
 	// Elements is the number of hashes added to the filter.
 	Elements uint64
@@ -74,8 +72,8 @@ func validate(numBlocks uint64, probes int) error {
 }
 
 // New allocates an empty in-memory filter with numBlocks blocks, which must be a
-// power of two, setting probes bits per element. The whole bit array is held in
-// anonymous memory; for large filters prefer [Create], which builds on disk.
+// power of two, setting probes bits per element. Use [Create] instead when the
+// filter will be persisted to disk with [Filter.Write].
 func New(numBlocks uint64, probes int) (*Filter, error) {
 	if err := validate(numBlocks, probes); err != nil {
 		return nil, err
@@ -89,52 +87,15 @@ func New(numBlocks uint64, probes int) (*Filter, error) {
 }
 
 // Create begins an on-disk filter of numBlocks blocks (a power of two) with the
-// given probe count, backed by a memory-mapped temporary file beside path.
-// [Filter.Add] writes bits straight into the mapping, so the process never holds
-// an anonymous copy of the whole filter - the kernel pages it out to the file
-// under memory pressure. Call [Filter.Seal] to finalise, or [Filter.Close] to
-// abort and discard the temporary file.
+// given probe count, held entirely in memory until [Filter.Write] persists it to
+// path. Call [Filter.Close] to abort; nothing touches disk until Write is called.
 func Create(path string, numBlocks uint64, probes int) (*Filter, error) {
-	if err := validate(numBlocks, probes); err != nil {
-		return nil, err
-	}
-
-	tmp := path + ".tmp"
-	file, err := os.Create(tmp)
+	f, err := New(numBlocks, probes)
 	if err != nil {
 		return nil, err
 	}
-
-	// Size the file to the header plus the bit array, then map the whole file so
-	// writes to the data region land in the file instead of anonymous memory. We
-	// map from offset zero, which is always page-aligned, and index past the
-	// header, so the mapping works whatever the system page size.
-	dataLen := int(numBlocks * bytesPerBlock)
-	mapLen := headerSize + dataLen
-	if err := file.Truncate(int64(mapLen)); err != nil {
-		file.Close()
-		os.Remove(tmp)
-		return nil, err
-	}
-	data, err := syscall.Mmap(int(file.Fd()), 0, mapLen,
-		syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
-	if err != nil {
-		file.Close()
-		os.Remove(tmp)
-		return nil, fmt.Errorf("mmap filter: %w", err)
-	}
-
-	blocks := unsafe.Slice((*uint64)(unsafe.Pointer(&data[headerSize])), dataLen/8)
-	return &Filter{
-		blocks:    blocks,
-		mask:      numBlocks - 1,
-		probes:    probes,
-		mmapped:   data,
-		file:      file,
-		path:      path,
-		tmp:       tmp,
-		NumBlocks: numBlocks,
-	}, nil
+	f.path = path
+	return f, nil
 }
 
 // locate derives the block's word offset and the per-word bit masks from a hash.
@@ -175,12 +136,13 @@ func (f *Filter) Contains(hash []byte) bool {
 	return true
 }
 
-// Seal finalises a filter built with [Create]. It flushes the mapping, writes the
-// header (recording sourcePath's size and modification time so a later [Open] can
-// detect a stale filter), and atomically renames the file into place. The filter
-// must not be used after Seal returns.
-func (f *Filter) Seal(sourcePath string) error {
-	if f.file == nil || f.tmp == "" {
+// Write finalises a filter built with [Create]. It writes the header (recording
+// sourcePath's size and modification time so a later [Open] can detect a stale
+// filter) followed by the filter's bits to a temporary file beside path, then
+// atomically renames it into place. The filter must not be used after Write
+// returns.
+func (f *Filter) Write(sourcePath string) error {
+	if f.path == "" {
 		return errors.New("filter was not created with Create")
 	}
 	info, err := os.Stat(sourcePath)
@@ -188,12 +150,12 @@ func (f *Filter) Seal(sourcePath string) error {
 		return fmt.Errorf("stat source %q: %w", sourcePath, err)
 	}
 
-	// Drop the mapping now that the bits are written; the header write and Sync
-	// below flush the dirty data pages and the header to disk together.
-	if err := syscall.Munmap(f.mmapped); err != nil {
+	tmp := f.path + ".tmp"
+	file, err := os.Create(tmp)
+	if err != nil {
 		return err
 	}
-	f.mmapped, f.blocks = nil, nil
+	defer os.Remove(tmp) // no-op once renamed below; cleans up after an earlier error
 
 	var header [headerSize]byte
 	copy(header[0:8], magic)
@@ -203,19 +165,25 @@ func (f *Filter) Seal(sourcePath string) error {
 	binary.LittleEndian.PutUint64(header[28:36], uint64(info.Size()))
 	binary.LittleEndian.PutUint64(header[36:44], uint64(info.ModTime().UnixNano()))
 	binary.LittleEndian.PutUint32(header[44:48], uint32(f.probes))
-	if _, err := f.file.WriteAt(header[:], 0); err != nil {
+	if _, err := file.Write(header[:]); err != nil {
+		file.Close()
 		return err
 	}
-	if err := f.file.Sync(); err != nil {
-		return err
-	}
-	if err := f.file.Close(); err != nil {
-		return err
-	}
-	f.file = nil
 
-	tmp := f.tmp
-	f.tmp = ""
+	// One sequential write of the whole bit array; blocks is never resliced or
+	// reallocated, so reinterpreting it as bytes is safe.
+	data := unsafe.Slice((*byte)(unsafe.Pointer(&f.blocks[0])), len(f.blocks)*8)
+	if _, err := file.Write(data); err != nil {
+		file.Close()
+		return err
+	}
+	if err := file.Sync(); err != nil {
+		file.Close()
+		return err
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
 	return os.Rename(tmp, f.path)
 }
 
@@ -288,9 +256,10 @@ func Open(path, sourcePath string) (*Filter, error) {
 	}, nil
 }
 
-// Close releases a filter's resources. For a filter still being built with
-// [Create] it also removes the unsealed temporary file, so a failed build leaves
-// nothing behind. It is a no-op for an in-memory filter or one already sealed.
+// Close releases the resources of a filter loaded with [Open]: the memory
+// mapping and its backing file. It is a no-op for an in-memory filter, one still
+// being built with [Create] (nothing has touched disk yet), or one already
+// persisted with [Write].
 func (f *Filter) Close() error {
 	if f.mmapped != nil {
 		if err := syscall.Munmap(f.mmapped); err != nil {
@@ -298,14 +267,10 @@ func (f *Filter) Close() error {
 		}
 		f.mmapped = nil
 	}
-	var err error
 	if f.file != nil {
-		err = f.file.Close()
+		err := f.file.Close()
 		f.file = nil
+		return err
 	}
-	if f.tmp != "" {
-		os.Remove(f.tmp) // drop an unsealed build; best effort
-		f.tmp = ""
-	}
-	return err
+	return nil
 }
