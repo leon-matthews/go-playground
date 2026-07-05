@@ -126,8 +126,8 @@ func scanIntoFilter(ctx context.Context, logs logging, cacheDB *sql.DB, built *f
 	defer rep.stopAndReport()
 
 	var count int64
+	var hash sql.RawBytes // aliases the driver's row buffer; consumed before the next Scan
 	for rows.Next() {
-		var hash []byte
 		if err := rows.Scan(&hash); err != nil {
 			return count, err
 		}
