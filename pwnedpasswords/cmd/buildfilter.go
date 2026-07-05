@@ -41,7 +41,7 @@ func newBuildFilterCmd() *cobra.Command {
 		Short: "Build the membership filter from the pwnedcache hashes",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			preset := preset8GB
+			var preset filterPreset
 			switch {
 			case use4GB:
 				preset = preset4GB
@@ -62,6 +62,7 @@ func newBuildFilterCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&use8GB, "8GB", false, "8 GiB filter, suggested (false positives ~1 in 270,000)")
 	cmd.Flags().BoolVar(&use16GB, "16GB", false, "16 GiB filter (false positives ~1 in 175 million)")
 	cmd.MarkFlagsMutuallyExclusive("4GB", "8GB", "16GB")
+	cmd.MarkFlagsOneRequired("4GB", "8GB", "16GB")
 	cmd.Flags().StringVar(&filterPath, "filter", "pwnedpasswords.filter", "output filter file path")
 	cmd.Flags().DurationVarP(&progressInterval, "progress", "p", 10*time.Second,
 		"interval between progress reports")
@@ -88,7 +89,7 @@ func runBuildFilter(ctx context.Context, logs logging, cachePath, filterPath str
 	if err != nil {
 		return err
 	}
-	defer built.Close() // discards the temp file unless Seal has already consumed it
+	defer built.Close() // aborts the build if runBuildFilter returns early
 
 	slog.Info("building filter",
 		"blocks", preset.blocks,
@@ -105,7 +106,7 @@ func runBuildFilter(ctx context.Context, logs logging, cachePath, filterPath str
 		"elements", count,
 		"bits_per_element", float64(preset.blocks*512)/float64(count),
 		"path", filterPath)
-	if err := built.Seal(cachePath); err != nil {
+	if err := built.Write(cachePath); err != nil {
 		return err
 	}
 	slog.Info("filter complete", "elements", count, "path", filterPath)
