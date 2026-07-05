@@ -13,7 +13,13 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	if err := newRootCmd().ExecuteContext(ctx); err != nil {
+	err := newRootCmd().ExecuteContext(ctx)
+	// Stopped here, not in a PersistentPostRunE, so the profile still flushes
+	// if RunE returns an error, which skips persistent post-run hooks.
+	if stopProfile != nil {
+		stopProfile()
+	}
+	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}
