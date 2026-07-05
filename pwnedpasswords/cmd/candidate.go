@@ -14,7 +14,7 @@ import (
 // filter hit, looks them up in the hashes table, recording any breach match.
 // A nil filter means every candidate is looked up in the hashes table directly.
 type checker struct {
-	write  *sqlite.Queries
+	writer *batchWriter
 	cache  *sqlite.Queries
 	filter *filter.Filter
 }
@@ -40,13 +40,13 @@ func (c *checker) check(ctx context.Context, t *tally, candidate []byte) error {
 		return err
 	}
 
-	params := sqlite.UpsertPasswordParams{Password: string(candidate), Count: count}
-	changed, err := c.write.UpsertPassword(ctx, params)
+	password := string(candidate)
+	changed, err := c.writer.upsert(ctx, password, count)
 	if err != nil {
 		return err
 	}
 	t.found++
-	t.sample = params.Password
+	t.sample = password
 	if changed > 0 {
 		t.changed++
 	}

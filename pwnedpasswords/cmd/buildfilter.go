@@ -59,7 +59,7 @@ func newBuildFilterCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&use4GB, "4GB", false, "4 GiB filter (false positives ~1 in 1,500)")
-	cmd.Flags().BoolVar(&use8GB, "8GB", false, "8 GiB filter, the default (false positives ~1 in 270,000)")
+	cmd.Flags().BoolVar(&use8GB, "8GB", false, "8 GiB filter, suggested (false positives ~1 in 270,000)")
 	cmd.Flags().BoolVar(&use16GB, "16GB", false, "16 GiB filter (false positives ~1 in 175 million)")
 	cmd.MarkFlagsMutuallyExclusive("4GB", "8GB", "16GB")
 	cmd.Flags().StringVar(&filterPath, "filter", "pwnedpasswords.filter", "output filter file path")

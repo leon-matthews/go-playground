@@ -56,8 +56,8 @@ func newImportCmd() *cobra.Command {
 
 // runImport opens the databases, loads the filter if present, and records every
 // word-list password found in the breach corpus along with its breach count.
-func runImport(ctx context.Context, logs logging, opts importOptions) error {
-	writeQueries, writeDB, err := database.Open(ctx, opts.dbPath)
+func runImport(ctx context.Context, logs logging, opts importOptions) (err error) {
+	_, writeDB, err := database.Open(ctx, opts.dbPath)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,14 @@ func runImport(ctx context.Context, logs logging, opts importOptions) error {
 		slog.Info("using filter", "path", opts.filterPath, "elements", found.Elements, "blocks", found.NumBlocks)
 	}
 
-	chk := &checker{write: writeQueries, cache: cacheQueries, filter: found}
+	writer := newBatchWriter(writeDB)
+	defer func() {
+		if cerr := writer.close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
+
+	chk := &checker{writer: writer, cache: cacheQueries, filter: found}
 	prog := &progress{}
 	rep := startReporter(opts.progress, prog.reportTo(logs.console, logs.file, found != nil))
 	defer rep.stopAndReport()
