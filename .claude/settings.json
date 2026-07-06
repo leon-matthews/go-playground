@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go test *)",
+      "Bash(go vet *)",
+      "Bash(revive *)",
+      "Bash(gofumpt -l *)",
+      "Bash(mypy --strict *)",
+      "Bash(ruff check *)",
+      "Bash(gofumpt -d *)",
+      "Bash(go fix -diff *)",
+      "Bash(go fix --diff *)",
+      "Bash(command -v *)",
+      "Bash(go doc *)",
+      "Bash(go version)",
+      "Bash(gopls check *)",
+      "Bash(go tool cover *)"
+    ]
+  }
+}
