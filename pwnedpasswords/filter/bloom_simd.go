@@ -1,6 +1,6 @@
 // AVX-512 twins of Add, Contains and locate, using the experimental simd
 // package. This file only compiles under GOEXPERIMENT=simd; a stock build
-// gets the scalar paths in filter.go alone.
+// gets the scalar paths in bloom.go alone.
 
 //go:build goexperiment.simd && amd64
 
@@ -14,20 +14,20 @@ import (
 // laneIndex numbers the eight vector lanes, so one round covers eight probes.
 var laneIndex = [wordsPerBlock]uint64{0, 1, 2, 3, 4, 5, 6, 7}
 
-// addAVX inserts a hash exactly as [Filter.Add] does, writing the whole block at once.
+// addAVX inserts a hash exactly as [SplitBlockBloom.Add] does, writing the whole block at once.
 // Warning: not safe for concurrent use, and faults on CPUs without AVX-512.
-func (f *Filter) addAVX(hash SHA1Hash) {
-	base, masks := locateAVX(hash, f.mask, f.probes)
-	block := (*[wordsPerBlock]uint64)(f.blocks[base:])
+func (b *SplitBlockBloom) addAVX(hash SHA1Hash) {
+	base, masks := locateAVX(hash, b.mask, b.probes)
+	block := (*[wordsPerBlock]uint64)(b.blocks[base:])
 	archsimd.LoadUint64x8(block).Or(masks).Store(block)
-	f.NumEntries++
+	b.NumEntries++
 }
 
-// containsAVX answers exactly as [Filter.Contains] does, checking the whole block at once.
+// containsAVX answers exactly as [SplitBlockBloom.Contains] does, checking the whole block at once.
 // Faults on CPUs without AVX-512.
-func (f *Filter) containsAVX(hash SHA1Hash) bool {
-	base, masks := locateAVX(hash, f.mask, f.probes)
-	block := archsimd.LoadUint64x8((*[wordsPerBlock]uint64)(f.blocks[base:]))
+func (b *SplitBlockBloom) containsAVX(hash SHA1Hash) bool {
+	base, masks := locateAVX(hash, b.mask, b.probes)
+	block := archsimd.LoadUint64x8((*[wordsPerBlock]uint64)(b.blocks[base:]))
 	// The entry can only exist if every probe bit is set in its word
 	return masks.And(block).Equal(masks).ToBits() == 0xff
 }
