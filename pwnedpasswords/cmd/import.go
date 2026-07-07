@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"time"
@@ -119,6 +120,9 @@ func runImport(ctx context.Context, logs logging, opts importOptions) (err error
 // Cap each line at 1 KiB; a word list holds one short word per line, so anything larger is malformed.
 const maxLineBytes = 1024
 
+// Quote this many leading bytes of an over-long line to help identify the malformed input.
+const snippetBytes = 64
+
 // importFile streams one word list, running every non-empty line through the
 // checker and folding its counts into the shared progress.
 func importFile(ctx context.Context, chk *checker, prog *progress, path string) error {
@@ -157,10 +161,38 @@ func importFile(ctx context.Context, chk *checker, prog *progress, path string) 
 	}
 	if err := scanner.Err(); err != nil {
 		if errors.Is(err, bufio.ErrTooLong) {
-			return fmt.Errorf("line %s exceeds the %s characters; please check for encoding errors",
-				humanize.Comma(int64(lineNum+1)), humanize.Comma(maxLineBytes))
+			detail := ""
+			if snippet, serr := lineSnippet(path, lineNum+1, snippetBytes); serr == nil {
+				detail = fmt.Sprintf(" (starts with %q)", snippet)
+			}
+			return fmt.Errorf("line %s exceeds the %s characters; please check for encoding errors%s",
+				humanize.Comma(int64(lineNum+1)), humanize.Comma(maxLineBytes), detail)
 		}
 		return err
 	}
 	return nil
+}
+
+// lineSnippet reopens path and returns up to maxBytes from the start of the given
+// 1-indexed line, for quoting after the scanner has discarded an over-long token.
+// It re-reads from the top, but runs only on the error path just before aborting.
+func lineSnippet(path string, line, maxBytes int) ([]byte, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	reader := bufio.NewReader(file)
+	for range line - 1 {
+		if _, err := reader.ReadBytes('\n'); err != nil {
+			return nil, err
+		}
+	}
+	buf := make([]byte, maxBytes)
+	n, err := io.ReadFull(reader, buf)
+	if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
+		return nil, err
+	}
+	return buf[:n], nil
 }
