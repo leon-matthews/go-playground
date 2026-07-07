@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 
 	"pwnedpasswords/database"
@@ -115,6 +116,9 @@ func runImport(ctx context.Context, logs logging, opts importOptions) (err error
 	return nil
 }
 
+// Cap each line at 1 KiB; a word list holds one short word per line, so anything larger is malformed.
+const maxLineBytes = 1024
+
 // importFile streams one word list, running every non-empty line through the
 // checker and folding its counts into the shared progress.
 func importFile(ctx context.Context, chk *checker, prog *progress, path string) error {
@@ -128,9 +132,11 @@ func importFile(ctx context.Context, chk *checker, prog *progress, path string) 
 	defer prog.add(&t)
 
 	scanner := bufio.NewScanner(file)
-	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	scanner.Buffer(make([]byte, 0, maxLineBytes), maxLineBytes)
+	lineNum := 0
 	sinceFlush := 0
 	for scanner.Scan() {
+		lineNum++
 		if ctx.Err() != nil {
 			return nil
 		}
@@ -149,5 +155,12 @@ func importFile(ctx context.Context, chk *checker, prog *progress, path string) 
 			sinceFlush = 0
 		}
 	}
-	return scanner.Err()
+	if err := scanner.Err(); err != nil {
+		if errors.Is(err, bufio.ErrTooLong) {
+			return fmt.Errorf("line %s exceeds the %s characters; please check for encoding errors",
+				humanize.Comma(int64(lineNum+1)), humanize.Comma(maxLineBytes))
+		}
+		return err
+	}
+	return nil
 }
