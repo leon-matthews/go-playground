@@ -10,7 +10,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 
 	"pwnedpasswords/database"
@@ -125,26 +124,52 @@ const snippetBytes = 64
 
 // importFile streams one word list, running every non-empty line through the
 // checker and folding its counts into the shared progress.
+// Over-long lines are skipped with a warning rather than aborting the import.
 func importFile(ctx context.Context, chk *checker, prog *progress, path string) error {
-	file, err := os.Open(path)
-	if err != nil {
-		return err
+	// A path of "-" reads the word list from stdin, which we must not close.
+	file := os.Stdin
+	if path != "-" {
+		f, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		file = f
 	}
-	defer file.Close()
 
 	var t tally
 	defer prog.add(&t)
 
-	scanner := bufio.NewScanner(file)
-	scanner.Buffer(make([]byte, 0, maxLineBytes), maxLineBytes)
+	// The buffer size doubles as the over-long threshold: a line that fills it
+	// without a newline comes back with isPrefix set.
+	reader := bufio.NewReaderSize(file, maxLineBytes)
 	lineNum := 0
 	sinceFlush := 0
-	for scanner.Scan() {
+	for {
+		line, isPrefix, err := reader.ReadLine()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return err
+		}
 		lineNum++
 		if ctx.Err() != nil {
 			return nil
 		}
-		line := scanner.Bytes()
+
+		if isPrefix {
+			// line holds only the first chunk; snapshot a snippet, then drain the
+			// rest without buffering it. string() copies, so it survives drainLine.
+			snippet := string(line[:min(len(line), snippetBytes)])
+			if err := drainLine(reader); err != nil && !errors.Is(err, io.EOF) {
+				return err
+			}
+			slog.Warn("skipping over-long line",
+				"line", lineNum, "limit", maxLineBytes, "starts_with", snippet)
+			continue
+		}
+
 		if len(line) == 0 {
 			continue
 		}
@@ -159,40 +184,20 @@ func importFile(ctx context.Context, chk *checker, prog *progress, path string) 
 			sinceFlush = 0
 		}
 	}
-	if err := scanner.Err(); err != nil {
-		if errors.Is(err, bufio.ErrTooLong) {
-			detail := ""
-			if snippet, serr := lineSnippet(path, lineNum+1, snippetBytes); serr == nil {
-				detail = fmt.Sprintf(" (starts with %q)", snippet)
-			}
-			return fmt.Errorf("line %s exceeds the %s characters; please check for encoding errors%s",
-				humanize.Comma(int64(lineNum+1)), humanize.Comma(maxLineBytes), detail)
-		}
-		return err
-	}
 	return nil
 }
 
-// lineSnippet reopens path and returns up to maxBytes from the start of the given
-// 1-indexed line, for quoting after the scanner has discarded an over-long token.
-// It re-reads from the top, but runs only on the error path just before aborting.
-func lineSnippet(path string, line, maxBytes int) ([]byte, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	reader := bufio.NewReader(file)
-	for range line - 1 {
-		if _, err := reader.ReadBytes('\n'); err != nil {
-			return nil, err
+// drainLine consumes the remainder of an over-long line, up to and including its
+// newline, without retaining any of it.
+// Call only after ReadLine has reported isPrefix.
+func drainLine(reader *bufio.Reader) error {
+	for {
+		_, isPrefix, err := reader.ReadLine()
+		if err != nil {
+			return err
+		}
+		if !isPrefix {
+			return nil
 		}
 	}
-	buf := make([]byte, maxBytes)
-	n, err := io.ReadFull(reader, buf)
-	if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
-		return nil, err
-	}
-	return buf[:n], nil
 }

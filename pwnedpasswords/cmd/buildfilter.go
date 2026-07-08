@@ -20,16 +20,16 @@ import (
 
 // filterPreset pairs a filter size with the probe count that minimises its
 // false-positive rate for the ~2 billion hash pwnedcache corpus. If that corpus
-// grows substantially, retune the probe counts against the new element count.
+// grows substantially, retune using the sizing table on [filter.SplitBlockBloom].
 type filterPreset struct {
 	blocks uint64
 	probes int
 }
 
 var (
-	preset4GB  = filterPreset{filter.BlocksForBytes(4 << 30), 10}
+	preset4GB  = filterPreset{filter.BlocksForBytes(4 << 30), 8}
 	preset8GB  = filterPreset{filter.BlocksForBytes(8 << 30), 16}
-	preset16GB = filterPreset{filter.BlocksForBytes(16 << 30), 21}
+	preset16GB = filterPreset{filter.BlocksForBytes(16 << 30), 24}
 )
 
 // newBuildFilterCmd builds the "buildfilter" sub-command.
@@ -59,9 +59,9 @@ func newBuildFilterCmd() *cobra.Command {
 			return runBuildFilter(cmd.Context(), logs, pwnedcachePath, filterPath, preset, progressInterval)
 		},
 	}
-	cmd.Flags().BoolVar(&use4GB, "4GB", false, "4 GiB filter (false positives ~1 in 1,200)")
+	cmd.Flags().BoolVar(&use4GB, "4GB", false, "4 GiB filter (false positives ~1 in 1,500)")
 	cmd.Flags().BoolVar(&use8GB, "8GB", false, "8 GiB filter, suggested (false positives ~1 in 250,000)")
-	cmd.Flags().BoolVar(&use16GB, "16GB", false, "16 GiB filter (false positives ~1 in 130 million)")
+	cmd.Flags().BoolVar(&use16GB, "16GB", false, "16 GiB filter (false positives ~1 in 150 million)")
 	cmd.MarkFlagsMutuallyExclusive("4GB", "8GB", "16GB")
 	cmd.MarkFlagsOneRequired("4GB", "8GB", "16GB")
 	cmd.Flags().StringVar(&filterPath, "filter", "pwnedpasswords.filter", "output filter file path")
