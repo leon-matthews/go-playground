@@ -126,22 +126,23 @@ func (p *progress) reportTo(console, file *slog.Logger, filtered bool) func(kind
 
 // humanProgress renders a friendly one-line progress or summary message. The
 // leading count is candidates seen: filter lookups when a filter is in use,
-// otherwise candidates processed directly. Any recent database hit is appended
-// as a sample.
+// otherwise candidates processed directly. It is followed by the hashes-table
+// reads and row writes, then the most recent matched password as the current
+// sample.
 func humanProgress(kind string, c tally, filtered bool) string {
 	count, label := c.filterQueries, "filtered"
 	if !filtered {
 		count, label = c.hashQueries, "processed"
 	}
 	line := fmt.Sprintf(
-		"%s %s > %s database hits > %s changed",
+		"%s %s > %s database reads > %s writes",
 		humanize.Comma(count),
 		label,
-		humanize.Comma(c.found),
+		humanize.Comma(c.hashQueries),
 		humanize.Comma(c.changed),
 	)
 	if c.sample != "" {
-		line += ": " + c.sample
+		line += " > current: " + c.sample
 	}
 	if kind == "summary" {
 		return "Finished: " + line

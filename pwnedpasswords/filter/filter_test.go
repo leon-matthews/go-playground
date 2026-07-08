@@ -47,16 +47,25 @@ func TestFilter(t *testing.T) {
 		require.Error(t, err)
 	})
 
-	t.Run("sets exactly probes distinct bits per element", func(t *testing.T) {
+	t.Run("sets close to probes bits per element", func(t *testing.T) {
+		// Multiply-shift probes can occasionally collide within a word, so an
+		// element sets at most k bits and, averaged out, only a hair under k.
 		for _, k := range []int{8, 10, 16, 21} {
-			f, err := New(1024, k)
-			require.NoError(t, err)
-			f.Add(makeHashes(1)[0])
-			set := 0
-			for _, w := range f.blocks {
-				set += bits.OnesCount64(w)
+			hashes := makeHashes(2000)
+			total := 0
+			for _, h := range hashes {
+				f, err := New(8, k)
+				require.NoError(t, err)
+				f.Add(h)
+				set := 0
+				for _, w := range f.blocks {
+					set += bits.OnesCount64(w)
+				}
+				require.LessOrEqual(t, set, k, "an element can set at most k bits")
+				total += set
 			}
-			assert.Equal(t, k, set, "one element should set exactly k distinct bits")
+			mean := float64(total) / float64(len(hashes))
+			assert.Greater(t, mean, float64(k)-1.0, "collisions should be rare, keeping the mean near k")
 		}
 	})
 
@@ -84,16 +93,21 @@ func TestFilter(t *testing.T) {
 		}
 	})
 
-	t.Run("false-positive rate stays low for absent hashes", func(t *testing.T) {
-		f, err := New(1<<16, 8)
+	t.Run("false-positive rate stays low at realistic load", func(t *testing.T) {
+		// Fill to eight elements per block, the load the real presets run at, so
+		// probe-collision effects actually show. The old low-entropy placement sat
+		// near 1 in 260 here; multiply-shift keeps the rate orders of magnitude lower.
+		const blocks = 1 << 14
+		const load = 8
+		f, err := New(blocks, 16)
 		require.NoError(t, err)
-		for _, h := range makeHashes(1000) {
+		for _, h := range makeHashes(blocks * load) {
 			f.Add(h)
 		}
 
 		// Draw fresh hashes that were not inserted
 		r := rand.New(rand.NewSource(99))
-		const trials = 100000
+		const trials = 1_000_000
 		positives := 0
 		var probe SHA1Hash
 		for range trials {
@@ -102,7 +116,8 @@ func TestFilter(t *testing.T) {
 				positives++
 			}
 		}
-		assert.Less(t, positives, trials/1000, "false positives should be well under 0.1%")
+		rate := float64(positives) / trials
+		assert.Less(t, rate, 1e-4, "false-positive rate must stay far below the old 1-in-260 defect")
 	})
 
 	t.Run("survives a build, write, and reopen round trip", func(t *testing.T) {

@@ -9,6 +9,8 @@ import (
 const (
 	bytesPerBlock = 64 // 512 bits, one x86-64 cache line
 	wordsPerBlock = 8
+	wordIndexBits = 6  // bits needed to address one bit within a 64-bit word
+	maxProbes     = 64 // upper bound on probes, sizing the salt table
 )
 
 // SHA1Hash is a 20-byte SHA-1 digest, the sole element type of the filter.
@@ -18,9 +20,9 @@ type SHA1Hash [20]byte
 //
 // Each element maps to a single 512-bit block (one cache line) and sets a tunable
 // number of probe bits spread round-robin across the block's eight 64-bit words. A
-// query therefore touches exactly one cache line. Probe positions are generated
-// from the SHA-1 by double hashing; the digest is already uniformly random, so
-// no separate hash function is needed.
+// query therefore touches exactly one cache line. Each probe's bit is chosen by
+// multiply-shift hashing the digest against that probe's fixed salt, so every
+// probe draws on the whole digest rather than a handful of low bits.
 //
 // A built filter is immutable: [SplitBlockBloom.Contains] only reads, so any
 // number of goroutines may query it concurrently without synchronisation.
@@ -42,8 +44,8 @@ func newSplitBlockBloom(numBlocks uint64, probes int) (SplitBlockBloom, error) {
 	if numBlocks == 0 || numBlocks&(numBlocks-1) != 0 {
 		return SplitBlockBloom{}, fmt.Errorf("numBlocks must be a power of two, got %d", numBlocks)
 	}
-	if probes < 1 {
-		return SplitBlockBloom{}, fmt.Errorf("probes must be at least 1, got %d", probes)
+	if probes < 1 || probes > maxProbes {
+		return SplitBlockBloom{}, fmt.Errorf("probes must be between 1 and %d, got %d", maxProbes, probes)
 	}
 	return SplitBlockBloom{
 		blocks:    make([]uint64, numBlocks*wordsPerBlock),
@@ -92,28 +94,44 @@ func (b *SplitBlockBloom) Contains(hash SHA1Hash) bool {
 	return true
 }
 
+// probeSalts holds one fixed odd multiplier per probe. locate mixes the element
+// seed against a distinct salt for each probe, so the probes fall on independent
+// bits instead of the low-entropy arithmetic progression an in-block double hash
+// would give.
+var probeSalts = makeProbeSalts()
+
+// makeProbeSalts derives the salt table with splitmix64, a deterministic mixer,
+// so the multipliers are well spread yet fixed and reproducible.
+func makeProbeSalts() [maxProbes]uint64 {
+	var salts [maxProbes]uint64
+	state := uint64(0x9E3779B97F4A7C15)
+	for i := range salts {
+		state += 0x9E3779B97F4A7C15
+		z := state
+		z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9
+		z = (z ^ (z >> 27)) * 0x94D049BB133111EB
+		z ^= z >> 31
+		salts[i] = z | 1 // force odd, as multiply-shift requires
+	}
+	return salts
+}
+
 // locate picks both which block to use, and which bits to use inside that block.
 //
-// It does so deterministically from the input hash's bytes, as we already know
-// they are randomly distributed - they are already from a good hash function.
-//
-// It's hard to read because of all the bit twiddling, but a Bloom filter is
-// fundamentally a bit-based data structure after all!
+// The block index comes from the first eight digest bytes. Each probe then sets
+// one bit in a round-robin word, taking the bit from the top bits of a second
+// eight-byte seed multiplied by that probe's salt. Mixing the whole 64-bit seed
+// on every probe is what keeps the false-positive rate at its designed level.
 func locate(hash SHA1Hash, mask uint64, probes int) (base uint64, masks [wordsPerBlock]uint64) {
-	// Extract core Bloom filter values directly from input, as it's already a hash
 	blockHash := binary.LittleEndian.Uint64(hash[0:8])
-	position := binary.LittleEndian.Uint64(hash[8:16])
-
-	// <<1 clears the low bit (making it even), then | 1 sets it forcing it to be odd
-	step := uint64(binary.LittleEndian.Uint32(hash[16:20]))<<1 | 1
+	seed := binary.LittleEndian.Uint64(hash[8:16])
 
 	// blockHash & mask means blockHash % NumBlocks because mask = NumBlocks - 1
 	base = (blockHash & mask) * wordsPerBlock
 
-	// Build bit masks used later to set or check the bits inside block
 	for j := range probes {
-		masks[j&(wordsPerBlock-1)] |= uint64(1) << (position & 63)
-		position += step
+		bit := (seed * probeSalts[j]) >> (64 - wordIndexBits)
+		masks[j&(wordsPerBlock-1)] |= uint64(1) << bit
 	}
 	return base, masks
 }

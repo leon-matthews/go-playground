@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"runtime/debug"
 	"sync/atomic"
 	"time"
 
@@ -58,9 +59,9 @@ func newBuildFilterCmd() *cobra.Command {
 			return runBuildFilter(cmd.Context(), logs, pwnedcachePath, filterPath, preset, progressInterval)
 		},
 	}
-	cmd.Flags().BoolVar(&use4GB, "4GB", false, "4 GiB filter (false positives ~1 in 1,500)")
-	cmd.Flags().BoolVar(&use8GB, "8GB", false, "8 GiB filter, suggested (false positives ~1 in 270,000)")
-	cmd.Flags().BoolVar(&use16GB, "16GB", false, "16 GiB filter (false positives ~1 in 175 million)")
+	cmd.Flags().BoolVar(&use4GB, "4GB", false, "4 GiB filter (false positives ~1 in 1,200)")
+	cmd.Flags().BoolVar(&use8GB, "8GB", false, "8 GiB filter, suggested (false positives ~1 in 250,000)")
+	cmd.Flags().BoolVar(&use16GB, "16GB", false, "16 GiB filter (false positives ~1 in 130 million)")
 	cmd.MarkFlagsMutuallyExclusive("4GB", "8GB", "16GB")
 	cmd.MarkFlagsOneRequired("4GB", "8GB", "16GB")
 	cmd.Flags().StringVar(&filterPath, "filter", "pwnedpasswords.filter", "output filter file path")
@@ -89,6 +90,8 @@ func runBuildFilter(ctx context.Context, logs logging, cachePath, filterPath str
 	if err != nil {
 		return err
 	}
+	// Keep the GC goal near the huge live filter, rather than the default 2x
+	debug.SetGCPercent(10)
 
 	slog.Info("building filter",
 		"blocks", preset.blocks,

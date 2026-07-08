@@ -18,7 +18,7 @@ import (
 const (
 	magic       = "PWNEDPASSWORDS"
 	magicLength = len(magic)
-	version     = 2
+	version     = 3    // bump on any change to block layout or probe placement
 	headerSize  = 4096 // header bytes before the data; multiple of 8 keeps words aligned
 )
 
