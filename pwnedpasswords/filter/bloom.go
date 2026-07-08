@@ -26,6 +26,41 @@ type SHA1Hash [20]byte
 //
 // A built filter is immutable: [SplitBlockBloom.Contains] only reads, so any
 // number of goroutines may query it concurrently without synchronisation.
+//
+// # Sizing and tuning
+//
+// The false-positive rate is fixed by just two quantities: the load, meaning
+// the mean entries per block (expected corpus size / NumBlocks), and the probe
+// count. To size a filter, turn the memory budget into a block count with
+// [BlocksForBytes], compute the load, then round it up to the nearest row here
+// and use that row's probe count:
+//
+//	load  probes  false-positive rate
+//	   4      24  1 in 100 billion
+//	   6      24  1 in 1.7 billion
+//	   8      24  1 in 86 million
+//	  10      16  1 in 11 million
+//	  12      16  1 in 2.2 million
+//	  16      16  1 in 175,000
+//	  20      16  1 in 25,600
+//	  24      16  1 in 5,600
+//	  32       8  1 in 1,100
+//	  48       8  1 in 131
+//	  64       8  1 in 34
+//
+// Keep the probe count a multiple of eight so every word carries an equal
+// share; the unrestricted optimum sometimes sits elsewhere but is never more
+// than a few percent better. Never use fewer than eight probes: probe j only
+// ever touches word j mod 8, so any word beyond the probe count is pure wasted
+// memory.
+//
+// The table is the exact expectation for this structure: a block receives a
+// Poisson(load) number of entries, a word holding w of its 64 bits matches c
+// fresh probe bits with chance (w/64)^c, and a query is a false positive when
+// all eight words match. Halving the load (doubling memory) therefore improves
+// the rate by much more than half, and the Poisson tail of overloaded blocks
+// is why a split-block filter cannot match a textbook Bloom filter's rate for
+// the same memory - that is the price of one-cache-line queries.
 type SplitBlockBloom struct {
 	blocks []uint64 // NumBlocks * wordsPerBlock words
 	mask   uint64   // NumBlocks - 1, for the block index
