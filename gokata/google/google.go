@@ -10,10 +10,14 @@ import (
 	"time"
 )
 
+// A Result is just a string
 type Result string
 
+// Search is a function that takes a query and returns its result
 type Search func(query string) Result
 
+// NewSearch creates a new Search function for a given type of search
+// For example: imageSearch := NewSearch("image")
 func NewSearch(kind string) Search {
 	search := func(query string) Result {
 		time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)))

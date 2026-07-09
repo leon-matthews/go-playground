@@ -11,10 +11,14 @@ import (
 	"github.com/gokatas/google"
 )
 
-func main() {
-	results := googleIt("golang")
-	fmt.Println(results)
-}
+var (
+	web1   = google.NewSearch("web")
+	web2   = google.NewSearch("web")
+	image1 = google.NewSearch("image")
+	image2 = google.NewSearch("image")
+	video1 = google.NewSearch("video")
+	video2 = google.NewSearch("video")
+)
 
 func googleIt(query string) (results []google.Result) {
 	c := make(chan google.Result)
@@ -37,15 +41,7 @@ func googleIt(query string) (results []google.Result) {
 	return
 }
 
-var (
-	web1   = google.NewSearch("web")
-	web2   = google.NewSearch("web")
-	image1 = google.NewSearch("image")
-	image2 = google.NewSearch("image")
-	video1 = google.NewSearch("video")
-	video2 = google.NewSearch("video")
-)
-
+// firstResult runs every replica but returns just the first result
 func firstResult(query string, replicas ...google.Search) google.Result {
 	c := make(chan google.Result)
 	for i := range replicas {
@@ -53,4 +49,9 @@ func firstResult(query string, replicas ...google.Search) google.Result {
 	}
 	result := <-c
 	return result
+}
+
+func main() {
+	results := googleIt("golang")
+	fmt.Println(results)
 }
