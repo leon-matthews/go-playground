@@ -1,4 +1,6 @@
 pwnedpasswords
+*.bak
+*.csv
 *.db
 *.db-shm
 *.db-wal

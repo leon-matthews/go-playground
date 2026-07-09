@@ -47,5 +47,6 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newBruteforceCmd())
 	cmd.AddCommand(newBuildFilterCmd())
 	cmd.AddCommand(newExportCmd())
+	cmd.AddCommand(newMergeCmd())
 	return cmd
 }

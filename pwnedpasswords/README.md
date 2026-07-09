@@ -7,7 +7,8 @@ brute-force generation - hashes each one with SHA-1, and looks the hash up in th
 `hashes` table of a sibling [pwnedcache](../pwnedcache/) database (an offline copy of the
 [Have I Been Pwned password database](https://haveibeenpwned.com/Passwords)). Matches are
 stored in `pwnedpasswords.db` with their breach counts, and exported as plain-text or JSON
-denylists for use during website account creation.
+denylists for use during website account creation. The whole table can also be dumped to CSV
+and reloaded with `merge`, which is how the database is backed up or rebuilt under a new schema.
 
 ## Prerequisites
 
@@ -51,7 +52,16 @@ pwnedpasswords export --top 1000              # plain text, one password per lin
 pwnedpasswords export --top 1000 --format json
 ```
 
-Both `import` and `bruteforce` are additive: running them again accumulates matches.
+Dump the whole table as CSV, or merge a CSV back in - skipping any password already present,
+leaving existing counts untouched. Together they back up the database and rebuild it under the
+current schema: export from the old file, then merge into a fresh one.
+
+```
+pwnedpasswords -d old.db export --format csv > backup.csv
+pwnedpasswords -d new.db merge backup.csv
+```
+
+`import`, `bruteforce`, and `merge` are all additive: running them again accumulates matches.
 
 ## Flags
 
@@ -82,8 +92,13 @@ per size for the lowest false-positive rate on the ~2 billion hash corpus:
 
 `export` flags:
 
-- `-n`, `--top` - number of passwords to write (default 1000)
-- `-f`, `--format` - output format, `text` or `json` (default `text`)
+- `-n`, `--top` - number of passwords to write (default 1000; `csv` dumps the whole table)
+- `-f`, `--format` - output format, `text`, `json`, or `csv` (default `text`)
+- `-p`, `--progress` - interval between progress reports (default 10s; `csv` only)
+
+`merge` flags:
+
+- `-p`, `--progress` - interval between progress reports (default 10s)
 
 
 ## Bloom Filter

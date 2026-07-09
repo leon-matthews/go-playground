@@ -21,6 +21,29 @@ type logging struct {
 	logFile *os.File     // Backing file, for the caller to close
 }
 
+// newConsoleHandler builds the colourised charm handler on stderr, at debug
+// level when verbose. It backs both the full logging fan-out and the
+// console-only logger read-only commands use for progress.
+func newConsoleHandler(verbose bool) *charmlog.Logger {
+	level := charmlog.InfoLevel
+	if verbose {
+		level = charmlog.DebugLevel
+	}
+	return charmlog.NewWithOptions(os.Stderr, charmlog.Options{
+		Level:           level,
+		ReportTimestamp: true,
+		TimeFormat:      time.Kitchen,
+	})
+}
+
+// newConsoleLogger returns a console-only logger on stderr.
+//
+// Read-only commands such as export report progress through it, so they never
+// open or truncate the run log the way a write command does.
+func newConsoleLogger(verbose bool) *slog.Logger {
+	return slog.New(newConsoleHandler(verbose))
+}
+
 // setupLogging installs a fan-out slog default that writes every log to both a
 // colourised console handler on stderr and an NDJSON file handler on
 // pwnedpasswords.log, truncated each run.
@@ -29,9 +52,9 @@ type logging struct {
 // console and the matching structured record to the file. The -v flag raises
 // the level to debug.
 func setupLogging(verbose bool) (logging, error) {
-	consoleLevel, fileLevel := charmlog.InfoLevel, slog.LevelInfo
+	fileLevel := slog.LevelInfo
 	if verbose {
-		consoleLevel, fileLevel = charmlog.DebugLevel, slog.LevelDebug
+		fileLevel = slog.LevelDebug
 	}
 
 	logFile, err := os.Create(logPath)
@@ -39,11 +62,7 @@ func setupLogging(verbose bool) (logging, error) {
 		return logging{}, fmt.Errorf("creating %s: %w", logPath, err)
 	}
 
-	console := charmlog.NewWithOptions(os.Stderr, charmlog.Options{
-		Level:           consoleLevel,
-		ReportTimestamp: true,
-		TimeFormat:      time.Kitchen,
-	})
+	console := newConsoleHandler(verbose)
 	file := slog.NewJSONHandler(logFile, &slog.HandlerOptions{Level: fileLevel})
 
 	// Incidental logs go to both; progress is routed explicitly by the reporter

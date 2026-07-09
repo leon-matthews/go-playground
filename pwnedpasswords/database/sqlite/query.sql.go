@@ -20,6 +20,24 @@ func (q *Queries) GetHashCount(ctx context.Context, hash []byte) (int64, error) 
 	return count, err
 }
 
+const insertPassword = `-- name: InsertPassword :execrows
+INSERT INTO passwords (password, count) VALUES (?, ?)
+ON CONFLICT(password) DO NOTHING
+`
+
+type InsertPasswordParams struct {
+	Password string
+	Count    int64
+}
+
+func (q *Queries) InsertPassword(ctx context.Context, arg InsertPasswordParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, insertPassword, arg.Password, arg.Count)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const topPasswords = `-- name: TopPasswords :many
 SELECT password, count FROM passwords ORDER BY count DESC LIMIT ?
 `
