@@ -1,4 +1,4 @@
-package main
+package progress
 
 import (
 	"testing"
@@ -7,12 +7,12 @@ import (
 )
 
 func TestHumanProgress(t *testing.T) {
-	full := tally{
-		filterQueries: 130072576,
-		hashQueries:   2239762,
-		found:         2239735,
-		changed:       1188872,
-		sample:        "abcdef",
+	full := Tally{
+		FilterQueries: 130072576,
+		HashQueries:   2239762,
+		Found:         2239735,
+		Changed:       1188872,
+		Sample:        "abcdef",
 	}
 
 	t.Run("with a filter labels the leading count filtered", func(t *testing.T) {
@@ -27,7 +27,7 @@ func TestHumanProgress(t *testing.T) {
 
 	t.Run("omits the sample before the first database hit", func(t *testing.T) {
 		c := full
-		c.sample = ""
+		c.Sample = ""
 		got := humanProgress("progress", c, true)
 		assert.Equal(t, "130,072,576 filtered > 2,239,762 database reads > 1,188,872 writes", got)
 	})

@@ -1,4 +1,5 @@
-package main
+// Package logging sets up the dual console-and-file loggers the commands share.
+package logging
 
 import (
 	"context"
@@ -14,11 +15,11 @@ import (
 // Structured NDJSON run log, truncated on each run.
 const logPath = "pwnedpasswords.log"
 
-// logging holds the loggers built by setupLogging.
-type logging struct {
-	console *slog.Logger // Friendly, human-readable console output
-	file    *slog.Logger // Structured NDJSON records
-	logFile *os.File     // Backing file, for the caller to close
+// Logging holds the loggers built by Setup.
+type Logging struct {
+	Console *slog.Logger // Friendly, human-readable console output
+	File    *slog.Logger // Structured NDJSON records
+	LogFile *os.File     // Backing file, for the caller to close
 }
 
 // newConsoleHandler builds the colourised charm handler on stderr, at debug
@@ -36,22 +37,22 @@ func newConsoleHandler(verbose bool) *charmlog.Logger {
 	})
 }
 
-// newConsoleLogger returns a console-only logger on stderr.
+// NewConsoleLogger returns a console-only logger on stderr.
 //
 // Read-only commands such as export report progress through it, so they never
 // open or truncate the run log the way a write command does.
-func newConsoleLogger(verbose bool) *slog.Logger {
+func NewConsoleLogger(verbose bool) *slog.Logger {
 	return slog.New(newConsoleHandler(verbose))
 }
 
-// setupLogging installs a fan-out slog default that writes every log to both a
+// Setup installs a fan-out slog default that writes every log to both a
 // colourised console handler on stderr and an NDJSON file handler on
 // pwnedpasswords.log, truncated each run.
 //
 // Progress reporting uses the returned loggers to send friendly text to the
 // console and the matching structured record to the file. The -v flag raises
 // the level to debug.
-func setupLogging(verbose bool) (logging, error) {
+func Setup(verbose bool) (Logging, error) {
 	fileLevel := slog.LevelInfo
 	if verbose {
 		fileLevel = slog.LevelDebug
@@ -59,7 +60,7 @@ func setupLogging(verbose bool) (logging, error) {
 
 	logFile, err := os.Create(logPath)
 	if err != nil {
-		return logging{}, fmt.Errorf("creating %s: %w", logPath, err)
+		return Logging{}, fmt.Errorf("creating %s: %w", logPath, err)
 	}
 
 	console := newConsoleHandler(verbose)
@@ -68,10 +69,10 @@ func setupLogging(verbose bool) (logging, error) {
 	// Incidental logs go to both; progress is routed explicitly by the reporter
 	slog.SetDefault(slog.New(fanout{console, file}))
 
-	return logging{
-		console: slog.New(console),
-		file:    slog.New(file),
-		logFile: logFile,
+	return Logging{
+		Console: slog.New(console),
+		File:    slog.New(file),
+		LogFile: logFile,
 	}, nil
 }
 

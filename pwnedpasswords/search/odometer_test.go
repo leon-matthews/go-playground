@@ -1,4 +1,4 @@
-package main
+package search
 
 import (
 	"sync"
@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestBruteforce(t *testing.T) {
+func TestSearch(t *testing.T) {
 	t.Run("advance enumerates a length in lexicographic order", func(t *testing.T) {
 		alphabet := []byte("abc")
 		indices := []int{0, 0}

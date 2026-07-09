@@ -101,6 +101,27 @@ per size for the lowest false-positive rate on the ~2 billion hash corpus:
 - `-p`, `--progress` - interval between progress reports (default 10s)
 
 
+## Code layout
+
+The tool is split into focused packages. `cmd/` holds only the CLI wiring - a cobra
+builder per sub-command that parses flags and calls into a library package. The real work
+lives in those packages:
+
+- `checker/` - the shared core: hash a candidate, consult the filter, look any hit up in
+  the `hashes` table, and record a match in the output database.
+- `search/` - the parallel brute-force engine: odometer candidate enumeration, worker
+  coordination, and chunk sizing.
+- `wordlist/` - streams word-list files through the checker.
+- `buildfilter/` - scans the pwnedcache hashes into the Bloom filter and writes it out.
+- `export/` - writes denylists (text, JSON, CSV) and merges a CSV dump back in.
+- `filter/` - the split-block Bloom filter: the in-memory structure plus its on-disk,
+  memory-mapped format.
+- `database/` - opens the read-only pwnedcache and writable output SQLite stores and
+  batches password upserts; `database/sqlite/` holds the sqlc-generated queries.
+- `progress/` - running totals shared by the scanning commands, and the periodic
+  progress/summary reporter.
+- `logging/` - the dual console-and-file logger setup.
+
 ## Bloom Filter
 
 Database lookups are the bottleneck for bruteforce guessing, where the overwhelming
