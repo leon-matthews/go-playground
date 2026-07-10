@@ -6,4 +6,4 @@
 
 ## Home PC
 
-./pwnedpasswords bruteforce -p1m -a2 --resume='j6ky0r4f'
+./pwnedpasswords bruteforce -p1m -a2 --filter=16GB.filter --resume='j6ky0r4f'

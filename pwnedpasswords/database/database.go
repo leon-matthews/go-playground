@@ -33,8 +33,8 @@ var readPragmas = []string{
 // writePragmas tune the writable database for its single-connection workload.
 var writePragmas = []string{
 	"cache_size(-65536)",      // 64MiB disk cache
+	"locking_mode(EXCLUSIVE)", // Must precede WAL: keeps the wal-index in heap (no -shm file)
 	"journal_mode(WAL)",       // WAL keeps the file crash-consistent
-	"locking_mode(EXCLUSIVE)", // Keep the wal-index in heap (no -shm file)
 	"synchronous(NORMAL)",     // Drop the per-commit fsync
 	"temp_store(MEMORY)",      // Keep temp tables etc. in RAM
 }

@@ -38,7 +38,7 @@ type denylistEntry struct {
 // Run writes passwords for the chosen format: text and json emit the top-N
 // denylist by breach count, while csv streams the whole table for Merge.
 func Run(ctx context.Context, out io.Writer, console *slog.Logger, opts Options) error {
-	queries, db, err := database.Open(ctx, opts.DBPath)
+	queries, db, err := database.OpenRO(ctx, opts.DBPath, 1)
 	if err != nil {
 		return err
 	}
