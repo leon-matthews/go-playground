@@ -37,7 +37,7 @@ func Run(ctx context.Context, logs logging.Logging, opts Options) (err error) {
 	}
 	defer writeDB.Close()
 
-	cacheQueries, cacheDB, err := database.OpenHashes(ctx, opts.CachePath)
+	cacheQueries, cacheDB, err := database.OpenRO(ctx, opts.CachePath, 1)
 	if err != nil {
 		return err
 	}

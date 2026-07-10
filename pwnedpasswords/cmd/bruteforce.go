@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"pwnedpasswords/bruteforce"
 	"pwnedpasswords/logging"
-	"pwnedpasswords/search"
 )
 
 const bruteforceUsage = "Generate candidate passwords in order and record breach matches"
@@ -28,11 +28,11 @@ func newBruteforceCmd() *cobra.Command {
 				return err
 			}
 			defer logs.LogFile.Close()
-			alphabet, err := search.AlphabetForLevel(level)
+			alphabet, err := bruteforce.AlphabetForLevel(level)
 			if err != nil {
 				return err
 			}
-			return search.Run(cmd.Context(), logs, search.Options{
+			return bruteforce.Run(cmd.Context(), logs, bruteforce.Options{
 				DBPath:     databasePath,
 				CachePath:  pwnedcachePath,
 				FilterPath: filterPath,

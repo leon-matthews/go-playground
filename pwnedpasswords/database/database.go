@@ -66,21 +66,22 @@ func Open(ctx context.Context, path string) (*sqlite.Queries, *sql.DB, error) {
 	return sqlite.New(db), db, nil
 }
 
-// OpenHashes opens the database of hashes from the `pwnedcache` tool read-only.
-func OpenHashes(ctx context.Context, path string) (*sqlite.Queries, *sql.DB, error) {
+// OpenRO opens the database file optimised for read-only access, capping the
+// connection pool at maxConns.
+func OpenRO(ctx context.Context, path string, maxConns int) (*sqlite.Queries, *sql.DB, error) {
 	// The file: scheme is required for modernc to honour the mode=ro URI param
 	db, err := sql.Open("sqlite", "file:"+path+pragmaQuery(readPragmas...)+"&mode=ro")
 	if err != nil {
-		return nil, nil, fmt.Errorf("opening cache %q: %w", path, err)
+		return nil, nil, fmt.Errorf("opening database read-only %q: %w", path, err)
 	}
 
-	// Allow any number of open connections
-	db.SetMaxOpenConns(0)
+	// Cap the pool at the caller's concurrency; readers share the file via SHARED locks
+	db.SetMaxOpenConns(maxConns)
 
 	// sql.Open is lazy, so ping now to fail early on a missing or bad file
 	if err := db.PingContext(ctx); err != nil {
 		db.Close()
-		return nil, nil, fmt.Errorf("opening cache %q: %w", path, err)
+		return nil, nil, fmt.Errorf("opening database read-only %q: %w", path, err)
 	}
 	return sqlite.New(db), db, nil
 }

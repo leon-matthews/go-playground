@@ -46,7 +46,7 @@ func Run(ctx context.Context, logs logging.Logging, cachePath, filterPath string
 		return err
 	}
 
-	_, cacheDB, err := database.OpenHashes(ctx, cachePath)
+	_, cacheDB, err := database.OpenRO(ctx, cachePath, 1)
 	if err != nil {
 		return err
 	}

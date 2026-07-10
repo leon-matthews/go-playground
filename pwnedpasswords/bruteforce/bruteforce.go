@@ -1,6 +1,6 @@
-// Package search generates candidate passwords by brute force, in odometer
+// Package bruteforce generates candidate passwords by brute force, in odometer
 // order shortest first, and records any that match the breach corpus.
-package search
+package bruteforce
 
 import (
 	"context"
@@ -19,7 +19,7 @@ import (
 	"pwnedpasswords/progress"
 )
 
-// Tuning for the parallel search.
+// Tuning for the parallel bruteforce.
 const (
 	// maxChunk caps the candidates handed to a worker at once. Shorter lengths
 	// use a smaller chunk (see chunkForSpace) so every worker still gets work.
@@ -69,15 +69,20 @@ func AlphabetForLevel(level int) ([]byte, error) {
 }
 
 // Run opens the databases, loads the filter if present, and runs the parallel
-// search; without a filter it falls back to a slow serial scan.
+// bruteforce; without a filter it falls back to a slow serial scan.
 func Run(ctx context.Context, logs logging.Logging, opts Options) (err error) {
+	workers := opts.Workers
+	if workers < 1 {
+		workers = runtime.NumCPU()
+	}
+
 	_, writeDB, err := database.Open(ctx, opts.DBPath)
 	if err != nil {
 		return err
 	}
 	defer writeDB.Close()
 
-	cacheQueries, cacheDB, err := database.OpenHashes(ctx, opts.CachePath)
+	cacheQueries, cacheDB, err := database.OpenRO(ctx, opts.CachePath, workers)
 	if err != nil {
 		return err
 	}
@@ -120,11 +125,7 @@ func Run(ctx context.Context, logs logging.Logging, opts Options) (err error) {
 		return searchSerial(ctx, chk, prog, opts.Alphabet, length, indices)
 	}
 
-	workers := opts.Workers
-	if workers < 1 {
-		workers = runtime.NumCPU()
-	}
-	slog.Info("parallel search", "workers", workers)
+	slog.Info("parallel bruteforce", "workers", workers)
 	return searchParallel(ctx, chk, prog, opts.Alphabet, workers, length, indices)
 }
 
