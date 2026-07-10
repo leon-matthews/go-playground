@@ -43,8 +43,9 @@ func newBruteforceCmd() *cobra.Command {
 			})
 		},
 	}
-	cmd.Flags().IntVarP(&level, "alphabet", "a", 4,
-		"character set: 1=lowercase, 2=+space+digits, 3=+uppercase, 4=+symbols")
+	cmd.Flags().IntVarP(&level, "alphabet", "a", 0,
+		"character set: 0=digits, 1=lowercase, 2=+space+digits, 3=+uppercase, 4=+symbols")
+	cmd.MarkFlagRequired("alphabet")
 	cmd.Flags().StringVar(&resume, "resume", "",
 		"resume from this pattern (as logged when interrupted)")
 	cmd.Flags().StringVar(&filterPath, "filter", "pwnedpasswords.filter",

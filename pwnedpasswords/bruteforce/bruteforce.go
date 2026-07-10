@@ -33,7 +33,7 @@ const (
 	ctxCheckMask = 1<<14 - 1 // check for cancellation this often within a chunk
 )
 
-// Building blocks for the cumulative candidate alphabets.
+// Building blocks for the candidate alphabets.
 const (
 	charsLower   = "abcdefghijklmnopqrstuvwxyz"
 	charsDigits  = "0123456789"
@@ -52,9 +52,11 @@ type Options struct {
 	Progress   time.Duration
 }
 
-// AlphabetForLevel returns the cumulative candidate character set for a level.
+// AlphabetForLevel returns the candidate character set for a level.
 func AlphabetForLevel(level int) ([]byte, error) {
 	switch level {
+	case 0:
+		return []byte(charsDigits), nil
 	case 1:
 		return []byte(charsLower), nil
 	case 2:
@@ -64,7 +66,7 @@ func AlphabetForLevel(level int) ([]byte, error) {
 	case 4:
 		return []byte(charsLower + " " + charsDigits + charsUpper + charsSymbols), nil
 	default:
-		return nil, fmt.Errorf("unknown alphabet %d: choose 1-4", level)
+		return nil, fmt.Errorf("unknown alphabet %d: choose 0-4", level)
 	}
 }
 

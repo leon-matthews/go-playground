@@ -41,8 +41,8 @@ it goes. It runs in parallel across all CPUs until interrupted with Ctrl-C, whic
 next pattern to try so the run can be continued later with `--resume`:
 
 ```
-pwnedpasswords bruteforce --alphabet 1        # lowercase only
-pwnedpasswords bruteforce --resume "dfxx"     # continue from this pattern
+pwnedpasswords bruteforce --alphabet 1              # lowercase only
+pwnedpasswords bruteforce --alphabet 1 --resume "dfxx"   # continue from this pattern
 ```
 
 Export the most-breached passwords, ordered by breach count:
@@ -83,8 +83,8 @@ per size for the lowest false-positive rate on the ~2 billion hash corpus:
 
 `bruteforce` flags:
 
-- `-a`, `--alphabet` - cumulative character set (default 4):
-  1 = lowercase, 2 = +space +digits, 3 = +uppercase, 4 = +symbols
+- `-a`, `--alphabet` - character set (required):
+  0 = digits, 1 = lowercase, 2 = +space +digits, 3 = +uppercase, 4 = +symbols
 - `--resume` - continue from this pattern (as logged when interrupted)
 - `--filter` - membership filter path (default `pwnedpasswords.filter`)
 - `-w`, `--workers` - number of parallel workers (default: number of CPUs)
@@ -109,7 +109,7 @@ lives in those packages:
 
 - `checker/` - the shared core: hash a candidate, consult the filter, look any hit up in
   the `hashes` table, and record a match in the output database.
-- `search/` - the parallel brute-force engine: odometer candidate enumeration, worker
+- `bruteforce/` - the parallel brute-force engine: odometer candidate enumeration, worker
   coordination, and chunk sizing.
 - `wordlist/` - streams word-list files through the checker.
 - `buildfilter/` - scans the pwnedcache hashes into the Bloom filter and writes it out.
