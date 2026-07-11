@@ -9,7 +9,7 @@
 
 ## Home PC
 
-./pwnedpasswords bruteforce -p1m -a2 --filter=16GB.filter --resum='ae7np6rmi'
+./pwnedpasswords bruteforce -p1m -a2 --filter=16GB.filter --resume='ae7np6rmi'
 
 
 ## Workshop Raspberry Pi
