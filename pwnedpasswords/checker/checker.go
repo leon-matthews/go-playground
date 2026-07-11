@@ -3,6 +3,7 @@
 package checker
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha1"
 	"database/sql"
@@ -36,7 +37,8 @@ func (c *Checker) Check(ctx context.Context, t *progress.Tally, candidate []byte
 	}
 
 	t.HashQueries++
-	count, err := c.Cache.GetHashCount(ctx, sum[:])
+	// Clone only on the rare filter hit; passing sum[:] would escape sum every call.
+	count, err := c.Cache.GetHashCount(ctx, bytes.Clone(sum[:]))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil
 	}
