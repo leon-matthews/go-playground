@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"sync/atomic"
 	"time"
+	"unicode/utf8"
 
 	"github.com/dustin/go-humanize"
 
@@ -192,9 +193,13 @@ func Merge(ctx context.Context, logs logging.Logging, dbPath, csvPath string, in
 }
 
 // parseMergeRow validates one CSV record and returns its password and count.
-// It reports ok=false for a wrong field count or an unparseable, negative count.
+// It reports ok=false for a wrong field count, a password that is not valid
+// UTF-8, or an unparseable, negative count.
 func parseMergeRow(record []string) (password string, count int64, ok bool) {
 	if len(record) != 2 {
+		return "", 0, false
+	}
+	if !utf8.ValidString(record[0]) {
 		return "", 0, false
 	}
 	count, err := strconv.ParseInt(record[1], 10, 64)
