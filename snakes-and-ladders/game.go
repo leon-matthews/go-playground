@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"math/bits"
 	"math/rand/v2"
 )
 
@@ -83,7 +82,7 @@ var board = func() [101]uint8 {
 // Standard rules: you need the exact roll to land on 100, do not move if roll
 // overshoots it.
 //
-// Returns the list of moves taken to win the game. Each move is the dice
+// Returns the list of moves taken to win the game. Each move is the D6
 // roll, then the square you end up on. For example, one of the two possible
 // shortest, 7 move games is:
 //
@@ -98,19 +97,9 @@ var board = func() [101]uint8 {
 func snakesAndLadders(rng *rand.PCG, moves Game) Game {
 	moves = moves[:0]
 	place := 0
-	var batch uint64
-	rollsLeft := 0
+	d6 := D6{rng: rng}
 	for {
-		// Chaining multiplies peels eight dice rolls from a single PCG call
-		if rollsLeft == 0 {
-			batch = rng.Uint64()
-			rollsLeft = 8
-		}
-		// The high word of x*6 is the roll, the low word the next x; bias one part in 2^64/6^8
-		hi, lo := bits.Mul64(batch, 6)
-		batch = lo
-		rollsLeft--
-		roll := int(hi) + 1
+		roll := d6.roll()
 		landed := place + roll
 
 		// Too high? Stay where you are. Otherwise, move to where the square leads.

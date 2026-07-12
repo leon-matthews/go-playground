@@ -5,7 +5,7 @@ plays many, many solo games of snakes and ladders.
 
 The command-line interface matches the Python script, but the internals are idiomatic Go:
 worker goroutines replace the process pool, the board lives in an array rather than a
-dictionary, and each worker rolls its dice with its own PCG random number generator from
+dictionary, and each worker rolls its D6 with its own PCG random number generator from
 `math/rand/v2`.
 
 ## Build
