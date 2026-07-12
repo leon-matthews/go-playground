@@ -4,7 +4,7 @@
 
 ## Work PC
 
-./pwnedpasswords bruteforce -p1m -a4 --resume='cM/BFj_'
+./pwnedpasswords bruteforce -p1m -a4 --resume='y2LfD>R'
 
 
 ## Home PC
