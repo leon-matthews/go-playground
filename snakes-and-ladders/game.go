@@ -34,31 +34,49 @@ func (m *Move) UnmarshalJSON(data []byte) error {
 // Game is the full roll and position history of a single game.
 type Game []Move
 
-// board maps a square to where its ladder or snake leads, or zero if it has neither.
-var board = [101]int{
-	// Ladders
-	1:  38,
-	4:  14,
-	9:  31,
-	21: 42,
-	28: 84,
-	36: 44,
-	51: 67,
-	71: 91,
-	80: 100,
+// board maps a square to the square you end up on after landing on it.
+//
+// Most squares map to themselves; those holding the foot of a ladder or the
+// head of a snake map to its far end instead.
+var board = func() [101]uint8 {
+	jumps := [101]uint8{
+		// Ladders
+		1:  38,
+		4:  14,
+		9:  31,
+		21: 42,
+		28: 84,
+		36: 44,
+		51: 67,
+		71: 91,
+		80: 100,
 
-	// Snakes
-	98: 78,
-	95: 75,
-	93: 73,
-	87: 24,
-	64: 60,
-	62: 19,
-	56: 53,
-	49: 11,
-	48: 26,
-	16: 6,
-}
+		// Snakes
+		98: 78,
+		95: 75,
+		93: 73,
+		87: 24,
+		64: 60,
+		62: 19,
+		56: 53,
+		49: 11,
+		48: 26,
+		16: 6,
+	}
+
+	// Folding the identity in spares the game loop an unpredictable branch,
+	// and byte-sized entries keep the whole table within two cache lines
+	var squares [101]uint8
+	for square := range squares {
+		squares[square] = uint8(square)
+	}
+	for square, jump := range jumps {
+		if jump != 0 {
+			squares[square] = jump
+		}
+	}
+	return squares
+}()
 
 // snakesAndLadders plays a solo game of snakes and ladders.
 //
@@ -86,13 +104,9 @@ func snakesAndLadders(rng *rand.PCG, moves Game) Game {
 		roll := int(hi) + 1
 		landed := place + roll
 
-		// Too high? Stay where you are. Otherwise, special move or as rolled.
+		// Too high? Stay where you are. Otherwise, move to where the square leads.
 		if landed <= 100 {
-			if jump := board[landed]; jump != 0 {
-				place = jump
-			} else {
-				place = landed
-			}
+			place = int(board[landed])
 		}
 
 		moves = append(moves, Move{uint8(roll), uint8(place)})
