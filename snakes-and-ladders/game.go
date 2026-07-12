@@ -98,9 +98,18 @@ var board = func() [101]uint8 {
 func snakesAndLadders(rng *rand.PCG, moves Game) Game {
 	moves = moves[:0]
 	place := 0
+	var batch uint64
+	rollsLeft := 0
 	for {
-		// Roll the dice; the high word of x*6 maps x onto 0..5, bias one part in 2^64
-		hi, _ := bits.Mul64(rng.Uint64(), 6)
+		// Chaining multiplies peels eight dice rolls from a single PCG call
+		if rollsLeft == 0 {
+			batch = rng.Uint64()
+			rollsLeft = 8
+		}
+		// The high word of x*6 is the roll, the low word the next x; bias one part in 2^64/6^8
+		hi, lo := bits.Mul64(batch, 6)
+		batch = lo
+		rollsLeft--
 		roll := int(hi) + 1
 		landed := place + roll
 
