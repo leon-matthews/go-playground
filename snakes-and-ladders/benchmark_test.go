@@ -15,7 +15,7 @@ import (
 // BenchmarkPlayGames measures playGames throughput in games per second.
 func BenchmarkPlayGames(b *testing.B) {
 	// Fixed seed keeps runs comparable between benchmark sessions
-	rng := rand.NewPCG(1, 2)
+	rng := rand.New(rand.NewPCG(1, 2))
 	const gamesPerOp = 1_000
 	ctx := context.Background()
 
@@ -31,7 +31,7 @@ func BenchmarkPlayGames(b *testing.B) {
 
 // TestPlayGames checks game counting and record keeping over a small run.
 func TestPlayGames(t *testing.T) {
-	rng := rand.NewPCG(1, 2)
+	rng := rand.New(rand.NewPCG(1, 2))
 	var remaining atomic.Int64
 	remaining.Store(1000)
 	result := playGames(context.Background(), rng, &remaining)
@@ -63,7 +63,7 @@ func TestPlayGamesCancelled(t *testing.T) {
 	cancel()
 	var remaining atomic.Int64
 	remaining.Store(1_000_000)
-	result := playGames(ctx, rand.NewPCG(1, 2), &remaining)
+	result := playGames(ctx, rand.New(rand.NewPCG(1, 2)), &remaining)
 	if result.NumGames != 0 {
 		t.Errorf("NumGames = %d, want 0", result.NumGames)
 	}
@@ -75,7 +75,7 @@ func TestPlayGamesDeadline(t *testing.T) {
 	defer cancel()
 	var remaining atomic.Int64
 	remaining.Store(math.MaxInt64)
-	result := playGames(ctx, rand.NewPCG(3, 4), &remaining)
+	result := playGames(ctx, rand.New(rand.NewPCG(3, 4)), &remaining)
 	if result.NumGames < 1 {
 		t.Error("expected at least one game before the deadline")
 	}

@@ -151,7 +151,7 @@ const chunkGames = 1024
 // Games are claimed from the shared remaining counter, one chunk at a time,
 // until the counter is exhausted or the context is cancelled. Returns the
 // games actually played, including the shortest and longest seen.
-func playGames(ctx context.Context, rng *rand.PCG, remaining *atomic.Int64) BenchmarkResult {
+func playGames(ctx context.Context, rng *rand.Rand, remaining *atomic.Int64) BenchmarkResult {
 	// Counts are indexed by game length; 512 covers all but the freakiest games
 	counts := make(gameCounts, 512)
 	var shortest, longest Game
@@ -159,6 +159,9 @@ func playGames(ctx context.Context, rng *rand.PCG, remaining *atomic.Int64) Benc
 
 	// Reuse one buffer for every game, keeping copies of record-breaking games only
 	moves := make(Game, 0, 512)
+
+	// One die for the whole run, so rolls left in its batch carry over between games
+	d6 := D6{rng: rng}
 
 	start := time.Now()
 	for ctx.Err() == nil {
@@ -168,7 +171,7 @@ func playGames(ctx context.Context, rng *rand.PCG, remaining *atomic.Int64) Benc
 			break
 		}
 		for range games {
-			moves = snakesAndLadders(rng, moves)
+			moves = snakesAndLadders(&d6, moves)
 			numMoves := len(moves)
 			if numMoves >= len(counts) {
 				counts = append(counts, make(gameCounts, numMoves+1-len(counts))...)
@@ -212,8 +215,9 @@ func benchmarkParallel(ctx context.Context, numJobs int, totalGames int64) Bench
 	results := make(chan BenchmarkResult, numJobs)
 	for range numJobs {
 		go func() {
-			rng := rand.NewPCG(rand.Uint64(), rand.Uint64())
-			results <- playGames(ctx, rng, &remaining)
+			pcg := rand.NewPCG(rand.Uint64(), rand.Uint64())
+			r := rand.New(pcg)
+			results <- playGames(ctx, r, &remaining)
 		}()
 	}
 

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand/v2"
 )
 
 // Move records a single turn: the dice roll, then the square ended up on.
@@ -89,15 +88,15 @@ var board = func() [101]uint8 {
 //	[(4, 14), (6, 20), (6, 26), (2, 84), (5, 89), (5, 94), (6, 100)]
 //
 // The moves buffer is reused to avoid an allocation per game: the returned
-// game is only valid until the next call with the same buffer.
+// game is only valid until the next call with the same buffer. The die is
+// caller-owned so that rolls left in its batch carry over to the next game.
 //
 // See:
 //
 //	https://en.wikipedia.org/wiki/Snakes_and_ladders
-func snakesAndLadders(rng *rand.PCG, moves Game) Game {
+func snakesAndLadders(d6 *D6, moves Game) Game {
 	moves = moves[:0]
 	place := 0
-	d6 := D6{rng: rng}
 	for {
 		roll := d6.roll()
 		landed := place + roll
