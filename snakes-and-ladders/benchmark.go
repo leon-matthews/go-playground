@@ -1,4 +1,5 @@
-package main
+// Package ladders plays and benchmarks solo games of snakes and ladders.
+package ladders
 
 import (
 	"context"
@@ -10,15 +11,17 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"local.dev/ladders/dice"
 )
 
-// gameCounts records how many games finished at each length, indexed by length.
+// GameCounts records how many games finished at each length, indexed by length.
 //
 // Counts are int64 so that long runs do not overflow on 32-bit builds.
-type gameCounts []int64
+type GameCounts []int64
 
 // MarshalJSON writes the counts as an object with keys in ascending game-length order.
-func (c gameCounts) MarshalJSON() ([]byte, error) {
+func (c GameCounts) MarshalJSON() ([]byte, error) {
 	var b strings.Builder
 	b.WriteByte('{')
 	first := true
@@ -37,12 +40,12 @@ func (c gameCounts) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON reads the length-keyed object form back into a counts slice.
-func (c *gameCounts) UnmarshalJSON(data []byte) error {
+func (c *GameCounts) UnmarshalJSON(data []byte) error {
 	var byLength map[string]int64
 	if err := json.Unmarshal(data, &byLength); err != nil {
 		return err
 	}
-	var counts gameCounts
+	var counts GameCounts
 	for key, count := range byLength {
 		length, err := strconv.Atoi(key)
 		if err != nil || length < 0 {
@@ -52,7 +55,7 @@ func (c *gameCounts) UnmarshalJSON(data []byte) error {
 			return fmt.Errorf("negative count for game length %d: %d", length, count)
 		}
 		if length >= len(counts) {
-			counts = append(counts, make(gameCounts, length+1-len(counts))...)
+			counts = append(counts, make(GameCounts, length+1-len(counts))...)
 		}
 		counts[length] = count
 	}
@@ -63,7 +66,7 @@ func (c *gameCounts) UnmarshalJSON(data []byte) error {
 // BenchmarkResult holds the results for a benchmark run.
 type BenchmarkResult struct {
 	// Counts maps game length against number of games.
-	Counts gameCounts `json:"counts"`
+	Counts GameCounts `json:"counts"`
 	// Elapsed is the seconds spent playing; combined results sum every worker's span.
 	Elapsed float64 `json:"elapsed"`
 	// Wall is the wall-clock seconds taken; combined results sum every run's wall.
@@ -78,7 +81,7 @@ type BenchmarkResult struct {
 
 // Add combines two results and creates a new one.
 func (r BenchmarkResult) Add(other BenchmarkResult) BenchmarkResult {
-	counts := make(gameCounts, max(len(r.Counts), len(other.Counts)))
+	counts := make(GameCounts, max(len(r.Counts), len(other.Counts)))
 	copy(counts, r.Counts)
 	for length, count := range other.Counts {
 		counts[length] += count
@@ -93,11 +96,11 @@ func (r BenchmarkResult) Add(other BenchmarkResult) BenchmarkResult {
 	}
 }
 
-// validate checks the cross-field consistency of a result.
+// Validate checks the cross-field consistency of a result.
 //
 // The counts must sum to the recorded game total, and the shortest and
 // longest games must match the lowest and highest counted lengths.
-func (r BenchmarkResult) validate() error {
+func (r BenchmarkResult) Validate() error {
 	var total int64
 	first, last := 0, 0
 	for length, count := range r.Counts {
@@ -122,6 +125,13 @@ func (r BenchmarkResult) validate() error {
 			len(r.Longest), last)
 	}
 	return nil
+}
+
+// Median returns the high median game length across all games played.
+//
+// An error is returned if no games were played, as the median is then undefined.
+func (r BenchmarkResult) Median() (float64, error) {
+	return multisetMedian(r.Counts, medianHigh)
 }
 
 // shorterGame returns the shorter of two games, ignoring empty ones.
@@ -153,7 +163,7 @@ const chunkGames = 1024
 // games actually played, including the shortest and longest seen.
 func playGames(ctx context.Context, rng *rand.Rand, remaining *atomic.Int64) BenchmarkResult {
 	// Counts are indexed by game length; 512 covers all but the freakiest games
-	counts := make(gameCounts, 512)
+	counts := make(GameCounts, 512)
 	var shortest, longest Game
 	var played int64
 
@@ -161,7 +171,7 @@ func playGames(ctx context.Context, rng *rand.Rand, remaining *atomic.Int64) Ben
 	moves := make(Game, 0, 512)
 
 	// One die for the whole run, so rolls left in its batch carry over between games
-	d6 := D6{rng: rng}
+	d6 := dice.NewD6(rng)
 
 	start := time.Now()
 	for ctx.Err() == nil {
@@ -171,10 +181,10 @@ func playGames(ctx context.Context, rng *rand.Rand, remaining *atomic.Int64) Ben
 			break
 		}
 		for range games {
-			moves = snakesAndLadders(&d6, moves)
+			moves = snakesAndLadders(d6, moves)
 			numMoves := len(moves)
 			if numMoves >= len(counts) {
-				counts = append(counts, make(gameCounts, numMoves+1-len(counts))...)
+				counts = append(counts, make(GameCounts, numMoves+1-len(counts))...)
 			}
 			counts[numMoves]++
 			if shortest == nil || numMoves < len(shortest) {
@@ -202,12 +212,12 @@ func playGames(ctx context.Context, rng *rand.Rand, remaining *atomic.Int64) Ben
 	}
 }
 
-// benchmarkParallel plays totalGames games shared between numJobs goroutines
-// and combines their results.
+// Run plays totalGames games shared between numJobs goroutines and combines
+// their results.
 //
 // Workers claim work in small chunks from a single pool, so they all finish
 // within one chunk of each other, and of the context deadline if one is set.
-func benchmarkParallel(ctx context.Context, numJobs int, totalGames int64) BenchmarkResult {
+func Run(ctx context.Context, numJobs int, totalGames int64) BenchmarkResult {
 	var remaining atomic.Int64
 	remaining.Store(totalGames)
 

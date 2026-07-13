@@ -1,8 +1,10 @@
-package main
+package ladders
 
 import (
 	"encoding/json"
 	"fmt"
+
+	"local.dev/ladders/dice"
 )
 
 // Move records a single turn: the dice roll, then the square ended up on.
@@ -94,11 +96,11 @@ var board = func() [101]uint8 {
 // See:
 //
 //	https://en.wikipedia.org/wiki/Snakes_and_ladders
-func snakesAndLadders(d6 *D6, moves Game) Game {
+func snakesAndLadders(d6 *dice.D6, moves Game) Game {
 	moves = moves[:0]
 	place := 0
 	for {
-		roll := d6.roll()
+		roll := d6.Roll()
 		landed := place + roll
 
 		// Too high? Stay where you are. Otherwise, move to where the square leads.

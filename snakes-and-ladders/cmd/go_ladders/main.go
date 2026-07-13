@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
+	"local.dev/ladders"
 )
 
 // options holds the parsed command-line arguments.
@@ -120,22 +121,22 @@ func parse(args []string) (options, error) {
 //
 // Every file must exist, parse, and pass the consistency check, except the
 // last, which is the output target and so is allowed to be missing.
-func readResults(paths []string) (BenchmarkResult, error) {
-	var combined BenchmarkResult
+func readResults(paths []string) (ladders.BenchmarkResult, error) {
+	var combined ladders.BenchmarkResult
 	for index, path := range paths {
 		data, err := os.ReadFile(path)
 		if err != nil {
 			if index == len(paths)-1 && errors.Is(err, os.ErrNotExist) {
 				continue
 			}
-			return BenchmarkResult{}, err
+			return ladders.BenchmarkResult{}, err
 		}
-		var result BenchmarkResult
+		var result ladders.BenchmarkResult
 		if err := json.Unmarshal(data, &result); err != nil {
-			return BenchmarkResult{}, fmt.Errorf("%s: %w", path, err)
+			return ladders.BenchmarkResult{}, fmt.Errorf("%s: %w", path, err)
 		}
-		if err := result.validate(); err != nil {
-			return BenchmarkResult{}, fmt.Errorf("%s: %w", path, err)
+		if err := result.Validate(); err != nil {
+			return ladders.BenchmarkResult{}, fmt.Errorf("%s: %w", path, err)
 		}
 		combined = combined.Add(result)
 	}
@@ -293,11 +294,11 @@ func run(opts options) int {
 	// Play in interval-long segments, updating the results file after each
 	start := time.Now()
 	interval := time.Duration(opts.interval) * time.Second
-	var result BenchmarkResult
+	var result ladders.BenchmarkResult
 	for {
 		// In seconds mode the parent deadline caps the final segment
 		segmentCtx, cancel := context.WithTimeout(ctx, interval)
-		segment := benchmarkParallel(segmentCtx, opts.jobs, totalGames-result.NumGames)
+		segment := ladders.Run(segmentCtx, opts.jobs, totalGames-result.NumGames)
 		cancel()
 		result = result.Add(segment)
 		result.Wall = time.Since(start).Seconds()
@@ -346,7 +347,7 @@ func run(opts options) int {
 //
 // The combining itself happens as the files are read; here the totals are
 // presented just as a benchmark run's would be.
-func merge(combined BenchmarkResult, paths []string) int {
+func merge(combined ladders.BenchmarkResult, paths []string) int {
 	target := paths[len(paths)-1]
 	sources := strings.Join(paths[:len(paths)-1], ", ")
 	fmt.Fprintf(os.Stderr, "Merging results from %s into %s\n", sources, target)
@@ -361,7 +362,7 @@ func merge(combined BenchmarkResult, paths []string) int {
 }
 
 // printSummary prints a result's game count, timings, and move records to stderr.
-func printSummary(result BenchmarkResult) int {
+func printSummary(result ladders.BenchmarkResult) int {
 	// Guard the rate against a zero wall, as comes from merging empty results
 	var rate float64
 	if result.Wall > 0 {
@@ -375,7 +376,7 @@ func printSummary(result BenchmarkResult) int {
 
 	// An interrupt can arrive before any games at all; skip the empty statistics
 	if result.NumGames > 0 {
-		median, err := multisetMedian(result.Counts, medianHigh)
+		median, err := result.Median()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "error:", err)
 			return 1
@@ -394,9 +395,9 @@ func printSummary(result BenchmarkResult) int {
 // The data goes to a temporary file beside the target, renamed into place
 // only once safely on disk, so a failed write cannot corrupt earlier results.
 // Results that fail the consistency check are refused outright.
-func writeResults(result BenchmarkResult, path string) error {
+func writeResults(result ladders.BenchmarkResult, path string) error {
 	// Catch double-count style bugs here, before they spread into the file
-	if err := result.validate(); err != nil {
+	if err := result.Validate(); err != nil {
 		return fmt.Errorf("refusing to write inconsistent results: %w", err)
 	}
 	encoded, err := json.MarshalIndent(result, "", "    ")

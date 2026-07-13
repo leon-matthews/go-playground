@@ -10,6 +10,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"local.dev/ladders"
 )
 
 // TestParseDefaults checks the options produced when no arguments are given.
@@ -247,7 +249,7 @@ func TestReadResults(t *testing.T) {
 	if combined.NumGames != 4 || combined.Elapsed != 3.0 || combined.Wall != 5.0 {
 		t.Errorf("combined = %+v, want NumGames 4, Elapsed 3.0, Wall 5.0", combined)
 	}
-	if want := (gameCounts{2: 4}); !slices.Equal(combined.Counts, want) {
+	if want := (ladders.GameCounts{2: 4}); !slices.Equal(combined.Counts, want) {
 		t.Errorf("Counts = %v, want %v", combined.Counts, want)
 	}
 
@@ -347,13 +349,13 @@ func TestWriteResults(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result := BenchmarkResult{
-		Counts:   gameCounts{2: 2},
+	result := ladders.BenchmarkResult{
+		Counts:   ladders.GameCounts{2: 2},
 		Elapsed:  1.5,
 		Wall:     2.5,
 		NumGames: 2,
-		Shortest: Game{{4, 14}, {6, 100}},
-		Longest:  Game{{4, 14}, {6, 100}},
+		Shortest: ladders.Game{{Roll: 4, Square: 14}, {Roll: 6, Square: 100}},
+		Longest:  ladders.Game{{Roll: 4, Square: 14}, {Roll: 6, Square: 100}},
 	}
 	if err := writeResults(result, target); err != nil {
 		t.Fatalf("writeResults returned error: %v", err)
@@ -363,7 +365,7 @@ func TestWriteResults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var written BenchmarkResult
+	var written ladders.BenchmarkResult
 	if err := json.Unmarshal(data, &written); err != nil {
 		t.Fatalf("written file does not parse: %v", err)
 	}
@@ -387,13 +389,13 @@ func TestWriteResults(t *testing.T) {
 func TestMerge(t *testing.T) {
 	dir := t.TempDir()
 	target := filepath.Join(dir, "target.json")
-	combined := BenchmarkResult{
-		Counts:   gameCounts{2: 2},
+	combined := ladders.BenchmarkResult{
+		Counts:   ladders.GameCounts{2: 2},
 		Elapsed:  1.5,
 		Wall:     2.5,
 		NumGames: 2,
-		Shortest: Game{{4, 14}, {6, 100}},
-		Longest:  Game{{4, 14}, {6, 100}},
+		Shortest: ladders.Game{{Roll: 4, Square: 14}, {Roll: 6, Square: 100}},
+		Longest:  ladders.Game{{Roll: 4, Square: 14}, {Roll: 6, Square: 100}},
 	}
 	if code := merge(combined, []string{filepath.Join(dir, "source.json"), target}); code != 0 {
 		t.Fatalf("merge returned %d, want 0", code)
@@ -402,7 +404,7 @@ func TestMerge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var written BenchmarkResult
+	var written ladders.BenchmarkResult
 	if err := json.Unmarshal(data, &written); err != nil {
 		t.Fatalf("written file does not parse: %v", err)
 	}

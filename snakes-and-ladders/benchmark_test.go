@@ -1,4 +1,4 @@
-package main
+package ladders
 
 import (
 	"context"
@@ -87,7 +87,7 @@ func TestPlayGamesDeadline(t *testing.T) {
 
 // TestBenchmarkParallelExactCount checks workers sharing the pool play exactly the total.
 func TestBenchmarkParallelExactCount(t *testing.T) {
-	result := benchmarkParallel(context.Background(), 4, 10_000)
+	result := Run(context.Background(), 4, 10_000)
 	if result.NumGames != 10_000 {
 		t.Errorf("NumGames = %d, want 10000", result.NumGames)
 	}
@@ -103,7 +103,7 @@ func TestBenchmarkParallelExactCount(t *testing.T) {
 // TestBenchmarkResultAdd checks merging of counts, totals, and record games.
 func TestBenchmarkResultAdd(t *testing.T) {
 	first := BenchmarkResult{
-		Counts:   gameCounts{7: 1, 30: 5},
+		Counts:   GameCounts{7: 1, 30: 5},
 		Elapsed:  1.5,
 		Wall:     0.75,
 		NumGames: 6,
@@ -111,7 +111,7 @@ func TestBenchmarkResultAdd(t *testing.T) {
 		Longest:  make(Game, 30),
 	}
 	second := BenchmarkResult{
-		Counts:   gameCounts{30: 2, 90: 1},
+		Counts:   GameCounts{30: 2, 90: 1},
 		Elapsed:  2.5,
 		Wall:     1.25,
 		NumGames: 3,
@@ -128,7 +128,7 @@ func TestBenchmarkResultAdd(t *testing.T) {
 	if combined.Wall != 2.0 {
 		t.Errorf("Wall = %v, want 2.0", combined.Wall)
 	}
-	want := gameCounts{7: 1, 30: 7, 90: 1}
+	want := GameCounts{7: 1, 30: 7, 90: 1}
 	if !slices.Equal(combined.Counts, want) {
 		t.Errorf("Counts = %v, want %v", combined.Counts, want)
 	}
@@ -138,11 +138,11 @@ func TestBenchmarkResultAdd(t *testing.T) {
 	}
 }
 
-// TestBenchmarkResultAddZero checks combining with the zero value, as benchmarkParallel does.
+// TestBenchmarkResultAddZero checks combining with the zero value, as Run does.
 func TestBenchmarkResultAddZero(t *testing.T) {
 	var zero BenchmarkResult
 	other := BenchmarkResult{
-		Counts:   gameCounts{8: 2},
+		Counts:   GameCounts{8: 2},
 		NumGames: 2,
 		Shortest: make(Game, 8),
 		Longest:  make(Game, 8),
@@ -156,40 +156,40 @@ func TestBenchmarkResultAddZero(t *testing.T) {
 // TestBenchmarkResultValidate checks consistent results pass and broken ones do not.
 func TestBenchmarkResultValidate(t *testing.T) {
 	good := BenchmarkResult{
-		Counts:   gameCounts{2: 1, 3: 2},
+		Counts:   GameCounts{2: 1, 3: 2},
 		NumGames: 3,
 		Shortest: Game{{4, 14}, {6, 100}},
 		Longest:  Game{{1, 38}, {2, 40}, {6, 100}},
 	}
-	if err := good.validate(); err != nil {
+	if err := good.Validate(); err != nil {
 		t.Errorf("validate returned error for consistent result: %v", err)
 	}
-	if err := (BenchmarkResult{}).validate(); err != nil {
+	if err := (BenchmarkResult{}).Validate(); err != nil {
 		t.Errorf("validate returned error for empty result: %v", err)
 	}
 
 	bads := map[string]BenchmarkResult{
 		"counts sum": {
-			Counts:   gameCounts{2: 1},
+			Counts:   GameCounts{2: 1},
 			NumGames: 2,
 			Shortest: Game{{4, 14}, {6, 100}},
 			Longest:  Game{{4, 14}, {6, 100}},
 		},
 		"shortest length": {
-			Counts:   gameCounts{2: 1},
+			Counts:   GameCounts{2: 1},
 			NumGames: 1,
 			Shortest: Game{{1, 38}, {2, 40}, {6, 100}},
 			Longest:  Game{{4, 14}, {6, 100}},
 		},
 		"longest length": {
-			Counts:   gameCounts{2: 1},
+			Counts:   GameCounts{2: 1},
 			NumGames: 1,
 			Shortest: Game{{4, 14}, {6, 100}},
 			Longest:  Game{{1, 38}, {2, 40}, {6, 100}},
 		},
 	}
 	for name, bad := range bads {
-		if err := bad.validate(); err == nil {
+		if err := bad.Validate(); err == nil {
 			t.Errorf("validate expected a %s error, got none", name)
 		}
 	}
@@ -197,7 +197,7 @@ func TestBenchmarkResultValidate(t *testing.T) {
 
 // TestGameCountsMarshalJSON checks keys are written in ascending numeric order.
 func TestGameCountsMarshalJSON(t *testing.T) {
-	counts := gameCounts{100: 3, 7: 1, 20: 2}
+	counts := GameCounts{100: 3, 7: 1, 20: 2}
 	encoded, err := counts.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON returned error: %v", err)
@@ -210,11 +210,11 @@ func TestGameCountsMarshalJSON(t *testing.T) {
 
 // TestGameCountsUnmarshalJSON checks the object form decodes, and bad input is rejected.
 func TestGameCountsUnmarshalJSON(t *testing.T) {
-	var counts gameCounts
+	var counts GameCounts
 	if err := counts.UnmarshalJSON([]byte(`{"7":1,"20":2,"100":3}`)); err != nil {
 		t.Fatalf("UnmarshalJSON returned error: %v", err)
 	}
-	want := gameCounts{7: 1, 20: 2, 100: 3}
+	want := GameCounts{7: 1, 20: 2, 100: 3}
 	if !slices.Equal(counts, want) {
 		t.Errorf("UnmarshalJSON = %v, want %v", counts, want)
 	}
@@ -228,7 +228,7 @@ func TestGameCountsUnmarshalJSON(t *testing.T) {
 // TestBenchmarkResultRoundTrip checks a result survives JSON encode and decode.
 func TestBenchmarkResultRoundTrip(t *testing.T) {
 	original := BenchmarkResult{
-		Counts:   gameCounts{7: 1, 9: 2},
+		Counts:   GameCounts{7: 1, 9: 2},
 		Elapsed:  1.25,
 		Wall:     2.5,
 		NumGames: 3,

@@ -1,4 +1,4 @@
-module go_ladders
+module local.dev/ladders
 
 go 1.26.4
 

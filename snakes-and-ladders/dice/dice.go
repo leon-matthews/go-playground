@@ -1,4 +1,5 @@
-package main
+// Package dice deals uniform die rolls drawn in batches from a random source.
+package dice
 
 import (
 	"math/bits"
@@ -21,8 +22,15 @@ type D6 struct {
 	rollsLeft int
 }
 
-// roll returns the next D6 roll, 1 to 6.
-func (d *D6) roll() int {
+// NewD6 returns a D6 drawing its rolls from the given random source.
+//
+// The source is caller-owned, so separate dice can be seeded independently.
+func NewD6(rng *rand.Rand) *D6 {
+	return &D6{rng: rng}
+}
+
+// Roll returns the next D6 roll, 1 to 6.
+func (d *D6) Roll() int {
 	if d.rollsLeft == 0 {
 		d.refill()
 	}
