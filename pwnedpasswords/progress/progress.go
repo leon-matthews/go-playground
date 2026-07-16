@@ -115,8 +115,9 @@ func (r *Reporter) StopAndReport() {
 // console line and the matching structured record to the file. filtered selects
 // which counter is the candidate total.
 func (p *Progress) ReportTo(console, file *slog.Logger, filtered bool) func(kind string) {
-	prev := p.Snapshot()
-	prevAt := time.Now()
+	start := p.Snapshot()
+	startAt := time.Now()
+	prev, prevAt := start, startAt
 	return func(kind string) {
 		c := p.Snapshot()
 		now := time.Now()
@@ -127,32 +128,35 @@ func (p *Progress) ReportTo(console, file *slog.Logger, filtered bool) func(kind
 			"found", c.Found,
 			"changed", c.Changed,
 		)
-		console.Info(humanProgress(kind, c, prev, now.Sub(prevAt), filtered))
+		// A tick rates against the previous tick; the summary averages over the run.
+		baseline, since := prev, now.Sub(prevAt)
+		if kind == "summary" {
+			baseline, since = start, now.Sub(startAt)
+		}
+		console.Info(humanProgress(kind, c, baseline, since, filtered))
 		prev, prevAt = c, now
 	}
 }
 
 // humanProgress renders a friendly one-line progress or summary message.
 //
-// A tick shows the candidate total with its per-second rate, the database-read
-// rate, and the write total, then the most recent match. The summary shows
-// cumulative totals only.
-func humanProgress(kind string, c, prev Tally, since time.Duration, filtered bool) string {
-	if kind == "summary" {
-		return fmt.Sprintf(
-			"Finished: %s candidates > %s db reads > %s writes",
-			humanize.Comma(candidateCount(c, filtered)),
-			humanize.Comma(c.HashQueries),
-			humanize.Comma(c.Changed),
-		)
-	}
+// A tick shows the candidate, database-read, and write totals, each with its
+// rate since the previous tick, then the most recent match. The summary shows
+// the same totals with their average rate over the whole run, prefixed with the
+// elapsed time.
+func humanProgress(kind string, c, baseline Tally, since time.Duration, filtered bool) string {
 	line := fmt.Sprintf(
-		"%s candidates (%s/s) > %s db reads/s > %s writes",
+		"%s candidates (%s/s) > %s db reads (%s/s) > %s writes (%s/s)",
 		humanize.Comma(candidateCount(c, filtered)),
-		humanize.Comma(perSecond(candidateCount(c, filtered)-candidateCount(prev, filtered), since)),
-		humanize.Comma(perSecond(c.HashQueries-prev.HashQueries, since)),
+		humanize.Comma(perSecond(candidateCount(c, filtered)-candidateCount(baseline, filtered), since)),
+		humanize.Comma(c.HashQueries),
+		humanize.Comma(perSecond(c.HashQueries-baseline.HashQueries, since)),
 		humanize.Comma(c.Changed),
+		humanize.Comma(perSecond(c.Changed-baseline.Changed, since)),
 	)
+	if kind == "summary" {
+		return fmt.Sprintf("Finished in %s: %s", since.Round(time.Second), line)
+	}
 	if c.Sample != "" {
 		line += " > found: " + c.Sample
 	}
