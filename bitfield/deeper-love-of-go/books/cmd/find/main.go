@@ -1,3 +1,4 @@
+// Package main implements a light-weight CLI to find a particular book
 package main
 
 import (
@@ -14,11 +15,16 @@ func main() {
 	}
 	id := os.Args[1]
 
-	catalogue := books.GetCatalogue()
-	book, ok := books.GetBook(catalogue, id)
+	catalogue, err := books.OpenCatalogue("testdata/catalogue.json")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	book, ok := catalogue.GetBook(id)
 	if !ok {
 		fmt.Fprintln(os.Stderr, "Sorry, I couldn't find that book in the catalog.")
 		return
 	}
-	fmt.Println(books.BookToString(book))
+	fmt.Println(book)
 }
