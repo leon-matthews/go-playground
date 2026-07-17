@@ -2,10 +2,8 @@ package books_test
 
 import (
 	"cmp"
-	"maps"
 	"path/filepath"
 	"slices"
-	"strings"
 	"testing"
 
 	"local.dev/books"
@@ -34,27 +32,8 @@ func TestAddBook_ReturnsErrorIfIDExists(t *testing.T) {
 func TestGetAllBooks_ReturnsAllBooks(t *testing.T) {
 	t.Parallel()
 	catalogue := getTestCatalogue()
-	want := []books.Book{
-		{
-			ID:     "abc",
-			Title:  "In the Company of Cheerful Ladies",
-			Author: "Alexander McCall Smith",
-			Copies: 1,
-		},
-		{
-			ID:     "def",
-			Title:  "White Heat",
-			Author: "Dominic Sandbrook",
-			Copies: 2,
-		},
-	}
 	got := catalogue.AllBooks()
-	slices.SortFunc(got, func(a, b books.Book) int {
-		return strings.Compare(a.Author, b.Author)
-	})
-	if !slices.Equal(want, got) {
-		t.Fatalf("want %#v, got %#v", want, got)
-	}
+	assertTestBooks(t, got)
 }
 
 func TestGetBook_FindsBookInCatalogByID(t *testing.T) {
@@ -139,6 +118,15 @@ func TestOpenCatalog_LoadsCatalogDataFromFile(t *testing.T) {
 	}
 }
 
+func TestNewCatalog_CreatesEmptyCatalog(t *testing.T) {
+	t.Parallel()
+	catalog := books.NewCatalogue()
+	books := catalog.AllBooks()
+	if len(books) > 0 {
+		t.Errorf("want empty catalog, got %#v", books)
+	}
+}
+
 func TestSetCopies_OnCatalogModifiesSpecifiedBook(t *testing.T) {
 	t.Parallel()
 	catalogue := getTestCatalogue()
@@ -158,50 +146,92 @@ func TestSetCopies_OnCatalogModifiesSpecifiedBook(t *testing.T) {
 	}
 }
 
-func TestSync_UpdatesJSONFile(t *testing.T) {
-	// Update copies for one book
+func TestSetCopies_IsRaceFree(t *testing.T) {
 	t.Parallel()
-	catalogue := getTestCatalogue()
-	want := 42
-	book, err := catalogue.SetCopies("abc", 42)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if book.Copies != want {
-		t.Errorf("want %d, got %d", want, book.Copies)
-	}
+	catalog := getTestCatalogue()
 
-	// Save changes to file
-	path := filepath.Join(t.TempDir(), "/catalogue.json")
-	err = catalogue.Sync(path)
-	if err != nil {
-		t.Fatal(err)
-	}
+	// Set copies for "abc" in new goroutine
+	go func() {
+		for range 100 {
+			_, err := catalog.SetCopies("abc", 0)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}()
 
-	// Read back and compare
-	updated, err := books.OpenCatalogue(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !maps.Equal(catalogue, updated) {
-		t.Errorf("want %+v, got %+v", catalogue, updated)
+	// Get copies for the same ID at the same time
+	for range 100 {
+		_, err := catalog.Copies("abc")
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
-// getTestCatalogue creates a shiny new catalogue for our tests
-func getTestCatalogue() books.Catalogue {
-	return map[string]books.Book{
-		"abc": {
+func TestSyncWritesCatalogDataToFile(t *testing.T) {
+	t.Parallel()
+	catalog := getTestCatalogue()
+	catalog.Path = filepath.Join(t.TempDir(), "/catalogue.json")
+	err := catalog.Sync()
+	if err != nil {
+		t.Fatal(err)
+	}
+	newCatalog, err := books.OpenCatalogue(catalog.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bookList := newCatalog.AllBooks()
+	assertTestBooks(t, bookList)
+}
+
+
+func assertTestBooks(t *testing.T, got []books.Book) {
+	t.Helper()
+	want := []books.Book{
+		{
 			Title:  "In the Company of Cheerful Ladies",
 			Author: "Alexander McCall Smith",
 			Copies: 1,
 			ID:     "abc",
 		},
-		"def": {
+		{
 			Title:  "White Heat",
 			Author: "Dominic Sandbrook",
 			Copies: 2,
-			ID:     "def",
+			ID:     "xyz",
 		},
 	}
+	slices.SortFunc(got, func(a, b books.Book) int {
+		return cmp.Compare(a.Author, b.Author)
+	})
+	t.Logf("%#v", want)
+	t.Logf("%#v", got)
+	if !slices.Equal(want, got) {
+		t.Fatalf("want %#v, got %#v", want, got)
+	}
+}
+
+// getTestCatalogue creates a shiny new catalogue for our tests
+func getTestCatalogue() *books.Catalogue {
+	c := books.NewCatalogue()
+	err := c.AddBook(books.Book{
+		Title:  "In the Company of Cheerful Ladies",
+		Author: "Alexander McCall Smith",
+		Copies: 1,
+		ID:     "abc",
+	})
+	if err != nil {
+		panic(err)
+	}
+	err = c.AddBook(books.Book{
+		Title:  "White Heat",
+		Author: "Dominic Sandbrook",
+		Copies: 2,
+		ID:     "xyz",
+	})
+	if err != nil {
+		panic(err)
+	}
+	return c
 }

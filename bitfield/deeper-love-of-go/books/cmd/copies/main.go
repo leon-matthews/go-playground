@@ -34,7 +34,7 @@ func main() {
 	}
 	fmt.Println(book)
 
-	err = catalogue.Sync("testdata/catalogue.json")
+	err = catalogue.Sync()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "saving catalogue: %v\n", err)
 	}
