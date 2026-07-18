@@ -185,7 +185,6 @@ func TestSyncWritesCatalogDataToFile(t *testing.T) {
 	assertTestBooks(t, bookList)
 }
 
-
 func assertTestBooks(t *testing.T, got []books.Book) {
 	t.Helper()
 	want := []books.Book{
@@ -205,8 +204,6 @@ func assertTestBooks(t *testing.T, got []books.Book) {
 	slices.SortFunc(got, func(a, b books.Book) int {
 		return cmp.Compare(a.Author, b.Author)
 	})
-	t.Logf("%#v", want)
-	t.Logf("%#v", got)
 	if !slices.Equal(want, got) {
 		t.Fatalf("want %#v, got %#v", want, got)
 	}
