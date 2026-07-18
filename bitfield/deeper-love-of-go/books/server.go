@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// ListenAndServe starts HTTP server
+// ListenAndServe starts HTTP server loop, running forever.
 func ListenAndServe(url string, c *Catalogue) error {
 	return http.ListenAndServe(url, listAllBooks(c))
 }
