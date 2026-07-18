@@ -1,14 +1,20 @@
 package books
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
 )
 
 func ListenAndServe(url string, c *Catalogue) error {
-	return http.ListenAndServe(url, http.HandlerFunc(hello))
+	return http.ListenAndServe(url, listAllBooks(c))
 }
 
-func hello(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "[]")
+func listAllBooks(c *Catalogue) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		b := c.AllBooks()
+		err := json.NewEncoder(w).Encode(b)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
