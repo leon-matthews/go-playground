@@ -1,8 +1,10 @@
-package humanise
+package humanise_test
 
 import (
 	"math"
 	"testing"
+
+	"local.dev/humanise"
 )
 
 func TestSignificant(t *testing.T) {
@@ -30,7 +32,7 @@ func TestSignificant(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := Significant(tt.number, tt.digits)
+			got, err := humanise.Significant(tt.number, tt.digits)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("Significant(%v, %d) error = %v, wantErr %v",
 					tt.number, tt.digits, err, tt.wantErr)
@@ -48,16 +50,16 @@ func TestSignificant(t *testing.T) {
 
 // TestSignificantSpecialValues covers values that need identity comparison.
 func TestSignificantSpecialValues(t *testing.T) {
-	if got, _ := Significant(math.NaN(), 2); !math.IsNaN(got) {
+	if got, _ := humanise.Significant(math.NaN(), 2); !math.IsNaN(got) {
 		t.Errorf("Significant(NaN, 2) = %v, want NaN", got)
 	}
-	if got, _ := Significant(math.Inf(1), 2); !math.IsInf(got, 1) {
+	if got, _ := humanise.Significant(math.Inf(1), 2); !math.IsInf(got, 1) {
 		t.Errorf("Significant(+Inf, 2) = %v, want +Inf", got)
 	}
-	if got, _ := Significant(math.Inf(-1), 2); !math.IsInf(got, -1) {
+	if got, _ := humanise.Significant(math.Inf(-1), 2); !math.IsInf(got, -1) {
 		t.Errorf("Significant(-Inf, 2) = %v, want -Inf", got)
 	}
-	if got, _ := Significant(math.Copysign(0, -1), 2); math.Signbit(got) {
+	if got, _ := humanise.Significant(math.Copysign(0, -1), 2); math.Signbit(got) {
 		t.Errorf("Significant(-0, 2) = %v, want +0 (no sign bit)", got)
 	}
 }

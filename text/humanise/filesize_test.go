@@ -1,8 +1,10 @@
-package humanise
+package humanise_test
 
 import (
 	"math"
 	"testing"
+
+	"local.dev/humanise"
 )
 
 func TestFileSize_(t *testing.T) {
@@ -33,7 +35,7 @@ func TestFileSize_(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := FileSize(tt.size)
+			got, err := humanise.FileSize(tt.size)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("FileSize(%v) error = %v, wantErr %v", tt.size, err, tt.wantErr)
 			}
@@ -70,7 +72,7 @@ func TestFileSizeIEC_(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := FileSizeIEC(tt.size)
+			got, err := humanise.FileSizeIEC(tt.size)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("FileSizeIEC(%v) error = %v, wantErr %v", tt.size, err, tt.wantErr)
 			}
