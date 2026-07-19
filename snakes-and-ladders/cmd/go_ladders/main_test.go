@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"local.dev/ladders"
 )
@@ -20,8 +21,8 @@ func TestParseDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse(nil) returned error: %v", err)
 	}
-	if opts.interval != 600 || opts.jobs != 1 || opts.numGames != 0 || opts.profile || opts.seconds != 10 {
-		t.Errorf("parse(nil) = %+v, want interval 600, jobs 1, numGames 0, no profile, seconds 10", opts)
+	if opts.progress != 60*time.Second || opts.jobs != 1 || opts.numGames != 0 || opts.profile || opts.seconds != 10 {
+		t.Errorf("parse(nil) = %+v, want progress 60s, jobs 1, numGames 0, no profile, seconds 10", opts)
 	}
 	if len(opts.jsonPaths) != 0 {
 		t.Errorf("parse(nil) jsonPaths = %v, want none", opts.jsonPaths)
@@ -51,14 +52,15 @@ func TestParsePaths(t *testing.T) {
 	}
 }
 
-// TestParseInterval checks both spellings of the update interval flag parse.
-func TestParseInterval(t *testing.T) {
+// TestParseProgress checks the progress interval parses as a duration.
+func TestParseProgress(t *testing.T) {
 	tests := []struct {
 		args []string
-		want int
+		want time.Duration
 	}{
-		{[]string{"--interval", "60", "A.json"}, 60},
-		{[]string{"-i=120", "A.json"}, 120},
+		{[]string{"--progress", "30s"}, 30 * time.Second},
+		{[]string{"-p", "30s"}, 30 * time.Second},
+		{[]string{"--progress=2m"}, 2 * time.Minute},
 	}
 	for _, test := range tests {
 		opts, err := parse(test.args)
@@ -66,8 +68,8 @@ func TestParseInterval(t *testing.T) {
 			t.Errorf("parse(%v) returned error: %v", test.args, err)
 			continue
 		}
-		if opts.interval != test.want {
-			t.Errorf("parse(%v) interval = %d, want %d", test.args, opts.interval, test.want)
+		if opts.progress != test.want {
+			t.Errorf("parse(%v) progress = %v, want %v", test.args, opts.progress, test.want)
 		}
 	}
 }
@@ -176,16 +178,14 @@ func TestParseJobs(t *testing.T) {
 	}
 }
 
-// TestParseProfile checks both spellings of the profile flag parse.
+// TestParseProfile checks the profile flag parses.
 func TestParseProfile(t *testing.T) {
-	for _, args := range [][]string{{"--profile"}, {"-p"}} {
-		opts, err := parse(args)
-		if err != nil {
-			t.Fatalf("parse(%v) returned error: %v", args, err)
-		}
-		if !opts.profile {
-			t.Errorf("parse(%v) profile = false, want true", args)
-		}
+	opts, err := parse([]string{"--profile"})
+	if err != nil {
+		t.Fatalf("parse(--profile) returned error: %v", err)
+	}
+	if !opts.profile {
+		t.Error("parse(--profile) profile = false, want true")
 	}
 }
 
@@ -198,14 +198,13 @@ func TestParseErrors(t *testing.T) {
 		{"-s=-3"},
 		{"-n", "0"},
 		{"-n=-100"},
-		{"-i=0", "A.json"},
-		{"-i=-60", "A.json"},
-		{"-i", "60"},
+		{"--progress=0", "A.json"},
+		{"--progress", "500ms"},
 		{"-j2", "A.json", "B.json"},
 		{"-n", "100", "A.json", "B.json"},
 		{"-s", "5", "A.json", "B.json"},
-		{"-i", "60", "A.json", "B.json"},
-		{"-p", "A.json", "B.json"},
+		{"--progress", "60s", "A.json", "B.json"},
+		{"-p", "60s", "A.json", "B.json"},
 		{"--profile", "A.json", "B.json"},
 		{"A.json", "A.json"},
 		{"./A.json", "A.json"},
@@ -282,10 +281,10 @@ func TestReadResults(t *testing.T) {
 func TestRun(t *testing.T) {
 	target := filepath.Join(t.TempDir(), "results.json")
 	opts := options{
-		interval:  600,
 		jobs:      2,
 		jsonPaths: []string{target},
 		numGames:  5000,
+		progress:  60 * time.Second,
 	}
 	for runs := int64(1); runs <= 2; runs++ {
 		if code := run(opts); code != 0 {
@@ -306,10 +305,10 @@ func TestRunProfile(t *testing.T) {
 	// The profile lands in the working directory, as go build expects
 	t.Chdir(t.TempDir())
 	opts := options{
-		interval: 600,
 		jobs:     1,
 		numGames: 1000,
 		profile:  true,
+		progress: 60 * time.Second,
 	}
 	if code := run(opts); code != 0 {
 		t.Fatalf("run returned %d, want 0", code)

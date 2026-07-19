@@ -22,17 +22,18 @@ import (
 	"syscall"
 	"time"
 
+	charmlog "github.com/charmbracelet/log"
 	"github.com/spf13/pflag"
 	"local.dev/ladders"
 )
 
 // options holds the parsed command-line arguments.
 type options struct {
-	interval  int
 	jobs      int
 	jsonPaths []string
 	numGames  int64
 	profile   bool
+	progress  time.Duration
 	seconds   int
 }
 
@@ -59,11 +60,11 @@ func parse(args []string) (options, error) {
 	numGames := flags.Int64P("games", "n", 0, "Total number of games to play, eg. 100 or 1_000_000")
 	seconds := flags.IntP("seconds", "s", 10, "Seconds to play for, 0 to run until interrupted")
 
-	// How often to update the results file during a long run?
-	interval := flags.IntP("interval", "i", 600, "Seconds between updates of the results file")
+	// How often to report progress and update the results file during a long run?
+	progress := flags.DurationP("progress", "p", 60*time.Second, "Interval between progress reports, eg. 30s or 2m")
 
 	// Capture a CPU profile? Its fixed name is the one 'go build' auto-detects.
-	profile := flags.BoolP("profile", "p", false, "Write a CPU profile to default.pgo for PGO builds")
+	profile := flags.Bool("profile", false, "Write a CPU profile to default.pgo for PGO builds")
 
 	if err := flags.Parse(normalizeJobs(args)); err != nil {
 		return options{}, err
@@ -72,11 +73,8 @@ func parse(args []string) (options, error) {
 		return options{}, errors.New("only one of -n and -s may be given")
 	}
 	if flags.NArg() > 1 && (flags.Changed("jobs") || flags.Changed("games") ||
-		flags.Changed("seconds") || flags.Changed("interval") || flags.Changed("profile")) {
-		return options{}, errors.New("merging several files plays no games, so -j, -n, -s, -i, and -p may not be given")
-	}
-	if flags.Changed("interval") && flags.NArg() == 0 {
-		return options{}, errors.New("-i sets how often the results file is updated, but no file was given")
+		flags.Changed("seconds") || flags.Changed("progress") || flags.Changed("profile")) {
+		return options{}, errors.New("merging several files plays no games, so -j, -n, -s, -p, and --profile may not be given")
 	}
 	if *jobs < 1 {
 		return options{}, fmt.Errorf("number of jobs must be at least one, given: %d", *jobs)
@@ -86,8 +84,8 @@ func parse(args []string) (options, error) {
 	if *seconds < 0 || int64(*seconds) > maxSeconds {
 		return options{}, fmt.Errorf("number of seconds out of range (0 to %d), given: %d", maxSeconds, *seconds)
 	}
-	if *interval < 1 || int64(*interval) > maxSeconds {
-		return options{}, fmt.Errorf("update interval out of range (1 to %d), given: %d", maxSeconds, *interval)
+	if *progress < time.Second {
+		return options{}, fmt.Errorf("progress interval must be at least one second, given: %v", *progress)
 	}
 
 	if flags.Changed("games") && *numGames < 1 {
@@ -108,11 +106,11 @@ func parse(args []string) (options, error) {
 	}
 
 	return options{
-		interval:  *interval,
 		jobs:      *jobs,
 		jsonPaths: flags.Args(),
 		numGames:  *numGames,
 		profile:   *profile,
+		progress:  *progress,
 		seconds:   *seconds,
 	}, nil
 }
@@ -291,15 +289,17 @@ func run(opts options) int {
 		fmt.Fprintf(os.Stderr, "using %d goroutines.\n", opts.jobs)
 	}
 
-	// Play in interval-long segments, updating the results file after each
+	// Play in progress-interval-long segments, reporting and updating the file after each
+	logger := newProgressLogger()
 	start := time.Now()
-	interval := time.Duration(opts.interval) * time.Second
 	var result ladders.BenchmarkResult
 	for {
 		// In seconds mode the parent deadline caps the final segment
-		segmentCtx, cancel := context.WithTimeout(ctx, interval)
+		segmentStart := time.Now()
+		segmentCtx, cancel := context.WithTimeout(ctx, opts.progress)
 		segment := ladders.Run(segmentCtx, opts.jobs, totalGames-result.NumGames)
 		cancel()
+		segmentWall := time.Since(segmentStart)
 		result = result.Add(segment)
 		result.Wall = time.Since(start).Seconds()
 
@@ -313,6 +313,9 @@ func run(opts options) int {
 		if ctx.Err() != nil || result.NumGames >= totalGames {
 			break
 		}
+
+		// Still going: report a tick; the final segment is left to the summary
+		reportProgress(logger, result.NumGames, segment.NumGames, segmentWall, time.Since(start))
 	}
 
 	// Note interruption before calling stop, as stop itself cancels the context
@@ -359,6 +362,26 @@ func merge(combined ladders.BenchmarkResult, paths []string) int {
 		return 1
 	}
 	return 0
+}
+
+// newProgressLogger builds the charm logger used for progress ticks on stderr.
+func newProgressLogger() *charmlog.Logger {
+	return charmlog.NewWithOptions(os.Stderr, charmlog.Options{
+		ReportTimestamp: true,
+		TimeFormat:      time.Kitchen,
+	})
+}
+
+// reportProgress logs one progress tick to the console.
+//
+// The line shows the games played so far, the rate over the segment just
+// finished, and the elapsed wall time.
+func reportProgress(logger *charmlog.Logger, played, segmentGames int64, segmentWall, elapsed time.Duration) {
+	var rate int64
+	if segmentWall > 0 {
+		rate = int64(math.Round(float64(segmentGames) / segmentWall.Seconds()))
+	}
+	logger.Infof("%s games (%s/s), %s elapsed", comma(played), comma(rate), elapsed.Round(time.Second))
 }
 
 // printSummary prints a result's game count, timings, and move records to stderr.
