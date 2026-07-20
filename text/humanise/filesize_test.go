@@ -85,3 +85,10 @@ func TestFileSizeIEC_(t *testing.T) {
 		})
 	}
 }
+
+// BenchmarkFileSize measures formatting a value that exercises the full unit path.
+func BenchmarkFileSize(b *testing.B) {
+	for b.Loop() {
+		humanise.FileSize(1500000)
+	}
+}

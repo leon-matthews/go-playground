@@ -63,3 +63,10 @@ func TestSignificantSpecialValues(t *testing.T) {
 		t.Errorf("Significant(-0, 2) = %v, want +0 (no sign bit)", got)
 	}
 }
+
+// BenchmarkSignificant measures the format-and-parse rounding round-trip.
+func BenchmarkSignificant(b *testing.B) {
+	for b.Loop() {
+		humanise.Significant(1234.567, 3)
+	}
+}

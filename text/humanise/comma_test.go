@@ -50,3 +50,10 @@ func TestUnderscore(t *testing.T) {
 		}
 	}
 }
+
+// BenchmarkComma measures formatting a worst-case 19-digit value.
+func BenchmarkComma(b *testing.B) {
+	for b.Loop() {
+		humanise.Comma(math.MaxInt64)
+	}
+}
