@@ -1,7 +1,8 @@
 # Go Playground Context & Rules
 
 This repo is a collection of Go learning resources and Go projects that are
-just in the exploration stage.
+just in the exploration stage. Code that has gestated for a while is expected
+to be production-ready.
 
 
 ## Commands to validate Go code
