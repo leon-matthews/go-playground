@@ -325,12 +325,12 @@ func (c *Cache) Flush() error {
 
 // Sweep removes folders under any root that weren't visited (CASCADE drops their files), and
 // drops files under visited folders whose basename isn't in the per-folder seen set. Builds
-// the seen sets internally from the scanner's FolderScans.
-func (c *Cache) Sweep(folderScans []FolderInfo, roots []string) error {
+// the seen sets internally from the scanner's FolderInfo values.
+func (c *Cache) Sweep(folderInfos []FolderInfo, roots []string) error {
 	if c == nil || c.db == nil {
 		return nil
 	}
-	seenFolders, seenFiles := buildSweepSets(folderScans)
+	seenFolders, seenFiles := buildSweepSets(folderInfos)
 	ack := make(chan error, 1)
 	op := cacheOp{sweep: &sweepPayload{
 		seenFolders: seenFolders,
@@ -351,7 +351,7 @@ func (c *Cache) Sweep(folderScans []FolderInfo, roots []string) error {
 	}
 }
 
-// buildSweepSets folds FolderScans into the seenFolders/seenFiles map shape Sweep's internal
+// buildSweepSets folds FolderInfo values into the seenFolders/seenFiles map shape Sweep's internal
 // SQL expects.
 func buildSweepSets(folderInfos []FolderInfo) (map[string]struct{}, map[string]map[string]struct{}) {
 	seenFolders := make(map[string]struct{}, len(folderInfos))
@@ -778,10 +778,7 @@ func collectOrphanNames(stmt *sql.Stmt, folderID int64, seen map[string]struct{}
 func deleteOrphanFiles(tx *sql.Tx, folderID int64, names []string) (int64, error) {
 	var total int64
 	for begin := 0; begin < len(names); begin += sweepDeleteChunk {
-		end := begin + sweepDeleteChunk
-		if end > len(names) {
-			end = len(names)
-		}
+		end := min(begin+sweepDeleteChunk, len(names))
 		chunk := names[begin:end]
 		placeholders := strings.TrimSuffix(strings.Repeat("?,", len(chunk)), ",")
 		args := make([]any, 0, len(chunk)+1)

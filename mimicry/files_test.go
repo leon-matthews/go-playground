@@ -183,7 +183,7 @@ func TestCollectRoots(t *testing.T) {
 
 		info, err := os.Stat(folders[0].Path)
 		require.NoError(t, err)
-		assert.True(t, info.ModTime().Equal(folders[0].Mtime), "FolderScan.Mtime should match a fresh stat")
+		assert.True(t, info.ModTime().Equal(folders[0].Mtime), "FolderInfo.Mtime should match a fresh stat")
 	})
 }
 
@@ -362,7 +362,7 @@ func TestScannerStalePath(t *testing.T) {
 	scanner := NewScanner(c, 4, nil, false, nil)
 	files := scanner.Process(scans)
 	require.Len(t, files, 1)
-	// Cache file entry matched on size+mtime so the file-level Layer-1 cache served the
+	// Cache file entry matched on size+mtime so the file-level cache served the
 	// (wrong) hash. The folder being stale only means we stat'd it - it doesn't force
 	// re-hashing of a file whose size+mtime still matches.
 	assert.Equal(t, wrong, files[0].Hash)
@@ -462,7 +462,7 @@ func TestScannerVerifyFailureDrops(t *testing.T) {
 
 	// Now simulate "I saw 2 files in this folder last scan, but only 1 is here now."
 	// We can't reproduce that via collectRoots (which sees current state); instead we
-	// craft a FolderScan that claims both children still exist.
+	// craft a FolderInfo that claims both children still exist.
 	scan := FolderInfo{
 		Path:     scans[0].Path,
 		Mtime:    folderInfo.ModTime(),

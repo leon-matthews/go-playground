@@ -19,7 +19,7 @@ func makeHash(seed byte) [32]byte {
 	return h
 }
 
-// sweepInputs synthesises the FolderScans Sweep expects from a flat list of file paths.
+// sweepInputs synthesises the FolderInfo values Sweep expects from a flat list of file paths.
 func sweepInputs(paths []string) []FolderInfo {
 	byFolder := make(map[string][]string)
 	for _, p := range paths {

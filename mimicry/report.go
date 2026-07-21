@@ -1,8 +1,9 @@
 package mimicry
 
 import (
+	"cmp"
 	"path/filepath"
-	"sort"
+	"slices"
 )
 
 // Summary is the total file count and combined size of a scan.
@@ -51,11 +52,11 @@ func ExtensionStats(files []FileInfo) []ExtensionStat {
 	for _, s := range byExt {
 		stats = append(stats, *s)
 	}
-	sort.Slice(stats, func(i, j int) bool {
-		if stats[i].Count != stats[j].Count {
-			return stats[i].Count > stats[j].Count
+	slices.SortFunc(stats, func(a, b ExtensionStat) int {
+		if a.Count != b.Count {
+			return cmp.Compare(b.Count, a.Count)
 		}
-		return stats[i].Extension < stats[j].Extension
+		return cmp.Compare(a.Extension, b.Extension)
 	})
 	return stats
 }
@@ -77,8 +78,8 @@ func DuplicateGroups(files []FileInfo) []DuplicateGroup {
 		if len(members) < 2 {
 			continue
 		}
-		sort.Slice(members, func(i, j int) bool {
-			return members[i].Path < members[j].Path
+		slices.SortFunc(members, func(a, b FileInfo) int {
+			return cmp.Compare(a.Path, b.Path)
 		})
 		groups = append(groups, DuplicateGroup{
 			Hash:  hash,
@@ -86,11 +87,11 @@ func DuplicateGroups(files []FileInfo) []DuplicateGroup {
 			Files: members,
 		})
 	}
-	sort.Slice(groups, func(i, j int) bool {
-		if groups[i].Size != groups[j].Size {
-			return groups[i].Size > groups[j].Size
+	slices.SortFunc(groups, func(a, b DuplicateGroup) int {
+		if a.Size != b.Size {
+			return cmp.Compare(b.Size, a.Size)
 		}
-		return filepath.Base(groups[i].Files[0].Path) < filepath.Base(groups[j].Files[0].Path)
+		return cmp.Compare(filepath.Base(a.Files[0].Path), filepath.Base(b.Files[0].Path))
 	})
 	return groups
 }

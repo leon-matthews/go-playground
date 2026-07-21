@@ -77,7 +77,7 @@ func (c *Collector) TotalFiles() int {
 	return n
 }
 
-// collectRoots walks each root concurrently and returns deduplicated FolderScans. Non-directory
+// collectRoots walks each root concurrently and returns deduplicated FolderInfo values. Non-directory
 // roots are logged and skipped; the first missing/unreadable root errors out.
 func (c *Collector) collectRoots(roots ...string) ([]FolderInfo, error) {
 	type result struct {
@@ -260,10 +260,7 @@ func (s *Scanner) Process(folderInfos []FolderInfo) []FileInfo {
 	for _, f := range folderInfos {
 		totalJobs += len(f.Children)
 	}
-	numWorkers := min(totalJobs, s.maxWorkers)
-	if numWorkers < 1 {
-		numWorkers = 1
-	}
+	numWorkers := max(min(totalJobs, s.maxWorkers), 1)
 
 	jobs := make(chan string, numWorkers)
 	results := make(chan FileInfo, numWorkers)
@@ -272,7 +269,7 @@ func (s *Scanner) Process(folderInfos []FolderInfo) []FileInfo {
 	var producers sync.WaitGroup
 
 	s.log.Info("starting workers", "count", numWorkers)
-	for i := 0; i < numWorkers; i++ {
+	for range numWorkers {
 		producers.Go(func() {
 			for path := range jobs {
 				info, err := s.processFile(path)
