@@ -6,14 +6,26 @@ are skipped on subsequent runs.
 
 ## Architecture
 
-- `main.go` - flag parsing, logger, wiring.
+Module `local.dev/monarch`. The engine is the `monarch` library at the repo root; the CLI lives
+in `cmd/` (`package main`, imports the library) and will grow into a Cobra multi-command tool.
+
+Library (`monarch`):
+
 - `files.go` - the walk and the hash pipeline. `Collector` walks the roots concurrently (call
   `Walk`, then read `.Folders` / `.AbsRoots`) and emits `FolderInfo` values (path, mtime, child
-  names). `Scanner` (`newScanner(cache, jobs, log, force)`) owns the worker pool;
+  names). `Scanner` (`NewScanner(cache, jobs, log, force)`) owns the worker pool;
   `Scanner.Process(folders)` runs the pipeline and returns `[]FileInfo`. `hashFile` is a pure
   SHA-256 helper.
 - `cache.go` - SQLite-backed persistent hash cache.
-- `report.go` - pure `FileInfo` processing; `analyse` prints the report.
+- `report.go` - pure aggregation over `[]FileInfo`: `Summarize`, `ExtensionStats`,
+  `DuplicateGroups` return data models, no I/O.
+
+CLI (`cmd/`):
+
+- `main.go` - flag parsing, logger, `cachePath`, wiring.
+- `report.go` - presentation: formats the library's report models to an `io.Writer`; owns
+  `formatSize`.
+- `multihandler.go` - fan-out `slog.Handler` (console + JSON log file).
 
 Every component takes a `*slog.Logger` via its constructor; passing `nil` swaps in a discard
 handler. The package-level `slog` default is never used.
@@ -21,7 +33,7 @@ handler. The package-level `slog` default is never used.
 ## Cache
 
 A `Cache` whose `db == nil` is a no-op (every method short-circuits) - the path taken when
-`openCache` fails but we still want to run without persistence.
+`OpenCache` fails but we still want to run without persistence.
 
 - `Set` is async: a single writer goroutine owns the write transaction and commits every
   `flushSize` rows or `flushInterval`, whichever comes first. `Flush` / `Close` block until
@@ -61,7 +73,7 @@ positives (re-stat catches them); false negatives are negligible.
 ## CLI
 
 `-v`/`-q` logging, `-m` min duplicate size, `-j` worker count (default `NumCPU`), `-f` force
-(ignore the folder-mtime cache). See `main.go` for exact defaults.
+(ignore the folder-mtime cache). See `cmd/main.go` for exact defaults.
 
 ## Verification
 

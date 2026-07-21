@@ -121,11 +121,10 @@ func main() {
 
 	scanner := monarch.NewScanner(cache, *jobs, log, *force)
 	files := scanner.Process(collector.Folders)
-	_ = files
 
 	if err := cache.Sweep(collector.Folders, collector.AbsRoots); err != nil {
 		log.Warn("cache sweep failed", "err", err)
 	}
 
-	analyse(files, *minSize)
+	printReport(os.Stdout, files, *minSize)
 }
