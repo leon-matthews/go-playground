@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"local.dev/mimicry/progress"
 )
 
 // FileInfo track per-file statistics
@@ -182,20 +184,22 @@ func hashFile(path string) ([32]byte, error) {
 	return out, nil
 }
 
-// Scanner owns the worker pool and per-scan dependencies (cache, logger).
+// Scanner owns the worker pool and per-scan dependencies (cache, logger, progress).
 type Scanner struct {
 	cache      *Cache
 	log        *slog.Logger
+	prog       *progress.Progress
 	maxWorkers int
 	force      bool
 }
 
-// NewScanner returns a Scanner; a nil logger is replaced with a discard logger.
-func NewScanner(cache *Cache, maxWorkers int, log *slog.Logger, force bool) *Scanner {
+// NewScanner returns a Scanner; a nil logger is replaced with a discard logger, and a nil
+// progress disables progress counting.
+func NewScanner(cache *Cache, maxWorkers int, log *slog.Logger, force bool, prog *progress.Progress) *Scanner {
 	if log == nil {
 		log = slog.New(slog.DiscardHandler)
 	}
-	return &Scanner{cache: cache, log: log, maxWorkers: maxWorkers, force: force}
+	return &Scanner{cache: cache, log: log, prog: prog, maxWorkers: maxWorkers, force: force}
 }
 
 // processFile stats and hashes a single path; see Process for the contract.
@@ -213,6 +217,7 @@ func (s *Scanner) processFile(path string) (FileInfo, error) {
 
 	if e, ok := s.cache.Get(path); ok && e.Size == fi.Size && e.ModTime.Equal(fi.ModTime) {
 		fi.Hash = e.Hash
+		s.prog.FromCache(1)
 		return fi, nil
 	}
 
@@ -224,6 +229,7 @@ func (s *Scanner) processFile(path string) (FileInfo, error) {
 	if err := s.cache.Set(path, CacheEntry{Size: fi.Size, ModTime: fi.ModTime, Hash: fi.Hash}); err != nil {
 		s.log.Warn("cache: failed to write entry", "path", path, "err", err)
 	}
+	s.prog.Hashed(path, fi.Size)
 	return fi, nil
 }
 
@@ -350,6 +356,7 @@ func (s *Scanner) tryTrustedFolder(scan FolderInfo, jobs chan<- string, results 
 			stats.fellThrough++
 		}
 	}
+	s.prog.FromCache(int64(stats.cachedFiles))
 	return stats, true
 }
 

@@ -338,7 +338,7 @@ func TestScannerTrustedPath(t *testing.T) {
 	require.NoError(t, c.SetFolderMtime(scans[0].Path, scans[0].Mtime))
 	require.NoError(t, c.Flush())
 
-	scanner := NewScanner(c, 4, nil, false)
+	scanner := NewScanner(c, 4, nil, false, nil)
 	files := scanner.Process(scans)
 	require.Len(t, files, 1)
 	// The verifier won't fire because this isn't a duplicate group (singleton).
@@ -359,7 +359,7 @@ func TestScannerStalePath(t *testing.T) {
 	require.NoError(t, c.SetFolderMtime(scans[0].Path, time.Unix(1, 0)))
 	require.NoError(t, c.Flush())
 
-	scanner := NewScanner(c, 4, nil, false)
+	scanner := NewScanner(c, 4, nil, false, nil)
 	files := scanner.Process(scans)
 	require.Len(t, files, 1)
 	// Cache file entry matched on size+mtime so the file-level Layer-1 cache served the
@@ -385,7 +385,7 @@ func TestScannerForceFlag(t *testing.T) {
 	require.NoError(t, c.SetFolderMtime(scans[0].Path, scans[0].Mtime))
 	require.NoError(t, c.Flush())
 
-	scanner := NewScanner(c, 4, nil, true)
+	scanner := NewScanner(c, 4, nil, true, nil)
 	files := scanner.Process(scans)
 	require.Len(t, files, 1)
 	// Same as the stale-path test - force makes us re-stat but file-level cache still applies.
@@ -402,7 +402,7 @@ func TestScannerVerifyCatchesInPlaceEdit(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, scans, 1)
 
-	scanner := NewScanner(c, 4, nil, false)
+	scanner := NewScanner(c, 4, nil, false, nil)
 
 	// First scan: populates cache + folder mtime.
 	firstFiles := scanner.Process(scans)
@@ -445,7 +445,7 @@ func TestScannerVerifyFailureDrops(t *testing.T) {
 	require.Len(t, scans, 1)
 
 	// First scan populates cache.
-	scanner := NewScanner(c, 4, nil, false)
+	scanner := NewScanner(c, 4, nil, false, nil)
 	_ = scanner.Process(scans)
 	require.NoError(t, c.Flush())
 

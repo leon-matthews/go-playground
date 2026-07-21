@@ -433,6 +433,53 @@ func (c *Cache) GetFilesInFolder(folder string) (map[string]CacheEntry, error) {
 	return out, nil
 }
 
+// AllFiles returns every cached file as a FileInfo, reconstructing full paths from the folders
+// join and deriving each extension from the name. Order is unspecified.
+//
+// This is a cold, one-shot read (the report path), so it runs a plain query rather than a
+// prepared statement kept open on the Cache.
+func (c *Cache) AllFiles() ([]FileInfo, error) {
+	if c == nil || c.db == nil {
+		return nil, nil
+	}
+	rows, err := c.db.Query(`SELECT d.path, f.name, f.size, f.modtime, f.hash
+		FROM files f JOIN folders d ON d.id = f.folder_id`)
+	if err != nil {
+		return nil, fmt.Errorf("query all files: %w", err)
+	}
+	defer rows.Close()
+
+	var out []FileInfo
+	for rows.Next() {
+		var (
+			folder  string
+			name    string
+			size    int64
+			modtime int64
+			digest  []byte
+		)
+		if err := rows.Scan(&folder, &name, &size, &modtime, &digest); err != nil {
+			return nil, fmt.Errorf("scan file row: %w", err)
+		}
+		if len(digest) != sha256.Size {
+			c.log.Warn("cache: unexpected hash length; skipping", "folder", folder, "name", name, "len", len(digest))
+			continue
+		}
+		fi := FileInfo{
+			Path:      filepath.Join(folder, name),
+			Size:      size,
+			ModTime:   time.Unix(0, modtime).UTC(),
+			Extension: filepath.Ext(name),
+		}
+		copy(fi.Hash[:], digest)
+		out = append(out, fi)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate file rows: %w", err)
+	}
+	return out, nil
+}
+
 // writer owns the write connection and serialises all mutating ops.
 func (c *Cache) writer() {
 	defer c.wg.Done()

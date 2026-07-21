@@ -1,4 +1,4 @@
-# dupe - duplicate file scanner
+# mimicry - duplicate file scanner
 
 CLI that walks one or more directory roots concurrently, hashes every regular file with
 SHA-256, and reports duplicate groups. Per-file hashes are cached in SQLite so unchanged files
@@ -7,31 +7,50 @@ are skipped on subsequent runs.
 ## Architecture
 
 Module `local.dev/mimicry`. The engine is the `mimicry` library at the repo root; the CLI lives
-in `cmd/` (`package main`, imports the library) and will grow into a Cobra multi-command tool.
-Logger construction shared by the CLI lives in the `logging` package (`local.dev/mimicry/logging`).
+in `cmd/` (`package main`, imports the library) and is a Cobra multi-command tool (`scan`,
+`report`). Logger construction shared by the CLI lives in the `logging` package
+(`local.dev/mimicry/logging`); scan progress accounting lives in `progress`
+(`local.dev/mimicry/progress`).
 
 Library (`mimicry`):
 
 - `files.go` - the walk and the hash pipeline. `Collector` walks the roots concurrently (call
   `Walk`, then read `.Folders` / `.AbsRoots`) and emits `FolderInfo` values (path, mtime, child
-  names). `Scanner` (`NewScanner(cache, jobs, log, force)`) owns the worker pool;
-  `Scanner.Process(folders)` runs the pipeline and returns `[]FileInfo`. `hashFile` is a pure
-  SHA-256 helper.
+  names). `Scanner` (`NewScanner(cache, jobs, log, force, prog)`) owns the worker pool;
+  `Scanner.Process(folders)` runs the pipeline and returns `[]FileInfo`, incrementing the
+  optional `*progress.Progress` (nil disables) as files are hashed or served from cache.
+  `hashFile` is a pure SHA-256 helper.
 - `cache.go` - SQLite-backed persistent hash cache.
 - `report.go` - pure aggregation over `[]FileInfo`: `Summarize`, `ExtensionStats`,
   `DuplicateGroups` return data models, no I/O.
 
-CLI (`cmd/`):
+CLI (`cmd/`) - a Cobra multi-command tool:
 
-- `main.go` - flag parsing, `cachePath`, wiring.
-- `report.go` - presentation: formats the library's report models to an `io.Writer`; owns
-  `formatSize`.
+- `main.go` - thin entry point (`newRootCmd().Execute()`).
+- `root.go` - `newRootCmd()`: persistent `-v`/`-q` flags, `cachePath`, `logLevel`, and the
+  subcommand wiring.
+- `scan.go` - the `scan ROOT...` command: walk + hash + populate + sweep the cache (the write
+  side). Drives a `progress.Reporter` around `Scanner.Process` and prints where the cache was
+  written.
+- `report.go` - the `report` command: reads the whole cache via `Cache.AllFiles` and formats the
+  summary, per-extension breakdown, and duplicate groups to stdout; owns `formatSize`. Read-only,
+  and prints where the cache was read from.
 
 Logging (`logging`):
 
-- `logging.go` - `Setup(level, logFilePath)` builds the shared logger: pretty console output on
+- `logging.go` - `Setup(level, logFilePath)` builds the full logger: pretty console output on
   stderr (level-filtered) fanned out with always-Debug JSON to the log file, via the internal
   `multiHandler`. A failed log-file open degrades to console-only rather than erroring.
+  `NewConsoleLogger(level)` returns a console-only logger for read-only commands (`report`).
+
+Progress (`progress`):
+
+- `progress.go` - `Progress` holds atomic scan counters (hashed, bytes hashed, from-cache, and a
+  sample path); the `Scanner` increments them directly (no per-goroutine tally - a file is coarse
+  enough that a hot atomic is free next to a SHA-256). `Reporter` (`StartReporter` /
+  `StopAndReport`) ticks every interval and once more for a summary; `ReportTo(prog, log, total)`
+  builds the report func, logging a friendly determinate line (`X/Y files (n%) | rate | bytes`)
+  plus structured attrs through the single scan logger. A nil `*Progress` is a no-op.
 
 Every component takes a `*slog.Logger` via its constructor; passing `nil` swaps in a discard
 handler. The package-level `slog` default is never used.
@@ -46,7 +65,8 @@ A `Cache` whose `db == nil` is a no-op (every method short-circuits) - the path 
   queued writes land; per-row errors are logged by the writer, not returned to callers.
 - `Sweep(folders, roots)` is synchronous: drops cache rows for folders/files no longer seen
   under the given roots, preserving folders outside those roots.
-- Reads (`Get`, `GetFolderMtime`, `GetFilesInFolder`) are synchronous.
+- Reads (`Get`, `GetFolderMtime`, `GetFilesInFolder`, `AllFiles`) are synchronous. `AllFiles`
+  reconstructs every cached file as a `[]FileInfo` and is the `report` command's read path.
 
 ## SQLite backend
 
@@ -78,15 +98,22 @@ positives (re-stat catches them); false negatives are negligible.
 
 ## CLI
 
-`-v`/`-q` logging, `-m` min duplicate size, `-j` worker count (default `NumCPU`), `-f` force
-(ignore the folder-mtime cache). See `cmd/main.go` for exact defaults.
+Two subcommands. `scan ROOT...` populates the cache: `-j` worker count (default `NumCPU`), `-f`
+force (ignore the folder-mtime cache), `-p` progress interval (default 10s; `-q` silences it).
+`report` reads the whole cache and prints duplicates: `-m` min duplicate size. `-v`/`-q` logging
+are persistent (both commands). The cache path is implicit under `os.UserCacheDir()`; both
+commands print it. See `cmd/scan.go` / `cmd/report.go` for exact defaults.
 
 ## Verification
 
-`go vet ./...` and `go test ./...`. For a full cache rebuild, `rm ~/.cache/dupe/cache.db*`.
+`go vet ./...` and `go test ./...`. For a full cache rebuild, `rm ~/.cache/mimicry/cache.db*`.
 
 ## Deferred / out of scope
 
 - Index on `files(hash)` to make duplicate grouping a SQL query (roughly doubles write cost).
-- Query helpers (`Cache.Duplicates()` etc.).
+- SQL-side duplicate grouping (`Cache.Duplicates()`); `report` currently reads `AllFiles` and
+  aggregates in Go.
 - Cross-process locking (WAL allows concurrent opens; only writes serialise).
+- Scoping `report` to given roots (currently reports the whole cache).
+- Threading a cancellation `context` through `Scanner.Process` (Ctrl-C relies on cache
+  flush-on-close, not mid-scan cancellation).

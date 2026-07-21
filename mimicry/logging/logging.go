@@ -11,17 +11,29 @@ import (
 	charmlog "github.com/charmbracelet/log"
 )
 
+// newConsoleHandler builds the colourised charm handler on stderr at the given level.
+func newConsoleHandler(level slog.Level) *charmlog.Logger {
+	return charmlog.NewWithOptions(os.Stderr, charmlog.Options{
+		Level:           slogToCharm(level),
+		ReportTimestamp: true,
+		TimeFormat:      time.Kitchen,
+	})
+}
+
+// NewConsoleLogger returns a console-only logger on stderr at the given level.
+//
+// Read-only commands such as report use it, so they never open or truncate the run log.
+func NewConsoleLogger(level slog.Level) *slog.Logger {
+	return slog.New(newConsoleHandler(level))
+}
+
 // Setup returns a logger that writes pretty output to stderr (level-filtered by level)
 // and JSON to logFilePath (always at Debug).
 //
 // If the log file can't be opened the returned file is nil and a warn is emitted via the
 // console handler; logging still works.
 func Setup(level slog.Level, logFilePath string) (*slog.Logger, *os.File) {
-	console := charmlog.NewWithOptions(os.Stderr, charmlog.Options{
-		Level:           slogToCharm(level),
-		ReportTimestamp: true,
-		TimeFormat:      time.Kitchen,
-	})
+	console := newConsoleHandler(level)
 
 	f, err := os.Create(logFilePath)
 	if err != nil {

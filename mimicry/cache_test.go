@@ -256,6 +256,39 @@ func TestCacheGetFilesInFolder(t *testing.T) {
 	assert.Empty(t, got)
 }
 
+func TestCacheAllFiles(t *testing.T) {
+	t.Run("returns every cached file as FileInfo", func(t *testing.T) {
+		c, _ := newCache(t)
+		t1 := time.Unix(1, 0).UTC()
+		require.NoError(t, c.Set("/scope/a.txt", CacheEntry{Size: 1, ModTime: t1, Hash: makeHash(0x01)}))
+		require.NoError(t, c.Set("/scope/sub/c.md", CacheEntry{Size: 3, ModTime: t1, Hash: makeHash(0x03)}))
+		require.NoError(t, c.Set("/other/noext", CacheEntry{Size: 4, ModTime: t1, Hash: makeHash(0x04)}))
+		require.NoError(t, c.Flush())
+
+		files, err := c.AllFiles()
+		require.NoError(t, err)
+		require.Len(t, files, 3)
+
+		byPath := make(map[string]FileInfo, len(files))
+		for _, f := range files {
+			byPath[f.Path] = f
+		}
+		require.Contains(t, byPath, "/scope/a.txt")
+		assert.Equal(t, int64(1), byPath["/scope/a.txt"].Size)
+		assert.Equal(t, ".txt", byPath["/scope/a.txt"].Extension)
+		assert.Equal(t, makeHash(0x01), byPath["/scope/a.txt"].Hash)
+		assert.Equal(t, ".md", byPath["/scope/sub/c.md"].Extension)
+		assert.Empty(t, byPath["/other/noext"].Extension)
+	})
+
+	t.Run("empty cache returns no files", func(t *testing.T) {
+		c, _ := newCache(t)
+		files, err := c.AllFiles()
+		require.NoError(t, err)
+		assert.Empty(t, files)
+	})
+}
+
 func TestCacheMigrationFromV1(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "cache.db")
 
