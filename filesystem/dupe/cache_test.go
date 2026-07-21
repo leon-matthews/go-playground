@@ -1,4 +1,4 @@
-package main
+package monarch
 
 import (
 	"os"
@@ -37,7 +37,7 @@ func sweepInputs(paths []string) []FolderInfo {
 func newCache(t *testing.T) (*Cache, string) {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "cache.db")
-	c, err := openCache(path, nil)
+	c, err := OpenCache(path, nil)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = c.Close() })
 	return c, path
@@ -46,7 +46,7 @@ func newCache(t *testing.T) (*Cache, string) {
 func TestOpenCache(t *testing.T) {
 	t.Run("missing file is created", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "nested", "deeper", "cache.db")
-		c, err := openCache(path, nil)
+		c, err := OpenCache(path, nil)
 		require.NoError(t, err)
 		t.Cleanup(func() { _ = c.Close() })
 
@@ -54,7 +54,7 @@ func TestOpenCache(t *testing.T) {
 	})
 
 	t.Run("empty path returns no-op cache", func(t *testing.T) {
-		c, err := openCache("", nil)
+		c, err := OpenCache("", nil)
 		require.NoError(t, err)
 		t.Cleanup(func() { _ = c.Close() })
 
@@ -68,7 +68,7 @@ func TestOpenCache(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "cache.db")
 		require.NoError(t, os.WriteFile(path, []byte("not-a-sqlite-file\n"), 0o644))
 
-		c, err := openCache(path, nil)
+		c, err := OpenCache(path, nil)
 		require.NoError(t, err)
 		t.Cleanup(func() { _ = c.Close() })
 
@@ -126,7 +126,7 @@ func TestCacheSet(t *testing.T) {
 		require.NoError(t, c.Set("/foo/a", want))
 		require.NoError(t, c.Close())
 
-		reopened, err := openCache(path, nil)
+		reopened, err := OpenCache(path, nil)
 		require.NoError(t, err)
 		t.Cleanup(func() { _ = reopened.Close() })
 
@@ -260,14 +260,14 @@ func TestCacheMigrationFromV1(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "cache.db")
 
 	// Build a v1-shape cache: hashes table + user_version=1.
-	c, err := openCache(path, nil)
+	c, err := OpenCache(path, nil)
 	require.NoError(t, err)
 	require.NoError(t, c.Close())
 	// Manually fake a v1 schema by stamping the file via the sqlite driver-less path:
 	// we open through our own code which always migrates, so instead we drop the v2
 	// tables and create a v1 hashes table, then reset user_version. This exercises the
-	// "had != 0 → warn + rebuild" branch on the next openCache.
-	scratch, err := openCache(path, nil)
+	// "had != 0 → warn + rebuild" branch on the next OpenCache.
+	scratch, err := OpenCache(path, nil)
 	require.NoError(t, err)
 	_, err = scratch.db.Exec("DROP TABLE files")
 	require.NoError(t, err)
@@ -280,7 +280,7 @@ func TestCacheMigrationFromV1(t *testing.T) {
 	require.NoError(t, scratch.Close())
 
 	// Reopen with current code - should detect mismatch and rebuild.
-	reopened, err := openCache(path, nil)
+	reopened, err := OpenCache(path, nil)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = reopened.Close() })
 

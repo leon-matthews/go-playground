@@ -1,4 +1,4 @@
-package main
+package monarch
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	_ "modernc.org/sqlite"
+	_ "modernc.org/sqlite" // registers the "sqlite" database/sql driver
 )
 
 // openTimeout bounds the initial sql.DB.Ping so an unreachable file fails fast.
@@ -90,21 +90,12 @@ type folderMtimePayload struct {
 	mtime time.Time
 }
 
-// cachePath returns the absolute path of the persistent hash cache.
-func cachePath() (string, error) {
-	dir, err := os.UserCacheDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(dir, "dupe", "cache.db"), nil
-}
-
-// openCache opens or creates the SQLite cache at path; rebuilds the schema if it's stale or absent.
-func openCache(path string, log *slog.Logger) (*Cache, error) {
+// OpenCache opens or creates the SQLite cache at path; rebuilds the schema if it's stale or absent.
+func OpenCache(path string, log *slog.Logger) (*Cache, error) {
 	return openCacheWithTimeout(path, openTimeout, log)
 }
 
-// openCacheWithTimeout is openCache with an explicit ping timeout for tests.
+// openCacheWithTimeout is OpenCache with an explicit ping timeout for tests.
 func openCacheWithTimeout(path string, timeout time.Duration, log *slog.Logger) (*Cache, error) {
 	if log == nil {
 		log = slog.New(slog.DiscardHandler)
@@ -662,7 +653,8 @@ func (c *Cache) runSweep(seenFolders map[string]struct{}, seenFiles map[string]m
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-	c.log.Info("cache sweep complete",
+	c.log.Info(
+		"cache sweep complete",
 		"folders_deleted", foldersDeleted,
 		"files_deleted", filesDeleted,
 		slog.Duration("elapsed", time.Since(start)),

@@ -1,4 +1,4 @@
-module dupe
+module local.dev/monarch
 
 go 1.26.2
 

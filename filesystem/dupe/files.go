@@ -1,4 +1,5 @@
-package main
+// Package monarch scans directory trees for duplicate files via SHA-256 and a SQLite hash cache.
+package monarch
 
 import (
 	"crypto/sha256"
@@ -35,8 +36,8 @@ type Collector struct {
 	log      *slog.Logger
 }
 
-// newCollector returns a Collector; a nil logger is replaced with a discard logger.
-func newCollector(log *slog.Logger) *Collector {
+// NewCollector returns a Collector; a nil logger is replaced with a discard logger.
+func NewCollector(log *slog.Logger) *Collector {
 	if log == nil {
 		log = slog.New(slog.DiscardHandler)
 	}
@@ -189,8 +190,8 @@ type Scanner struct {
 	force      bool
 }
 
-// newScanner returns a Scanner; a nil logger is replaced with a discard logger.
-func newScanner(cache *Cache, maxWorkers int, log *slog.Logger, force bool) *Scanner {
+// NewScanner returns a Scanner; a nil logger is replaced with a discard logger.
+func NewScanner(cache *Cache, maxWorkers int, log *slog.Logger, force bool) *Scanner {
 	if log == nil {
 		log = slog.New(slog.DiscardHandler)
 	}
@@ -304,7 +305,8 @@ func (s *Scanner) Process(folderInfos []FolderInfo) []FileInfo {
 
 	verified := s.verifyDuplicates(files, fromCache)
 
-	s.log.Info("scanner finished",
+	s.log.Info(
+		"scanner finished",
 		slog.Duration("elapsed", time.Since(start)),
 		"folders_trusted", totals.trustedFolders,
 		"folders_stale", totals.staleFolders,

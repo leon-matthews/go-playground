@@ -11,6 +11,8 @@ import (
 
 	charminglog "github.com/charmbracelet/log"
 	flag "github.com/spf13/pflag"
+
+	"local.dev/monarch"
 )
 
 var (
@@ -20,6 +22,15 @@ var (
 	jobs    = flag.IntP("jobs", "j", runtime.NumCPU(), "number of concurrent worker goroutines")
 	force   = flag.BoolP("force", "f", false, "stat every file, ignoring the folder-mtime cache")
 )
+
+// cachePath returns the absolute path of the persistent hash cache.
+func cachePath() (string, error) {
+	dir, err := os.UserCacheDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "dupe", "cache.db"), nil
+}
 
 // setupLogger returns a logger that writes pretty output to stderr (level-filtered by `level`)
 // and JSON to logFilePath (always at Debug). If the log file can't be opened the returned file
@@ -92,7 +103,7 @@ func main() {
 	// Collect paths under given roots
 	roots := flag.Args()
 	log.Info("scanning", "roots", roots)
-	collector := newCollector(log)
+	collector := monarch.NewCollector(log)
 	if err := collector.Walk(roots...); err != nil {
 		log.Error("collect roots failed", "err", err)
 		os.Exit(1)
@@ -102,13 +113,13 @@ func main() {
 		return
 	}
 
-	cache, err := openCache(cacheFile, log)
+	cache, err := monarch.OpenCache(cacheFile, log)
 	if err != nil {
 		log.Warn("cache disabled", "path", cacheFile, "err", err)
 	}
 	defer cache.Close()
 
-	scanner := newScanner(cache, *jobs, log, *force)
+	scanner := monarch.NewScanner(cache, *jobs, log, *force)
 	files := scanner.Process(collector.Folders)
 	_ = files
 

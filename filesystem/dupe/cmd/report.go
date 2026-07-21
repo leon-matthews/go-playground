@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"sort"
+
+	"local.dev/monarch"
 )
 
 // ExtensionStats tracks total per extension
@@ -13,14 +15,14 @@ type ExtensionStats struct {
 }
 
 // analyse prints summary, per-extension breakdown, and duplicate groups.
-func analyse(files []FileInfo, minSize int64) {
+func analyse(files []monarch.FileInfo, minSize int64) {
 	printSummary(files)
 	printByExtension(files)
 	printDuplicates(files, minSize)
 }
 
 // printSummary writes the total file count and combined size.
-func printSummary(files []FileInfo) {
+func printSummary(files []monarch.FileInfo) {
 	var totalSize int64
 	for _, f := range files {
 		totalSize += f.Size
@@ -29,7 +31,7 @@ func printSummary(files []FileInfo) {
 }
 
 // printByExtension writes a per-extension breakdown sorted by file count desc.
-func printByExtension(files []FileInfo) {
+func printByExtension(files []monarch.FileInfo) {
 	stats := make(map[string]*ExtensionStats)
 	for _, f := range files {
 		if _, ok := stats[f.Extension]; !ok {
@@ -62,15 +64,15 @@ func printByExtension(files []FileInfo) {
 }
 
 // printDuplicates writes duplicate groups at or above minSize, largest first.
-func printDuplicates(files []FileInfo, minSize int64) {
-	groups := make(map[[32]byte][]FileInfo)
+func printDuplicates(files []monarch.FileInfo, minSize int64) {
+	groups := make(map[[32]byte][]monarch.FileInfo)
 	for _, f := range files {
 		if f.Hash != ([32]byte{}) {
 			groups[f.Hash] = append(groups[f.Hash], f)
 		}
 	}
 
-	var dups [][]FileInfo
+	var dups [][]monarch.FileInfo
 	for _, group := range groups {
 		if len(group) < 2 || group[0].Size < minSize {
 			continue

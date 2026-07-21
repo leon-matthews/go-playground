@@ -1,4 +1,4 @@
-package main
+package monarch
 
 import (
 	"encoding/hex"
@@ -38,7 +38,7 @@ func TestCollectRoots(t *testing.T) {
 	t.Run("empty directory", func(t *testing.T) {
 		root := t.TempDir()
 
-		folders, err := newCollector(nil).collectRoots(root)
+		folders, err := NewCollector(nil).collectRoots(root)
 
 		require.NoError(t, err)
 		assert.Empty(t, allPaths(folders))
@@ -48,7 +48,7 @@ func TestCollectRoots(t *testing.T) {
 		root := t.TempDir()
 		want := writeFiles(t, root, "a.txt", "b.txt", "c.log")
 
-		folders, err := newCollector(nil).collectRoots(root)
+		folders, err := NewCollector(nil).collectRoots(root)
 
 		require.NoError(t, err)
 		assert.ElementsMatch(t, want, allPaths(folders))
@@ -56,14 +56,15 @@ func TestCollectRoots(t *testing.T) {
 
 	t.Run("nested directories", func(t *testing.T) {
 		root := t.TempDir()
-		want := writeFiles(t, root,
+		want := writeFiles(
+			t, root,
 			"top.txt",
 			"sub/one.txt",
 			"sub/two.txt",
 			"sub/deep/three.txt",
 		)
 
-		folders, err := newCollector(nil).collectRoots(root)
+		folders, err := NewCollector(nil).collectRoots(root)
 
 		require.NoError(t, err)
 		assert.ElementsMatch(t, want, allPaths(folders))
@@ -74,7 +75,7 @@ func TestCollectRoots(t *testing.T) {
 		require.NoError(t, os.MkdirAll(filepath.Join(root, "empty-dir"), 0o755))
 		want := writeFiles(t, root, "only.txt")
 
-		folders, err := newCollector(nil).collectRoots(root)
+		folders, err := NewCollector(nil).collectRoots(root)
 
 		require.NoError(t, err)
 		assert.ElementsMatch(t, want, allPaths(folders))
@@ -83,7 +84,7 @@ func TestCollectRoots(t *testing.T) {
 	t.Run("missing root returns error", func(t *testing.T) {
 		missing := filepath.Join(t.TempDir(), "does-not-exist")
 
-		folders, err := newCollector(nil).collectRoots(missing)
+		folders, err := NewCollector(nil).collectRoots(missing)
 
 		assert.Error(t, err)
 		assert.Empty(t, allPaths(folders))
@@ -104,7 +105,7 @@ func TestCollectRoots(t *testing.T) {
 		require.NoError(t, os.Chmod(locked, 0o000))
 		t.Cleanup(func() { _ = os.Chmod(locked, 0o755) })
 
-		folders, err := newCollector(nil).collectRoots(root)
+		folders, err := NewCollector(nil).collectRoots(root)
 
 		require.NoError(t, err)
 		assert.Contains(t, allPaths(folders), readable[0], "readable file should still be returned")
@@ -116,7 +117,7 @@ func TestCollectRoots(t *testing.T) {
 		wantA := writeFiles(t, rootA, "a.txt", "sub/b.txt")
 		wantB := writeFiles(t, rootB, "c.txt")
 
-		folders, err := newCollector(nil).collectRoots(rootA, rootB)
+		folders, err := NewCollector(nil).collectRoots(rootA, rootB)
 
 		require.NoError(t, err)
 		assert.ElementsMatch(t, append(wantA, wantB...), allPaths(folders))
@@ -126,7 +127,7 @@ func TestCollectRoots(t *testing.T) {
 		root := t.TempDir()
 		want := writeFiles(t, root, "top.txt", "sub/inner.txt")
 
-		folders, err := newCollector(nil).collectRoots(root, filepath.Join(root, "sub"))
+		folders, err := NewCollector(nil).collectRoots(root, filepath.Join(root, "sub"))
 
 		require.NoError(t, err)
 		assert.ElementsMatch(t, want, allPaths(folders))
@@ -137,7 +138,7 @@ func TestCollectRoots(t *testing.T) {
 		writeFiles(t, good, "a.txt")
 		missing := filepath.Join(t.TempDir(), "does-not-exist")
 
-		_, err := newCollector(nil).collectRoots(good, missing)
+		_, err := NewCollector(nil).collectRoots(good, missing)
 
 		assert.Error(t, err)
 	})
@@ -156,7 +157,7 @@ func TestCollectRoots(t *testing.T) {
 		dirLink := filepath.Join(root, "dir-link")
 		require.NoError(t, os.Symlink(filepath.Join(root, "sub"), dirLink))
 
-		folders, err := newCollector(nil).collectRoots(root)
+		folders, err := NewCollector(nil).collectRoots(root)
 
 		require.NoError(t, err)
 		assert.ElementsMatch(t, want, allPaths(folders))
@@ -166,7 +167,7 @@ func TestCollectRoots(t *testing.T) {
 		root := t.TempDir()
 		filePath := writeFiles(t, root, "lonely.txt")[0]
 
-		folders, err := newCollector(nil).collectRoots(filePath)
+		folders, err := NewCollector(nil).collectRoots(filePath)
 
 		require.NoError(t, err)
 		assert.Empty(t, folders)
@@ -176,7 +177,7 @@ func TestCollectRoots(t *testing.T) {
 		root := t.TempDir()
 		writeFiles(t, root, "a.txt")
 
-		folders, err := newCollector(nil).collectRoots(root)
+		folders, err := NewCollector(nil).collectRoots(root)
 		require.NoError(t, err)
 		require.NotEmpty(t, folders)
 
@@ -191,7 +192,7 @@ func TestCollector(t *testing.T) {
 		root := t.TempDir()
 		want := writeFiles(t, root, "a.txt", "sub/b.txt", "sub/c.txt")
 
-		c := newCollector(nil)
+		c := NewCollector(nil)
 		require.NoError(t, c.Walk(root))
 
 		assert.Equal(t, 3, c.TotalFiles())
@@ -203,7 +204,7 @@ func TestCollector(t *testing.T) {
 		root := t.TempDir()
 		filePath := writeFiles(t, root, "lonely.txt")[0]
 
-		c := newCollector(nil)
+		c := NewCollector(nil)
 		require.NoError(t, c.Walk(filePath))
 
 		assert.Empty(t, c.Folders)
@@ -214,7 +215,7 @@ func TestCollector(t *testing.T) {
 	t.Run("missing root errors before populating", func(t *testing.T) {
 		missing := filepath.Join(t.TempDir(), "does-not-exist")
 
-		c := newCollector(nil)
+		c := NewCollector(nil)
 		err := c.Walk(missing)
 
 		assert.Error(t, err)
@@ -327,7 +328,7 @@ func TestScannerTrustedPath(t *testing.T) {
 	pathA := writeFile(t, root, "a.txt", "real content")
 
 	c, _ := newCache(t)
-	scans, err := newCollector(nil).collectRoots(root)
+	scans, err := NewCollector(nil).collectRoots(root)
 	require.NoError(t, err)
 	require.Len(t, scans, 1)
 
@@ -337,7 +338,7 @@ func TestScannerTrustedPath(t *testing.T) {
 	require.NoError(t, c.SetFolderMtime(scans[0].Path, scans[0].Mtime))
 	require.NoError(t, c.Flush())
 
-	scanner := newScanner(c, 4, nil, false)
+	scanner := NewScanner(c, 4, nil, false)
 	files := scanner.Process(scans)
 	require.Len(t, files, 1)
 	// The verifier won't fire because this isn't a duplicate group (singleton).
@@ -349,7 +350,7 @@ func TestScannerStalePath(t *testing.T) {
 	pathA := writeFile(t, root, "a.txt", "real content")
 
 	c, _ := newCache(t)
-	scans, err := newCollector(nil).collectRoots(root)
+	scans, err := NewCollector(nil).collectRoots(root)
 	require.NoError(t, err)
 
 	// Cache the wrong hash and a wrong folder mtime → folder is stale → per-file path runs.
@@ -358,7 +359,7 @@ func TestScannerStalePath(t *testing.T) {
 	require.NoError(t, c.SetFolderMtime(scans[0].Path, time.Unix(1, 0)))
 	require.NoError(t, c.Flush())
 
-	scanner := newScanner(c, 4, nil, false)
+	scanner := NewScanner(c, 4, nil, false)
 	files := scanner.Process(scans)
 	require.Len(t, files, 1)
 	// Cache file entry matched on size+mtime so the file-level Layer-1 cache served the
@@ -372,7 +373,7 @@ func TestScannerForceFlag(t *testing.T) {
 	pathA := writeFile(t, root, "a.txt", "real content")
 
 	c, _ := newCache(t)
-	scans, err := newCollector(nil).collectRoots(root)
+	scans, err := NewCollector(nil).collectRoots(root)
 	require.NoError(t, err)
 
 	// Cache wrong hash + matching folder mtime → trusted path would serve the wrong hash.
@@ -384,7 +385,7 @@ func TestScannerForceFlag(t *testing.T) {
 	require.NoError(t, c.SetFolderMtime(scans[0].Path, scans[0].Mtime))
 	require.NoError(t, c.Flush())
 
-	scanner := newScanner(c, 4, nil, true)
+	scanner := NewScanner(c, 4, nil, true)
 	files := scanner.Process(scans)
 	require.Len(t, files, 1)
 	// Same as the stale-path test - force makes us re-stat but file-level cache still applies.
@@ -397,11 +398,11 @@ func TestScannerVerifyCatchesInPlaceEdit(t *testing.T) {
 	pathB := writeFile(t, root, "b.txt", "matching content")
 
 	c, _ := newCache(t)
-	scans, err := newCollector(nil).collectRoots(root)
+	scans, err := NewCollector(nil).collectRoots(root)
 	require.NoError(t, err)
 	require.Len(t, scans, 1)
 
-	scanner := newScanner(c, 4, nil, false)
+	scanner := NewScanner(c, 4, nil, false)
 
 	// First scan: populates cache + folder mtime.
 	firstFiles := scanner.Process(scans)
@@ -422,7 +423,7 @@ func TestScannerVerifyCatchesInPlaceEdit(t *testing.T) {
 	// Second scan: folder is trusted, both files served from cache with matching (old) hash -
 	// but the verification pass should re-stat them, see a.txt's size changed, re-hash, and
 	// emit divergent hashes.
-	scans2, err := newCollector(nil).collectRoots(root)
+	scans2, err := NewCollector(nil).collectRoots(root)
 	require.NoError(t, err)
 	secondFiles := scanner.Process(scans2)
 
@@ -439,12 +440,12 @@ func TestScannerVerifyFailureDrops(t *testing.T) {
 	pathB := writeFile(t, root, "b.txt", "matching content")
 
 	c, _ := newCache(t)
-	scans, err := newCollector(nil).collectRoots(root)
+	scans, err := NewCollector(nil).collectRoots(root)
 	require.NoError(t, err)
 	require.Len(t, scans, 1)
 
 	// First scan populates cache.
-	scanner := newScanner(c, 4, nil, false)
+	scanner := NewScanner(c, 4, nil, false)
 	_ = scanner.Process(scans)
 	require.NoError(t, c.Flush())
 
