@@ -8,6 +8,7 @@ are skipped on subsequent runs.
 
 Module `local.dev/mimicry`. The engine is the `mimicry` library at the repo root; the CLI lives
 in `cmd/` (`package main`, imports the library) and will grow into a Cobra multi-command tool.
+Logger construction shared by the CLI lives in the `logging` package (`local.dev/mimicry/logging`).
 
 Library (`mimicry`):
 
@@ -22,10 +23,15 @@ Library (`mimicry`):
 
 CLI (`cmd/`):
 
-- `main.go` - flag parsing, logger, `cachePath`, wiring.
+- `main.go` - flag parsing, `cachePath`, wiring.
 - `report.go` - presentation: formats the library's report models to an `io.Writer`; owns
   `formatSize`.
-- `multihandler.go` - fan-out `slog.Handler` (console + JSON log file).
+
+Logging (`logging`):
+
+- `logging.go` - `Setup(level, logFilePath)` builds the shared logger: pretty console output on
+  stderr (level-filtered) fanned out with always-Debug JSON to the log file, via the internal
+  `multiHandler`. A failed log-file open degrades to console-only rather than erroring.
 
 Every component takes a `*slog.Logger` via its constructor; passing `nil` swaps in a discard
 handler. The package-level `slog` default is never used.
