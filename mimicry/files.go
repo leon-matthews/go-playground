@@ -1,5 +1,5 @@
-// Package monarch scans directory trees for duplicate files via SHA-256 and a SQLite hash cache.
-package monarch
+// Package mimicry scans directory trees for duplicate files via SHA-256 and a SQLite hash cache.
+package mimicry
 
 import (
 	"crypto/sha256"

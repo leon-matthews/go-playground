@@ -12,7 +12,7 @@ import (
 	charminglog "github.com/charmbracelet/log"
 	flag "github.com/spf13/pflag"
 
-	"local.dev/monarch"
+	"local.dev/mimicry"
 )
 
 var (
@@ -103,7 +103,7 @@ func main() {
 	// Collect paths under given roots
 	roots := flag.Args()
 	log.Info("scanning", "roots", roots)
-	collector := monarch.NewCollector(log)
+	collector := mimicry.NewCollector(log)
 	if err := collector.Walk(roots...); err != nil {
 		log.Error("collect roots failed", "err", err)
 		os.Exit(1)
@@ -113,13 +113,13 @@ func main() {
 		return
 	}
 
-	cache, err := monarch.OpenCache(cacheFile, log)
+	cache, err := mimicry.OpenCache(cacheFile, log)
 	if err != nil {
 		log.Warn("cache disabled", "path", cacheFile, "err", err)
 	}
 	defer cache.Close()
 
-	scanner := monarch.NewScanner(cache, *jobs, log, *force)
+	scanner := mimicry.NewScanner(cache, *jobs, log, *force)
 	files := scanner.Process(collector.Folders)
 
 	if err := cache.Sweep(collector.Folders, collector.AbsRoots); err != nil {

@@ -1,4 +1,4 @@
-package monarch
+package mimicry
 
 import (
 	"encoding/hex"

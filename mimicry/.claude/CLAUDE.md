@@ -6,10 +6,10 @@ are skipped on subsequent runs.
 
 ## Architecture
 
-Module `local.dev/monarch`. The engine is the `monarch` library at the repo root; the CLI lives
+Module `local.dev/mimicry`. The engine is the `mimicry` library at the repo root; the CLI lives
 in `cmd/` (`package main`, imports the library) and will grow into a Cobra multi-command tool.
 
-Library (`monarch`):
+Library (`mimicry`):
 
 - `files.go` - the walk and the hash pipeline. `Collector` walks the roots concurrently (call
   `Walk`, then read `.Folders` / `.AbsRoots`) and emits `FolderInfo` values (path, mtime, child

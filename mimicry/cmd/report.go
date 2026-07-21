@@ -5,23 +5,23 @@ import (
 	"io"
 	"path/filepath"
 
-	"local.dev/monarch"
+	"local.dev/mimicry"
 )
 
 // printReport writes the scan summary, per-extension breakdown, and duplicate groups.
-func printReport(w io.Writer, files []monarch.FileInfo, minSize int64) {
-	printSummary(w, monarch.Summarize(files))
-	printExtensions(w, monarch.ExtensionStats(files))
-	printDuplicates(w, monarch.DuplicateGroups(files), minSize)
+func printReport(w io.Writer, files []mimicry.FileInfo, minSize int64) {
+	printSummary(w, mimicry.Summarize(files))
+	printExtensions(w, mimicry.ExtensionStats(files))
+	printDuplicates(w, mimicry.DuplicateGroups(files), minSize)
 }
 
 // printSummary writes the total file count and combined size.
-func printSummary(w io.Writer, s monarch.Summary) {
+func printSummary(w io.Writer, s mimicry.Summary) {
 	fmt.Fprintf(w, "Found %d files (%s)\n\n", s.Count, formatSize(s.Size))
 }
 
 // printExtensions writes a per-extension breakdown.
-func printExtensions(w io.Writer, stats []monarch.ExtensionStat) {
+func printExtensions(w io.Writer, stats []mimicry.ExtensionStat) {
 	fmt.Fprintln(w, "By extension:")
 	for _, s := range stats {
 		name := s.Extension
@@ -33,7 +33,7 @@ func printExtensions(w io.Writer, stats []monarch.ExtensionStat) {
 }
 
 // printDuplicates writes duplicate groups at or above minSize, largest first.
-func printDuplicates(w io.Writer, groups []monarch.DuplicateGroup, minSize int64) {
+func printDuplicates(w io.Writer, groups []mimicry.DuplicateGroup, minSize int64) {
 	fmt.Fprintf(w, "\nDuplicates (>= %s):\n", formatSize(minSize))
 	var shown int
 	for _, g := range groups {
