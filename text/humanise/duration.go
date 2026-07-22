@@ -49,3 +49,19 @@ func Duration(d time.Duration) string {
 	}
 	return fmt.Sprintf("%d seconds", seconds)
 }
+
+// Relative renders a signed time offset as an approximate human-readable phrase.
+//
+// A negative offset lies in the past, eg. "5 minutes ago", and a positive offset in
+// the future, eg. "in 3 days"; an offset of under a second either way is "now". The
+// magnitude is phrased by Duration; obtain the offset with eg. time.Until(t).
+func Relative(d time.Duration) string {
+	switch {
+	case -time.Second < d && d < time.Second:
+		return "now"
+	case d < 0:
+		return Duration(d) + " ago"
+	default:
+		return "in " + Duration(d)
+	}
+}

@@ -55,3 +55,39 @@ func BenchmarkDuration(b *testing.B) {
 		humanise.Duration(63113904 * time.Second)
 	}
 }
+
+// TestRelative covers past, future, the near-zero window and the sign extremes.
+func TestRelative(t *testing.T) {
+	tests := []struct {
+		name string
+		d    time.Duration
+		want string
+	}{
+		{"zero is now", 0, "now"},
+		{"sub-second past is now", -999 * time.Millisecond, "now"},
+		{"sub-second future is now", 999 * time.Millisecond, "now"},
+		{"one second ago", -1 * time.Second, "1 second ago"},
+		{"in one second", 1 * time.Second, "in 1 second"},
+		{"five minutes ago", -300 * time.Second, "5 minutes ago"},
+		{"in three days", 3 * 24 * time.Hour, "in 3 days"},
+		{"in two years", 63113904 * time.Second, "in 2 years"},
+		{"most negative offset", math.MinInt64, "292 years ago"},
+		{"most positive offset", math.MaxInt64, "in 292 years"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := humanise.Relative(tt.d)
+			if got != tt.want {
+				t.Errorf("Relative(%v) = %q, want %q", tt.d, got, tt.want)
+			}
+		})
+	}
+}
+
+// BenchmarkRelative measures formatting a past span that resolves at a mid unit.
+func BenchmarkRelative(b *testing.B) {
+	for b.Loop() {
+		humanise.Relative(-300 * time.Second)
+	}
+}
