@@ -45,16 +45,6 @@ func formatFileSize(size, base float64, suffixes []string) (string, error) {
 		return strconv.FormatFloat(bytes, 'f', 0, 64) + "B", nil
 	}
 
-	// Divide down until the value fits its unit, or units run out.
-	index := 0
-	size /= base
-	for size >= base && index < len(suffixes)-1 {
-		size /= base
-		index++
-	}
-	rounded, err := Significant(size, 3)
-	if err != nil {
-		return "", err
-	}
-	return strconv.FormatFloat(rounded, 'g', -1, 64) + suffixes[index], nil
+	mantissa, index := scale(size, base, len(suffixes)-1)
+	return formatMantissa(mantissa) + suffixes[index], nil
 }
