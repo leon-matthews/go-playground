@@ -26,6 +26,14 @@ type DuplicateGroup struct {
 	Files []FileInfo
 }
 
+// Reclaimable is the space freed by keeping one copy of the group and deleting the rest.
+func (g DuplicateGroup) Reclaimable() int64 {
+	if len(g.Files) < 2 {
+		return 0
+	}
+	return int64(len(g.Files)-1) * g.Size
+}
+
 // Summarize returns the file count and combined size of files.
 func Summarize(files []FileInfo) Summary {
 	var total int64
@@ -61,9 +69,10 @@ func ExtensionStats(files []FileInfo) []ExtensionStat {
 	return stats
 }
 
-// DuplicateGroups returns every set of two or more files sharing a content hash, largest first.
+// DuplicateGroups returns every set of two or more files sharing a content hash.
 //
-// Files within each group are ordered by path; files with a zero hash (never hashed) are excluded.
+// Groups are ordered by reclaimable space descending; files within each group are ordered by
+// path; files with a zero hash (never hashed) are excluded.
 func DuplicateGroups(files []FileInfo) []DuplicateGroup {
 	byHash := make(map[[32]byte][]FileInfo)
 	for _, f := range files {
@@ -88,8 +97,8 @@ func DuplicateGroups(files []FileInfo) []DuplicateGroup {
 		})
 	}
 	slices.SortFunc(groups, func(a, b DuplicateGroup) int {
-		if a.Size != b.Size {
-			return cmp.Compare(b.Size, a.Size)
+		if ra, rb := a.Reclaimable(), b.Reclaimable(); ra != rb {
+			return cmp.Compare(rb, ra)
 		}
 		return cmp.Compare(filepath.Base(a.Files[0].Path), filepath.Base(b.Files[0].Path))
 	})

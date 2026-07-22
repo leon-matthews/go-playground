@@ -4,31 +4,43 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
 	"path/filepath"
 
+	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 
 	"local.dev/mimicry"
 	"local.dev/mimicry/logging"
+	"local.dev/mimicry/tui"
 )
+
+// reportOptions collects the report command's flags.
+type reportOptions struct {
+	minSize    int64
+	extensions bool
+	plain      bool
+}
 
 // newReportCmd builds the "report" sub-command.
 func newReportCmd() *cobra.Command {
-	var minSize int64
+	var opts reportOptions
 	cmd := &cobra.Command{
 		Use:   "report",
-		Short: "Read the cache and report duplicate files",
+		Short: "Browse duplicate files from the cache",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runReport(cmd.OutOrStdout(), cmd.ErrOrStderr(), logLevel(), minSize)
+			return runReport(cmd.OutOrStdout(), cmd.ErrOrStderr(), logLevel(), opts)
 		},
 	}
-	cmd.Flags().Int64VarP(&minSize, "min-size", "m", 1024, "ignore duplicates smaller than this many bytes")
+	cmd.Flags().Int64VarP(&opts.minSize, "min-size", "m", 1024, "ignore duplicates smaller than this many bytes")
+	cmd.Flags().BoolVarP(&opts.extensions, "extensions", "e", false, "report the per-extension breakdown instead of duplicates")
+	cmd.Flags().BoolVar(&opts.plain, "plain", false, "print plain text instead of the interactive browser")
 	return cmd
 }
 
-// runReport reads every cached file and prints the summary, per-extension, and duplicate report.
-func runReport(stdout, stderr io.Writer, level slog.Level, minSize int64) error {
+// runReport reads the cache and either launches the interactive browser or prints a plain report.
+func runReport(stdout, stderr io.Writer, level slog.Level, opts reportOptions) error {
 	cacheFile, err := cachePath()
 	if err != nil {
 		return fmt.Errorf("cannot resolve cache path: %w", err)
@@ -50,15 +62,55 @@ func runReport(stdout, stderr io.Writer, level slog.Level, minSize int64) error 
 		return nil
 	}
 
-	printReport(stdout, files, minSize)
+	summary := mimicry.Summarize(files)
+	interactive := !opts.plain && isTTY(stdout)
+	if opts.extensions {
+		return reportExtensions(stdout, files, summary, interactive)
+	}
+	return reportDuplicates(stdout, files, summary, opts.minSize, interactive)
+}
+
+// reportDuplicates browses or prints the duplicate groups at or above minSize.
+func reportDuplicates(stdout io.Writer, files []mimicry.FileInfo, summary mimicry.Summary, minSize int64, interactive bool) error {
+	groups := aboveMinSize(mimicry.DuplicateGroups(files), minSize)
+	if len(groups) == 0 {
+		fmt.Fprintf(stdout, "No duplicates found (>= %s).\n", formatSize(minSize))
+		return nil
+	}
+	if interactive {
+		return tui.RunDuplicates(groups, summary)
+	}
+	printSummary(stdout, summary)
+	printDuplicates(stdout, groups, minSize)
 	return nil
 }
 
-// printReport writes the scan summary, per-extension breakdown, and duplicate groups.
-func printReport(w io.Writer, files []mimicry.FileInfo, minSize int64) {
-	printSummary(w, mimicry.Summarize(files))
-	printExtensions(w, mimicry.ExtensionStats(files))
-	printDuplicates(w, mimicry.DuplicateGroups(files), minSize)
+// reportExtensions browses or prints the per-extension breakdown.
+func reportExtensions(stdout io.Writer, files []mimicry.FileInfo, summary mimicry.Summary, interactive bool) error {
+	stats := mimicry.ExtensionStats(files)
+	if interactive {
+		return tui.RunExtensions(stats, summary)
+	}
+	printSummary(stdout, summary)
+	printExtensions(stdout, stats)
+	return nil
+}
+
+// aboveMinSize keeps only the duplicate groups whose per-file size is at least minSize.
+func aboveMinSize(groups []mimicry.DuplicateGroup, minSize int64) []mimicry.DuplicateGroup {
+	var kept []mimicry.DuplicateGroup
+	for _, g := range groups {
+		if g.Size >= minSize {
+			kept = append(kept, g)
+		}
+	}
+	return kept
+}
+
+// isTTY reports whether w is a terminal, i.e. whether the interactive browser can run.
+func isTTY(w io.Writer) bool {
+	f, ok := w.(*os.File)
+	return ok && isatty.IsTerminal(f.Fd())
 }
 
 // printSummary writes the total file count and combined size.
@@ -78,20 +130,13 @@ func printExtensions(w io.Writer, stats []mimicry.ExtensionStat) {
 	}
 }
 
-// printDuplicates writes duplicate groups at or above minSize, largest first.
+// printDuplicates writes the given duplicate groups, most reclaimable first.
 func printDuplicates(w io.Writer, groups []mimicry.DuplicateGroup, minSize int64) {
 	fmt.Fprintf(w, "\nDuplicates (>= %s):\n", formatSize(minSize))
-	var shown int
 	for _, g := range groups {
-		if g.Size < minSize {
-			continue
-		}
 		name := filepath.Base(g.Files[0].Path)
-		fmt.Fprintf(w, "  %s (%d copies, %s each)\n", name, len(g.Files), formatSize(g.Size))
-		shown++
-	}
-	if shown == 0 {
-		fmt.Fprintln(w, "  No duplicates found.")
+		fmt.Fprintf(w, "  %s (%d copies, %s each, %s reclaimable)\n",
+			name, len(g.Files), formatSize(g.Size), formatSize(g.Reclaimable()))
 	}
 }
 
