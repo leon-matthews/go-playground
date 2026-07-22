@@ -4,7 +4,7 @@
 
 ## Work PC
 
-./pwnedpasswords bruteforce -p1m -a4 --resume='auj[,,E+'
+./pwnedpasswords bruteforce -p1m -a4 --resume='aPEOX?it'
 
 
 ## Home PC
