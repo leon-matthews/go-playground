@@ -6,7 +6,7 @@ import (
 )
 
 // secondsPerYear is the mean Gregorian year.
-const secondsPerYear = int64(365.2425 * 24 * 60 * 60)
+const secondsPerYear = 31_556_952 // 365.2425 * 24 * 60 * 60
 
 // durationUnits pairs each unit name with its length in seconds, largest first.
 var durationUnits = []struct {

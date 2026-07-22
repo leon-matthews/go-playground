@@ -19,14 +19,3 @@ Python's [humanize](https://github.com/python-humanize/humanize) library.
 | `Duration`     | `Duration(3 * time.Hour)`   | `3 hours`       |
 | `Relative`     | `Relative(-5 * time.Minute)`| `5 minutes ago` |
 | `Significant`  | `Significant(1234.567, 3)`  | `1230`          |
-
-## Usage
-
-```go
-import "local.dev/humanise"
-
-fmt.Println(humanise.Comma(1234567)) // 1,234,567
-fmt.Println(humanise.Words(1200000)) // 1.2 million
-
-size, err := humanise.FileSize(4200) // "4.2kB", nil
-```

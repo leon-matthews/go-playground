@@ -1,10 +1,6 @@
 package humanise
 
-import (
-	"fmt"
-	"math"
-	"strconv"
-)
+import "strconv"
 
 // Unit suffixes for SI (base-1000) and IEC (base-1024) multiples, from kilo up.
 var (
@@ -14,37 +10,35 @@ var (
 
 // FileSize renders a byte count as a short, human-readable string using SI units.
 //
-// Sizes that round below 1000 show as a whole byte count; larger sizes use decimal
-// multiples of 1000 (kB, MB, GB …) and up to three significant figures, so
-// 4200 becomes "4.2kB". It returns an error for negative or non-finite sizes.
-func FileSize(size float64) (string, error) {
+// Counts below 1000 render as a whole number of bytes; larger counts use decimal
+// multiples of 1000 (kB, MB, GB …) carrying up to three significant figures, so 4200
+// becomes "4.2kB". A negative count renders by its magnitude with a leading minus.
+func FileSize(size int64) string {
 	return formatFileSize(size, 1000, siSuffixes)
 }
 
 // FileSizeIEC renders a byte count as a short, human-readable string using IEC units.
 //
-// Sizes that round below 1024 show as a whole byte count; larger sizes use binary
-// multiples of 1024 (KiB, MiB, GiB …) and up to three significant figures, so
-// 4200 becomes "4.1KiB". It returns an error for negative or non-finite sizes.
-func FileSizeIEC(size float64) (string, error) {
+// Counts below 1024 render as a whole number of bytes; larger counts use binary
+// multiples of 1024 (KiB, MiB, GiB …) carrying up to three significant figures, so 4200
+// becomes "4.1KiB". A negative count renders by its magnitude with a leading minus.
+func FileSizeIEC(size int64) string {
 	return formatFileSize(size, 1024, iecSuffixes)
 }
 
-func formatFileSize(size, base float64, suffixes []string) (string, error) {
-	switch {
-	case math.IsNaN(size) || math.IsInf(size, 0):
-		return "", fmt.Errorf("file size must be finite, got %v", size)
-	case size < 0:
-		return "", fmt.Errorf("file size must not be negative, got %v", size)
-	case size == 0:
-		return "0B", nil
+// formatFileSize renders size in multiples of base, labelled with suffixes from kilo up.
+func formatFileSize(size int64, base float64, suffixes []string) string {
+	// magnitude handles MinInt64 without overflow; the sign is restored afterwards.
+	bytes := magnitude(size)
+	sign := ""
+	if size < 0 {
+		sign = "-"
 	}
 
-	// Compare the rounded count so that sizes like 999.7 become "1kB", not "1000B".
-	if bytes := math.RoundToEven(size); bytes < base {
-		return strconv.FormatFloat(bytes, 'f', 0, 64) + "B", nil
+	if bytes < base {
+		return sign + strconv.FormatFloat(bytes, 'f', 0, 64) + "B"
 	}
 
-	mantissa, index := scale(size, base, len(suffixes)-1)
-	return formatMantissa(mantissa) + suffixes[index], nil
+	mantissa, index := scale(bytes, base, len(suffixes)-1)
+	return sign + formatMantissa(mantissa) + suffixes[index]
 }
