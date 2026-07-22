@@ -46,10 +46,12 @@ type Options struct {
 	DBPath     string
 	CachePath  string
 	FilterPath string
+	Level      int
 	Alphabet   []byte
 	Resume     string
 	Workers    int
 	Progress   time.Duration
+	Checkpoint time.Duration
 }
 
 // AlphabetForLevel returns the candidate character set for a level.
@@ -123,17 +125,36 @@ func Run(ctx context.Context, logs logging.Logging, opts Options) (err error) {
 	rep := progress.StartReporter(opts.Progress, prog.ReportTo(logs.Console, logs.File, found != nil))
 	defer rep.StopAndReport()
 
+	cpPath, err := resumeFilePath()
+	if err != nil {
+		return err
+	}
+	cp := &checkpointer{
+		path:     cpPath,
+		interval: opts.Checkpoint,
+		template: Checkpoint{
+			Version:            checkpointVersion,
+			Alphabet:           opts.Level,
+			Database:           opts.DBPath,
+			Cache:              opts.CachePath,
+			Filter:             opts.FilterPath,
+			Workers:            workers,
+			ProgressInterval:   opts.Progress.String(),
+			CheckpointInterval: opts.Checkpoint.String(),
+		},
+	}
+
 	if found == nil {
-		return searchSerial(ctx, chk, prog, opts.Alphabet, length, indices)
+		return searchSerial(ctx, chk, prog, cp, opts.Alphabet, length, indices)
 	}
 
 	slog.Info("parallel bruteforce", "workers", workers)
-	return searchParallel(ctx, chk, prog, opts.Alphabet, workers, length, indices)
+	return searchParallel(ctx, chk, prog, cp, opts.Alphabet, workers, length, indices)
 }
 
 // searchParallel enumerates candidates length by length, sharding each length
 // across workers and consulting the filter before any database lookup.
-func searchParallel(ctx context.Context, chk *checker.Checker, prog *progress.Progress, alphabet []byte, workers, startLength int, startCur []int) error {
+func searchParallel(ctx context.Context, chk *checker.Checker, prog *progress.Progress, cp *checkpointer, alphabet []byte, workers, startLength int, startCur []int) error {
 	runCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -141,11 +162,24 @@ func searchParallel(ctx context.Context, chk *checker.Checker, prog *progress.Pr
 	var once sync.Once
 
 	co := &coord{base: len(alphabet)}
+	snapshot := func() (string, bool) {
+		fr, ok := co.frontier(workers)
+		if !ok {
+			return "", false
+		}
+		return pattern(fr, alphabet), true
+	}
+
+	var rep *progress.Reporter
 	length := startLength
 	cur := startCur
 	for {
 		co.chunk = chunkForSpace(powSat(uint64(len(alphabet)), uint64(length)), workers)
 		co.reset(cur)
+		if rep == nil {
+			rep = cp.start(snapshot) // begin checkpointing once the first length is positioned
+			defer rep.StopAndReport()
+		}
 
 		var wg sync.WaitGroup
 		for range workers {
@@ -162,7 +196,9 @@ func searchParallel(ctx context.Context, chk *checker.Checker, prog *progress.Pr
 			return firstErr
 		}
 		if ctx.Err() != nil {
-			slog.Info("interrupted", "resume", pattern(co.frontier(workers), alphabet))
+			if fr, ok := co.frontier(workers); ok {
+				slog.Info("interrupted", "resume", pattern(fr, alphabet))
+			}
 			return nil
 		}
 
@@ -219,14 +255,21 @@ func searchWorker(ctx context.Context, chk *checker.Checker, co *coord, prog *pr
 
 // searchSerial is the fallback used when no filter is available: it runs every
 // candidate through the checker, which then hits the database directly.
-func searchSerial(ctx context.Context, chk *checker.Checker, prog *progress.Progress, alphabet []byte, length int, indices []int) error {
+func searchSerial(ctx context.Context, chk *checker.Checker, prog *progress.Progress, cp *checkpointer, alphabet []byte, length int, indices []int) error {
 	base := len(alphabet)
 	buf := make([]byte, length)
 	var t progress.Tally
 	defer prog.Add(&t)
+
+	// Serial mutates indices in this single goroutine, so it checkpoints inline
+	// on the interval rather than from a concurrent reader.
+	cp.writePattern(pattern(indices, alphabet))
+	nextCheckpoint := time.Now().Add(cp.interval)
+
 	sinceFlush := 0
 	for {
 		if ctx.Err() != nil {
+			cp.writePattern(pattern(indices, alphabet))
 			slog.Info("interrupted", "resume", pattern(indices, alphabet))
 			return nil
 		}
@@ -239,6 +282,7 @@ func searchSerial(ctx context.Context, chk *checker.Checker, prog *progress.Prog
 
 		if err := chk.Check(ctx, &t, buf); err != nil {
 			if errors.Is(err, context.Canceled) {
+				cp.writePattern(pattern(indices, alphabet))
 				slog.Info("interrupted", "resume", pattern(indices, alphabet))
 				return nil
 			}
@@ -247,6 +291,10 @@ func searchSerial(ctx context.Context, chk *checker.Checker, prog *progress.Prog
 		if sinceFlush++; sinceFlush >= progress.FlushEvery {
 			prog.Add(&t)
 			sinceFlush = 0
+			if now := time.Now(); now.After(nextCheckpoint) {
+				cp.writePattern(pattern(indices, alphabet))
+				nextCheckpoint = now.Add(cp.interval)
+			}
 		}
 		if !advance(indices, base) {
 			length++

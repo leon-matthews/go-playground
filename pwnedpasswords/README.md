@@ -37,12 +37,15 @@ pwnedpasswords buildfilter --4GB              # smaller filter, higher false-pos
 ```
 
 Generate candidates by brute force in odometer order, shortest first, recording matches as
-it goes. It runs in parallel across all CPUs until interrupted with Ctrl-C, which prints the
-next pattern to try so the run can be continued later with `--resume`:
+it goes. It runs in parallel across all CPUs, checkpointing its position hourly and on
+Ctrl-C to `$XDG_STATE_HOME/pwnedpasswords/resume.json` (falling back to `~/.local/state`).
+A later `--resume` picks up from that checkpoint, restoring the alphabet, filter, worker
+count, and progress settings the run used, so no arguments need to be repeated:
 
 ```
 pwnedpasswords bruteforce --alphabet 1              # lowercase only
-pwnedpasswords bruteforce --alphabet 1 --resume "dfxx"   # continue from this pattern
+pwnedpasswords bruteforce --resume                  # continue the previous run
+pwnedpasswords bruteforce --alphabet 1 --resume-from "dfxx"   # jump to a specific pattern
 ```
 
 Export the most-breached passwords, ordered by breach count:
@@ -84,12 +87,15 @@ per size for the lowest false-positive rate on the ~2 billion hash corpus:
 
 `bruteforce` flags:
 
-- `-a`, `--alphabet` - character set (required):
+- `-a`, `--alphabet` - character set (required unless `--resume`):
   0 = digits, 1 = lowercase, 2 = +space +digits, 3 = +uppercase, 4 = +symbols
-- `--resume` - continue from this pattern (as logged when interrupted)
+- `--resume` - continue the previous run from its saved checkpoint (mutually exclusive
+  with `--alphabet` and `--resume-from`; explicit flags override the stored settings)
+- `--resume-from` - resume from this pattern (as logged when interrupted)
 - `--filter` - membership filter path (default `pwnedpasswords.filter`)
 - `-w`, `--workers` - number of parallel workers (default: number of CPUs)
 - `-p`, `--progress` - interval between progress reports (default 10s)
+- `--checkpoint` - interval between resume-checkpoint writes (default 1h)
 
 `export` flags:
 

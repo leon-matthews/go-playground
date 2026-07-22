@@ -39,13 +39,18 @@ func (c *coord) next() (start []int, ok bool) {
 
 // frontier returns a conservatively safe resume point: every candidate before
 // it is guaranteed processed. At most workers chunks can still be in flight, so
-// rewinding the cursor by that much never skips unprocessed candidates.
-func (c *coord) frontier(workers int) []int {
+// rewinding the cursor by that much never skips unprocessed candidates. It
+// reports ok=false once the length is done, when the cursor no longer names a
+// meaningful position.
+func (c *coord) frontier(workers int) (indices []int, ok bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if c.done {
+		return nil, false
+	}
 	fr := append([]int(nil), c.cur...)
 	subN(fr, c.base, workers*c.chunk)
-	return fr
+	return fr, true
 }
 
 // resumeStart returns the length and odometer indices to begin at. Enumeration
