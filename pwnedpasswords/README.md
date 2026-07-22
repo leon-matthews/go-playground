@@ -20,10 +20,10 @@ hits the database, which is far too slow for brute-force search.
 
 ## Usage
 
-Import one or more word lists, recording the passwords found in the breach corpus:
+Read candidates from one or more word lists, recording the passwords found in the breach corpus:
 
 ```
-pwnedpasswords import rockyou.txt other-list.txt
+pwnedpasswords wordlist rockyou.txt other-list.txt
 ```
 
 Build the membership filter once from the pwnedcache hashes. It is a split-block Bloom
@@ -52,16 +52,17 @@ pwnedpasswords export --top 1000              # plain text, one password per lin
 pwnedpasswords export --top 1000 --format json
 ```
 
-Dump the whole table as CSV, or merge a CSV back in - skipping any password already present,
-leaving existing counts untouched. Together they back up the database and rebuild it under the
-current schema: export from the old file, then merge into a fresh one.
+Dump the whole table as CSV, or merge one or more CSVs back in - skipping any password already
+present, leaving existing counts untouched. Together they back up the database and rebuild it
+under the current schema: export from the old file, then merge into a fresh one. When a password
+appears in more than one CSV, the first occurrence's count is kept, so argument order matters.
 
 ```
 pwnedpasswords -d old.db export --format csv > backup.csv
 pwnedpasswords -d new.db merge backup.csv
 ```
 
-`import`, `bruteforce`, and `merge` are all additive: running them again accumulates matches.
+`wordlist`, `bruteforce`, and `merge` are all additive: running them again accumulates matches.
 
 ## Flags
 

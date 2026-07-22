@@ -21,10 +21,11 @@ const profilePath = "cpu.pprof"
 // newRootCmd builds the pwnedpasswords command tree.
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:           "pwnedpasswords",
-		Short:         "Build breach-frequency password denylists from word lists",
-		SilenceUsage:  true,
-		SilenceErrors: true,
+		Use:               "pwnedpasswords",
+		Short:             "Build breach-frequency password denylists from word lists",
+		SilenceUsage:      true,
+		SilenceErrors:     true,
+		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
 		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
 			if !profile {
 				return nil
@@ -43,7 +44,10 @@ func newRootCmd() *cobra.Command {
 	cmd.PersistentFlags().BoolVar(&profile, "profile", false, "write a CPU profile of the run to "+profilePath)
 	cmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "debug-level logging")
 
-	cmd.AddCommand(newImportCmd())
+	// Replace 'help` built-in command with an unnamed stub to remove it from the command list
+	cmd.SetHelpCommand(&cobra.Command{Hidden: true})
+
+	cmd.AddCommand(newWordlistCmd())
 	cmd.AddCommand(newBruteforceCmd())
 	cmd.AddCommand(newBuildFilterCmd())
 	cmd.AddCommand(newExportCmd())

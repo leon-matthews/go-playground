@@ -14,16 +14,16 @@ import (
 func newMergeCmd() *cobra.Command {
 	var progressInterval time.Duration
 	cmd := &cobra.Command{
-		Use:   "merge <file.csv>",
-		Short: "Merge a CSV of passwords and counts, skipping any already present",
-		Args:  cobra.ExactArgs(1),
+		Use:   "merge <file.csv>...",
+		Short: "Merge CSVs of passwords and counts, skipping any already present",
+		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logs, err := logging.Setup(verbose)
 			if err != nil {
 				return err
 			}
 			defer logs.LogFile.Close()
-			return export.Merge(cmd.Context(), logs, databasePath, args[0], progressInterval)
+			return export.Merge(cmd.Context(), logs, databasePath, args, progressInterval)
 		},
 	}
 	cmd.Flags().DurationVarP(&progressInterval, "progress", "p", progress.DefaultInterval,

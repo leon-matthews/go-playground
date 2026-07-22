@@ -9,13 +9,13 @@ import (
 	"pwnedpasswords/wordlist"
 )
 
-// newImportCmd builds the "import" sub-command.
-func newImportCmd() *cobra.Command {
+// newWordlistCmd builds the "wordlist" sub-command.
+func newWordlistCmd() *cobra.Command {
 	var filterPath string
 	var progressInterval time.Duration
 	cmd := &cobra.Command{
-		Use:   "import <wordlist>...",
-		Short: "Import word lists, recording passwords found in the breach corpus",
+		Use:   "wordlist <file>...",
+		Short: "Read candidates from given word-list",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logs, err := logging.Setup(verbose)
