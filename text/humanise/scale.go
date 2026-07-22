@@ -15,7 +15,7 @@ func scale(value, base float64, maxIndex int) (float64, int) {
 		value /= base
 		index++
 	}
-	rounded, _ := Significant(value, 3) // digits is fixed, so the error is impossible
+	rounded := Significant(value, 3)
 	if rounded >= base && index < maxIndex {
 		rounded /= base // rounding tipped the mantissa up a unit, eg. 999.5 -> "1MB"
 		index++

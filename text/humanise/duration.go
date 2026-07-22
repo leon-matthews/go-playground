@@ -27,24 +27,25 @@ var durationUnits = []struct {
 // The span is described with the largest unit of which it holds two or more,
 // pluralised, eg. a 300-second span becomes "5 minutes". A span holding just one
 // of a unit drops to the next unit down, so an exact week becomes "7 days".
-// Sub-second precision is discarded and negative spans return an error.
-func Duration(d time.Duration) (string, error) {
-	if d < 0 {
-		return "", fmt.Errorf("duration must not be negative, got %v", d)
+// Sub-second precision is discarded and negative spans are described by their magnitude.
+func Duration(d time.Duration) string {
+	// Take the magnitude in seconds; dividing first keeps MinInt64 from overflowing on negate.
+	seconds := int64(d / time.Second)
+	if seconds < 0 {
+		seconds = -seconds
 	}
 
 	// Return the first unit we have two or more of, counting from years down.
 	// The count tops out near 292 years, so plain formatting never needs grouping.
-	seconds := int64(d / time.Second)
 	for _, unit := range durationUnits {
 		if count := seconds / unit.length; count > 1 {
-			return fmt.Sprintf("%d %ss", count, unit.name), nil
+			return fmt.Sprintf("%d %ss", count, unit.name)
 		}
 	}
 
 	// Only spans of zero or one second reach here.
 	if seconds == 1 {
-		return "1 second", nil
+		return "1 second"
 	}
-	return fmt.Sprintf("%d seconds", seconds), nil
+	return fmt.Sprintf("%d seconds", seconds)
 }
