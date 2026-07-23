@@ -126,3 +126,16 @@ func ExampleSignificant() {
 	// 1230
 	// 0.00012
 }
+
+func ExampleAnd() {
+	fmt.Println(humanise.And([]string{"apples", "oranges", "bananas"}))
+	fmt.Println(humanise.And([]string{"apples", "oranges"})) // two items take no comma
+	// Output:
+	// apples, oranges, and bananas
+	// apples and oranges
+}
+
+func ExampleOr() {
+	fmt.Println(humanise.Or([]string{"apples", "oranges", "bananas"}))
+	// Output: apples, oranges, or bananas
+}

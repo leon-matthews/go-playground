@@ -1,2 +1,2 @@
-// Package humanise formats numbers for human consumption.
+// Package humanise formats values for human consumption.
 package humanise
