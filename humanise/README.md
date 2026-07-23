@@ -19,3 +19,4 @@ Python's [humanize](https://github.com/python-humanize/humanize) library.
 | `Duration`     | `Duration(3 * time.Hour)`   | `3 hours`       |
 | `Relative`     | `Relative(-5 * time.Minute)`| `5 minutes ago` |
 | `Significant`  | `Significant(1234.567, 3)`  | `1230`          |
+| `Age`          | `Age(born, today)`          | `46`            |

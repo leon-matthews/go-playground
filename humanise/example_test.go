@@ -112,6 +112,13 @@ func ExampleRelative() {
 	// now
 }
 
+func ExampleAge() {
+	born := time.Date(1976, time.February, 1, 0, 0, 0, 0, time.UTC)
+	today := time.Date(2022, time.July, 4, 0, 0, 0, 0, time.UTC)
+	fmt.Println(humanise.Age(born, today))
+	// Output: 46
+}
+
 func ExampleSignificant() {
 	fmt.Println(humanise.Significant(1234.567, 3))
 	fmt.Println(humanise.Significant(0.0001234, 2))
