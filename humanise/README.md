@@ -33,7 +33,8 @@ numbers, sizes and units, time and dates, and text.
 
 ## Text
 
-| Function | Example call                   | Result        |
-| -------- | ------------------------------ | ------------- |
-| `And`    | `And([]string{"a", "b", "c"})` | `a, b, and c` |
-| `Or`     | `Or([]string{"a", "b", "c"})`  | `a, b, or c`  |
+| Function | Example call                   | Result                |
+| -------- | ------------------------------ | --------------------- |
+| `And`    | `And([]string{"a", "b", "c"})` | `a, b, and c`         |
+| `Or`     | `Or([]string{"a", "b", "c"})`  | `a, b, or c`          |
+| `Title`  | `Title("taming of the shrew")` | `Taming of the Shrew` |

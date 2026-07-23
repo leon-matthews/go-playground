@@ -139,3 +139,11 @@ func ExampleOr() {
 	fmt.Println(humanise.Or([]string{"apples", "oranges", "bananas"}))
 	// Output: apples, oranges, or bananas
 }
+
+func ExampleTitle() {
+	fmt.Println(humanise.Title("taming of the shrew"))
+	fmt.Println(humanise.Title("Taming Of The Shrew")) // capitalised minor words are tidied
+	// Output:
+	// Taming of the Shrew
+	// Taming of the Shrew
+}
