@@ -1,19 +1,8 @@
 
-# Go Playground
-
-Learning and exploring the Go Programing language.
-
-Contains worked examples and exercises from books as well as a catch-all for
-trying out new techniques or ideas for new projects.
-
-## Next
-
-* Write example for folder: techniques/time-afterfunc/
-* Continue with "Powerful Command-Line Applications in Go" book
 
 ## Copyright
 
-Copyright 2024-2026 Leon Matthews. All rights reserved.
+Copyright 2026 Leon Matthews. All rights reserved.
 
 ## License
 
