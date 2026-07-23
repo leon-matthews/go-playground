@@ -8,7 +8,7 @@ Realistic random data for tests and fixtures. Go port of the Python `fake` packa
 f := fake.New(42)        // seeded, reproducible
 f := fake.NewRandom()    // OS-seeded
 
-f.FullName()             // "Rory Drake"
+f.FullName()             // "Gabriella Griffiths"
 f.EmailFor("Jo Blogs")   // "jo.blogs@example.com"
 f.Address()              // fake.Address{...}
 f.Price(1, 100)          // int64 cents
