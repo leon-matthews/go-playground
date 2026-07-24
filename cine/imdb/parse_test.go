@@ -87,3 +87,26 @@ func TestParse(t *testing.T) {
 		assert.Error(t, err)
 	})
 }
+
+func TestSplitTabs(t *testing.T) {
+	cases := []struct {
+		name string
+		line string
+		want []string
+	}{
+		{"three fields", "a\tb\tc", []string{"a", "b", "c"}},
+		{"single field", "solo", []string{"solo"}},
+		{"empty line", "", []string{""}},
+		{"empty middle", "a\t\tc", []string{"a", "", "c"}},
+		{"trailing tab", "a\tb\t", []string{"a", "b", ""}},
+	}
+
+	// One dst is reused across cases, exercising the buffer reuse (and shrink)
+	var dst []string
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dst = splitTabs(tc.line, dst)
+			assert.Equal(t, tc.want, dst)
+		})
+	}
+}

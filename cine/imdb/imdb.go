@@ -60,8 +60,10 @@ func read[T any](r io.Reader, want []string, fromFields func([]string) (T, error
 			return
 		}
 
+		// The fields slice is reused across all rows
+		fields := make([]string, 0, len(want))
 		for line := 2; scanner.Scan(); line++ {
-			fields := strings.Split(scanner.Text(), "\t")
+			fields = splitTabs(scanner.Text(), fields)
 			if len(fields) != len(want) {
 				if !yield(zero, fmt.Errorf("line %d: got %d fields, want %d", line, len(fields), len(want))) {
 					return
@@ -82,6 +84,19 @@ func read[T any](r io.Reader, want []string, fromFields func([]string) (T, error
 		if err := scanner.Err(); err != nil {
 			yield(zero, fmt.Errorf("reading rows: %w", err))
 		}
+	}
+}
+
+// splitTabs splits line on tabs into the destination slice
+func splitTabs(line string, destination []string) []string {
+	destination = destination[:0]
+	for {
+		i := strings.IndexByte(line, '\t')
+		if i < 0 {
+			return append(destination, line)
+		}
+		destination = append(destination, line[:i])
+		line = line[i+1:]
 	}
 }
 
