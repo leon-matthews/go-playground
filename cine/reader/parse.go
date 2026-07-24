@@ -11,10 +11,10 @@ import (
 // nullMarker is the token IMDb uses in the TSV files for an absent field.
 const nullMarker = `\N`
 
-// missing is the value of an absent optional integer field, standing in for
-// IMDb's \N. Code writing these records to a database must map missing to SQL
+// Missing is the value of an absent optional integer field, standing in for
+// IMDb's \N. Code writing these records to a database must map Missing to SQL
 // NULL rather than storing it as -1.
-const missing = -1
+const Missing = -1
 
 // optionalString maps IMDb's \N to the empty string and passes anything else through.
 func optionalString(s string) string {
@@ -24,14 +24,14 @@ func optionalString(s string) string {
 	return s
 }
 
-// optionalInt parses an optional integer field, mapping \N to missing.
+// optionalInt parses an optional integer field, mapping \N to Missing.
 func optionalInt(s string) (int, error) {
 	if s == nullMarker {
-		return missing, nil
+		return Missing, nil
 	}
 	n, err := strconv.Atoi(s)
 	if err != nil {
-		return missing, fmt.Errorf("invalid integer %q: %w", s, err)
+		return Missing, fmt.Errorf("invalid integer %q: %w", s, err)
 	}
 	return n, nil
 }

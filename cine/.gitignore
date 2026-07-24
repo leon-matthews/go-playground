@@ -1,1 +1,2 @@
-cpu.pprof
+*.db
+*.pprof

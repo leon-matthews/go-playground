@@ -40,9 +40,11 @@ func pragmaQuery(pragmas ...string) string {
 
 // Open connects to the SQLite database at path, creating it if needed.
 //
-// The schema is applied on open and the connection is tuned for the bulk
-// rebuild, so point Open at a throwaway file that is renamed into place once the
-// import succeeds.
+// Open is write-focused: it applies the schema and tunes the connection for the
+// single-writer bulk rebuild - no journal, no fsync, an exclusive lock - so point
+// it at a throwaway file that is renamed into place once the import succeeds. A
+// read path that only queries a finished database should open it separately, with
+// gentler pragmas and without reapplying the schema.
 func Open(ctx context.Context, path string) (*sqlite.Queries, *sql.DB, error) {
 	db, err := sql.Open("sqlite", path+pragmaQuery(bulkLoadPragmas...))
 	if err != nil {

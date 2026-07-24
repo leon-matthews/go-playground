@@ -9,8 +9,8 @@ import (
 type NameBasics struct {
 	Nconst            string   // "nm0000001"
 	PrimaryName       string   // "Fred Astaire"
-	BirthYear         int      // missing (-1) for \N; map to SQL NULL
-	DeathYear         int      // missing (-1) for \N; map to SQL NULL
+	BirthYear         int      // Missing (-1) for \N; map to SQL NULL
+	DeathYear         int      // Missing (-1) for \N; map to SQL NULL
 	PrimaryProfession []string // "actor,producer" -> ["actor", "producer"]
 	KnownForTitles    []string // tconsts the person is known for
 }
@@ -76,9 +76,9 @@ type TitleBasics struct {
 	PrimaryTitle   string   // promotional title
 	OriginalTitle  string   // title in the original language
 	IsAdult        bool     // 1 -> true
-	StartYear      int      // missing (-1) for \N; map to SQL NULL
-	EndYear        int      // missing (-1) for \N; map to SQL NULL
-	RuntimeMinutes int      // missing (-1) for \N; map to SQL NULL
+	StartYear      int      // Missing (-1) for \N; map to SQL NULL
+	EndYear        int      // Missing (-1) for \N; map to SQL NULL
+	RuntimeMinutes int      // Missing (-1) for \N; map to SQL NULL
 	Genres         []string // "Documentary,Short" -> ["Documentary", "Short"]
 }
 
@@ -130,8 +130,8 @@ func ReadTitleCrew(r io.Reader) iter.Seq2[TitleCrew, error] {
 type TitleEpisode struct {
 	Tconst        string // episode tconst
 	ParentTconst  string // series tconst
-	SeasonNumber  int    // missing (-1) for \N; map to SQL NULL
-	EpisodeNumber int    // missing (-1) for \N; map to SQL NULL
+	SeasonNumber  int    // Missing (-1) for \N; map to SQL NULL
+	EpisodeNumber int    // Missing (-1) for \N; map to SQL NULL
 }
 
 var titleEpisodeHeader = []string{"tconst", "parentTconst", "seasonNumber", "episodeNumber"}
@@ -222,7 +222,7 @@ func (c *cursor) akasArray(i int) []string {
 
 func (c *cursor) optionalInt(i int) int {
 	if c.err != nil {
-		return missing
+		return Missing
 	}
 	n, err := optionalInt(c.fields[i])
 	c.keep(err)

@@ -18,7 +18,7 @@ func TestParse(t *testing.T) {
 	t.Run("optInt", func(t *testing.T) {
 		n, err := optionalInt(`\N`)
 		require.NoError(t, err)
-		assert.Equal(t, missing, n)
+		assert.Equal(t, Missing, n)
 
 		n, err = optionalInt("1987")
 		require.NoError(t, err)
