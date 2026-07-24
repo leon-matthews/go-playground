@@ -53,6 +53,7 @@ func buildInto(ctx context.Context, temp, dir string) error {
 		func(tx *sql.Tx) error { return importNamesLayer(ctx, tx, dir) },
 		func(tx *sql.Tx) error { return importEpisodesLayer(ctx, tx, dir) },
 		func(tx *sql.Tx) error { return importCrewLayer(ctx, tx, dir) },
+		func(tx *sql.Tx) error { return importPrincipalsLayer(ctx, tx, dir) },
 	}
 	for _, layer := range layers {
 		if err := inTx(ctx, db, layer); err != nil {
@@ -137,6 +138,25 @@ func importCrewLayer(ctx context.Context, tx *sql.Tx, dir string) error {
 	}
 	defer file.Close()
 	return importCrew(ctx, tx, file)
+}
+
+// importPrincipalsLayer runs the principals pass within tx and writes its
+// category and job lookups.
+func importPrincipalsLayer(ctx context.Context, tx *sql.Tx, dir string) error {
+	file, err := reader.OpenGzip(filepath.Join(dir, reader.FileTitlePrincipals))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	lookups, err := importPrincipals(ctx, tx, file)
+	if err != nil {
+		return err
+	}
+	if err := flushLookup(ctx, tx, "category", lookups.category); err != nil {
+		return err
+	}
+	return flushLookup(ctx, tx, "job", lookups.job)
 }
 
 // flushLookup writes an interner's entries into its two-column lookup table.
