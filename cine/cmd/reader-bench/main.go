@@ -81,7 +81,7 @@ type fileReader func(folder string) (records, errors int)
 // readFile builds a fileReader for the named file and its typed reader.
 func readFile[T any](name string, readRecords func(io.Reader) iter.Seq2[T, error]) fileReader {
 	return func(folder string) (records, errors int) {
-		file, err := reader.OpenTSV(filepath.Join(folder, name))
+		file, err := reader.OpenGzip(filepath.Join(folder, name))
 		if err != nil {
 			log.Printf("%s: %v", name, err)
 			return 0, 1

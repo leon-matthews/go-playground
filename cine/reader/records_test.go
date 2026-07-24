@@ -1,7 +1,10 @@
 package reader
 
 import (
+	"io"
 	"iter"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -21,13 +24,19 @@ func collect[T any](seq iter.Seq2[T, error]) ([]T, error) {
 	return out, nil
 }
 
+// openIMDB opens a sample dataset file from testdata/imdb, keyed off the
+// canonical gzip file name with its .gz suffix dropped.
+func openIMDB(t *testing.T, gzName string) io.Reader {
+	t.Helper()
+	f, err := os.Open(filepath.Join("testdata", "imdb", strings.TrimSuffix(gzName, ".gz")))
+	require.NoError(t, err)
+	t.Cleanup(func() { f.Close() })
+	return f
+}
+
 func TestReaders(t *testing.T) {
 	t.Run("NameBasics", func(t *testing.T) {
-		const data = "nconst\tprimaryName\tbirthYear\tdeathYear\tprimaryProfession\tknownForTitles\n" +
-			"nm0000001\tFred Astaire\t1899\t1987\tactor,producer\ttt0072308,tt0050419\n" +
-			"nm0000999\tStill Living\t1950\t\\N\t\\N\t\\N\n"
-
-		got, err := collect(ReadNameBasics(strings.NewReader(data)))
+		got, err := collect(ReadNameBasics(openIMDB(t, FileNameBasics)))
 		require.NoError(t, err)
 		require.Len(t, got, 2)
 
@@ -44,11 +53,7 @@ func TestReaders(t *testing.T) {
 	})
 
 	t.Run("TitleAkas", func(t *testing.T) {
-		const data = "titleId\tordering\ttitle\tregion\tlanguage\ttypes\tattributes\tisOriginalTitle\n" +
-			"tt0000001\t1\tCarmencita\t\\N\t\\N\toriginal\t\\N\t1\n" +
-			"tt0000001\t4\tCarmencita - spanyol tánc\tHU\t\\N\timdbDisplay\tliteral title\t0\n"
-
-		got, err := collect(ReadTitleAkas(strings.NewReader(data)))
+		got, err := collect(ReadTitleAkas(openIMDB(t, FileTitleAkas)))
 		require.NoError(t, err)
 		require.Len(t, got, 2)
 
@@ -67,10 +72,7 @@ func TestReaders(t *testing.T) {
 	})
 
 	t.Run("TitleBasics", func(t *testing.T) {
-		const data = "tconst\ttitleType\tprimaryTitle\toriginalTitle\tisAdult\tstartYear\tendYear\truntimeMinutes\tgenres\n" +
-			"tt0000001\tshort\tCarmencita\tCarmencita\t0\t1894\t\\N\t1\tDocumentary,Short\n"
-
-		got, err := collect(ReadTitleBasics(strings.NewReader(data)))
+		got, err := collect(ReadTitleBasics(openIMDB(t, FileTitleBasics)))
 		require.NoError(t, err)
 		require.Len(t, got, 1)
 
@@ -87,11 +89,7 @@ func TestReaders(t *testing.T) {
 	})
 
 	t.Run("TitleCrew", func(t *testing.T) {
-		const data = "tconst\tdirectors\twriters\n" +
-			"tt0000003\tnm0721526\tnm0721526\n" +
-			"tt0000001\tnm0005690\t\\N\n"
-
-		got, err := collect(ReadTitleCrew(strings.NewReader(data)))
+		got, err := collect(ReadTitleCrew(openIMDB(t, FileTitleCrew)))
 		require.NoError(t, err)
 		require.Len(t, got, 2)
 
@@ -102,11 +100,7 @@ func TestReaders(t *testing.T) {
 	})
 
 	t.Run("TitleEpisode", func(t *testing.T) {
-		const data = "tconst\tparentTconst\tseasonNumber\tepisodeNumber\n" +
-			"tt0041951\ttt0041038\t1\t9\n" +
-			"tt0031458\ttt32857063\t\\N\t\\N\n"
-
-		got, err := collect(ReadTitleEpisode(strings.NewReader(data)))
+		got, err := collect(ReadTitleEpisode(openIMDB(t, FileTitleEpisode)))
 		require.NoError(t, err)
 		require.Len(t, got, 2)
 
@@ -120,11 +114,7 @@ func TestReaders(t *testing.T) {
 	})
 
 	t.Run("TitlePrincipals", func(t *testing.T) {
-		const data = "tconst\tordering\tnconst\tcategory\tjob\tcharacters\n" +
-			"tt0000001\t1\tnm1588970\tself\t\\N\t[\"Self\"]\n" +
-			"tt0000001\t3\tnm0005690\tproducer\tproducer\t\\N\n"
-
-		got, err := collect(ReadTitlePrincipals(strings.NewReader(data)))
+		got, err := collect(ReadTitlePrincipals(openIMDB(t, FileTitlePrincipals)))
 		require.NoError(t, err)
 		require.Len(t, got, 2)
 
@@ -138,10 +128,7 @@ func TestReaders(t *testing.T) {
 	})
 
 	t.Run("TitleRatings", func(t *testing.T) {
-		const data = "tconst\taverageRating\tnumVotes\n" +
-			"tt0000001\t5.7\t2220\n"
-
-		got, err := collect(ReadTitleRatings(strings.NewReader(data)))
+		got, err := collect(ReadTitleRatings(openIMDB(t, FileTitleRatings)))
 		require.NoError(t, err)
 		require.Len(t, got, 1)
 

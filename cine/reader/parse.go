@@ -79,7 +79,7 @@ func parseCharacters(s string) ([]string, error) {
 	}
 
 	// Try to use fast-path parser
-	if names, ok := fastUnmarshalStringSlice(s); ok {
+	if names, ok := fastUnmarshal(s); ok {
 		return names, nil
 	}
 	var names []string
@@ -89,10 +89,10 @@ func parseCharacters(s string) ([]string, error) {
 	return names, nil
 }
 
-// fastUnmarshalStringSlice parses a plain ["a","b"] JSON array into a slice of strings.
+// fastUnmarshal parses a plain ["a","b"] JSON array into a slice of strings.
 // It returns ok false for anything challenging. The caller should then defer
 // to encoding/json for more robust handling.
-func fastUnmarshalStringSlice(s string) (names []string, ok bool) {
+func fastUnmarshal(s string) (names []string, ok bool) {
 	if len(s) < 4 || !strings.HasPrefix(s, `["`) || !strings.HasSuffix(s, `"]`) {
 		return nil, false
 	}

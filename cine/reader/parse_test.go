@@ -172,10 +172,29 @@ func TestParseCharactersMatchesJSON(t *testing.T) {
 
 // FuzzParseCharacters asserts the same equivalence on random input, so the fast
 // path can never silently diverge from encoding/json.
+//
+// After changing fastUnmarshal, run:
+//
+//	go test -fuzz=FuzzParseCharacters
+//
+// The fuzzer compares each mutated input against both parseCharacters and
+// the reference [jsonUnmarshal] function. A minimised version of that input
+// is saved under testdata/.
+//
+// Fix the parseCharacters function then re-run. All of the saved 'bad' inputs
+// are run even during plain 'go test' runs as regression tests.
 func FuzzParseCharacters(f *testing.F) {
 	seeds := []string{
-		`\N`, `["Self"]`, `["Man, seated","Bond"]`, `[""]`, `[]`,
-		`["\"Doc\" Holliday"]`, `["a\\b"]`, `["a"b"]`, `[1,2]`, `not json`,
+		`\N`,
+		`["Self"]`,
+		`["Man, seated","Bond"]`,
+		`[""]`,
+		`[]`,
+		`["\"Doc\" Holliday"]`,
+		`["a\\b"]`,
+		`["a"b"]`,
+		`[1,2]`,
+		`not json`,
 	}
 	for _, s := range seeds {
 		f.Add(s)

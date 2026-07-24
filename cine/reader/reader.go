@@ -113,10 +113,10 @@ func checkHeader(got, want []string) error {
 	return nil
 }
 
-// OpenTSV opens a gzipped IMDb dataset file for reading.
+// OpenGzip opens a gzipped file for reading.
 //
 // Close the returned reader to release both the gzip stream and the file.
-func OpenTSV(path string) (io.ReadCloser, error) {
+func OpenGzip(path string) (io.ReadCloser, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -135,7 +135,9 @@ type gzipFile struct {
 	file *os.File
 }
 
-func (g gzipFile) Read(p []byte) (int, error) { return g.gz.Read(p) }
+func (g gzipFile) Read(p []byte) (int, error) {
+	return g.gz.Read(p)
+}
 
 func (g gzipFile) Close() error {
 	err := g.gz.Close()
