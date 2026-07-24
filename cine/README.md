@@ -3,6 +3,10 @@
 A tool to build and query a local SQLite3 database containing data from the
 IMDb Non-Commercial Datasets, that are licensed for personal and non-commercial use.
 
+Download all of them in one shot using `wget`:
+
+    $ wget -A gz -r -c -l 1 -nd -e robots=off https://datasets.imdbws.com/
+
 ## Copyright
 
 Copyright 2026 Leon Matthews. All rights reserved.
