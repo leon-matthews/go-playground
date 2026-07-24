@@ -1,4 +1,4 @@
-package imdb
+package reader
 
 import (
 	"encoding/json"
@@ -7,27 +7,32 @@ import (
 	"strings"
 )
 
-// missing is IMDb's marker for a missing field.
-const missing = `\N`
+// nullMarker is the token IMDb uses in the TSV files for an absent field.
+const nullMarker = `\N`
+
+// Missing is the value of an absent optional integer field, standing in for
+// IMDb's \N. Code writing these records to a database must map Missing to SQL
+// NULL rather than storing it as -1.
+const Missing = -1
 
 // optString maps IMDb's \N to the empty string and passes anything else through.
 func optString(s string) string {
-	if s == missing {
+	if s == nullMarker {
 		return ""
 	}
 	return s
 }
 
-// optInt parses an optional integer field, mapping \N to nil.
-func optInt(s string) (*int, error) {
-	if s == missing {
-		return nil, nil
+// optInt parses an optional integer field, mapping \N to Missing.
+func optInt(s string) (int, error) {
+	if s == nullMarker {
+		return Missing, nil
 	}
 	n, err := strconv.Atoi(s)
 	if err != nil {
-		return nil, fmt.Errorf("invalid integer %q: %w", s, err)
+		return Missing, fmt.Errorf("invalid integer %q: %w", s, err)
 	}
-	return &n, nil
+	return n, nil
 }
 
 // reqInt parses a required integer field.
@@ -59,7 +64,7 @@ func parseBool(s string) (bool, error) {
 
 // splitList splits a comma-separated IMDb list; \N or empty yields nil.
 func splitList(s string) []string {
-	if s == missing || s == "" {
+	if s == nullMarker || s == "" {
 		return nil
 	}
 	return strings.Split(s, ",")
@@ -68,7 +73,7 @@ func splitList(s string) []string {
 // parseCharacters decodes the JSON string array held in the principals
 // characters field; \N yields nil.
 func parseCharacters(s string) ([]string, error) {
-	if s == missing {
+	if s == nullMarker {
 		return nil, nil
 	}
 	var names []string
@@ -90,9 +95,9 @@ func (c *cursor) str(i int) string    { return c.fields[i] }
 func (c *cursor) optStr(i int) string { return optString(c.fields[i]) }
 func (c *cursor) list(i int) []string { return splitList(c.fields[i]) }
 
-func (c *cursor) optInt(i int) *int {
+func (c *cursor) optInt(i int) int {
 	if c.err != nil {
-		return nil
+		return Missing
 	}
 	n, err := optInt(c.fields[i])
 	c.keep(err)

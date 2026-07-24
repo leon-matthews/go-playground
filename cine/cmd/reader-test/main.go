@@ -1,5 +1,5 @@
 // Command reader-test reads every record from every IMDb dataset file under a
-// folder, under a CPU profile, to validate and optimise the imdb reader package.
+// folder, under a CPU profile, to validate and optimise the reader package.
 //
 // Usage:
 //
@@ -20,7 +20,7 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"local.dev/cine/imdb"
+	"local.dev/cine/reader"
 )
 
 // summaryLine formats one row of the records/errors/throughput report.
@@ -54,13 +54,13 @@ func run(folder string) error {
 	defer stop()
 
 	files := []fileReader{
-		readFile(imdb.FileNameBasics, imdb.ReadNameBasics),
-		readFile(imdb.FileTitleAkas, imdb.ReadTitleAkas),
-		readFile(imdb.FileTitleBasics, imdb.ReadTitleBasics),
-		readFile(imdb.FileTitleCrew, imdb.ReadTitleCrew),
-		readFile(imdb.FileTitleEpisode, imdb.ReadTitleEpisode),
-		readFile(imdb.FileTitlePrincipals, imdb.ReadTitlePrincipals),
-		readFile(imdb.FileTitleRatings, imdb.ReadTitleRatings),
+		readFile(reader.FileNameBasics, reader.ReadNameBasics),
+		readFile(reader.FileTitleAkas, reader.ReadTitleAkas),
+		readFile(reader.FileTitleBasics, reader.ReadTitleBasics),
+		readFile(reader.FileTitleCrew, reader.ReadTitleCrew),
+		readFile(reader.FileTitleEpisode, reader.ReadTitleEpisode),
+		readFile(reader.FileTitlePrincipals, reader.ReadTitlePrincipals),
+		readFile(reader.FileTitleRatings, reader.ReadTitleRatings),
 	}
 
 	start := time.Now()
@@ -79,9 +79,9 @@ func run(folder string) error {
 type fileReader func(folder string) (records, errors int)
 
 // readFile builds a fileReader for the named file and its typed reader.
-func readFile[T any](name string, reader func(io.Reader) iter.Seq2[T, error]) fileReader {
+func readFile[T any](name string, readRecords func(io.Reader) iter.Seq2[T, error]) fileReader {
 	return func(folder string) (records, errors int) {
-		file, err := imdb.OpenTSV(filepath.Join(folder, name))
+		file, err := reader.OpenTSV(filepath.Join(folder, name))
 		if err != nil {
 			log.Printf("%s: %v", name, err)
 			return 0, 1
@@ -89,7 +89,7 @@ func readFile[T any](name string, reader func(io.Reader) iter.Seq2[T, error]) fi
 		defer file.Close()
 
 		start := time.Now()
-		for _, err := range reader(file) {
+		for _, err := range readRecords(file) {
 			if err != nil {
 				log.Printf("%s: %v", name, err)
 				errors++

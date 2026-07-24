@@ -1,4 +1,4 @@
-package imdb
+package reader
 
 import (
 	"testing"
@@ -17,12 +17,11 @@ func TestParse(t *testing.T) {
 	t.Run("optInt", func(t *testing.T) {
 		n, err := optInt(`\N`)
 		require.NoError(t, err)
-		assert.Nil(t, n)
+		assert.Equal(t, Missing, n)
 
 		n, err = optInt("1987")
 		require.NoError(t, err)
-		require.NotNil(t, n)
-		assert.Equal(t, 1987, *n)
+		assert.Equal(t, 1987, n)
 
 		_, err = optInt("12x")
 		assert.Error(t, err)

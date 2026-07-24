@@ -1,4 +1,4 @@
-package imdb
+package reader
 
 import (
 	"io"
@@ -9,8 +9,8 @@ import (
 type NameBasics struct {
 	Nconst            string   // "nm0000001"
 	PrimaryName       string   // "Fred Astaire"
-	BirthYear         *int     // nil for \N
-	DeathYear         *int     // nil for \N
+	BirthYear         int      // Missing (-1) for \N; map to SQL NULL
+	DeathYear         int      // Missing (-1) for \N; map to SQL NULL
 	PrimaryProfession []string // "actor,producer" -> ["actor", "producer"]
 	KnownForTitles    []string // tconsts the person is known for
 }
@@ -76,9 +76,9 @@ type TitleBasics struct {
 	PrimaryTitle   string   // promotional title
 	OriginalTitle  string   // title in the original language
 	IsAdult        bool     // 1 -> true
-	StartYear      *int     // release or series-start year, nil for \N
-	EndYear        *int     // series-end year, nil for \N
-	RuntimeMinutes *int     // nil for \N
+	StartYear      int      // Missing (-1) for \N; map to SQL NULL
+	EndYear        int      // Missing (-1) for \N; map to SQL NULL
+	RuntimeMinutes int      // Missing (-1) for \N; map to SQL NULL
 	Genres         []string // "Documentary,Short" -> ["Documentary", "Short"]
 }
 
@@ -130,8 +130,8 @@ func ReadTitleCrew(r io.Reader) iter.Seq2[TitleCrew, error] {
 type TitleEpisode struct {
 	Tconst        string // episode tconst
 	ParentTconst  string // series tconst
-	SeasonNumber  *int   // nil for \N
-	EpisodeNumber *int   // nil for \N
+	SeasonNumber  int    // Missing (-1) for \N; map to SQL NULL
+	EpisodeNumber int    // Missing (-1) for \N; map to SQL NULL
 }
 
 var titleEpisodeHeader = []string{"tconst", "parentTconst", "seasonNumber", "episodeNumber"}

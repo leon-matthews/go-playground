@@ -1,4 +1,4 @@
-package imdb
+package reader
 
 import (
 	"iter"
@@ -33,12 +33,12 @@ func TestReaders(t *testing.T) {
 
 		assert.Equal(t, "nm0000001", got[0].Nconst)
 		assert.Equal(t, "Fred Astaire", got[0].PrimaryName)
-		assert.Equal(t, 1899, *got[0].BirthYear)
-		assert.Equal(t, 1987, *got[0].DeathYear)
+		assert.Equal(t, 1899, got[0].BirthYear)
+		assert.Equal(t, 1987, got[0].DeathYear)
 		assert.Equal(t, []string{"actor", "producer"}, got[0].PrimaryProfession)
 		assert.Equal(t, []string{"tt0072308", "tt0050419"}, got[0].KnownForTitles)
 
-		assert.Nil(t, got[1].DeathYear)
+		assert.Equal(t, Missing, got[1].DeathYear)
 		assert.Nil(t, got[1].PrimaryProfession)
 		assert.Nil(t, got[1].KnownForTitles)
 	})
@@ -80,9 +80,9 @@ func TestReaders(t *testing.T) {
 		assert.Equal(t, "Carmencita", b.PrimaryTitle)
 		assert.Equal(t, "Carmencita", b.OriginalTitle) // kept even when equal
 		assert.False(t, b.IsAdult)
-		assert.Equal(t, 1894, *b.StartYear)
-		assert.Nil(t, b.EndYear)
-		assert.Equal(t, 1, *b.RuntimeMinutes)
+		assert.Equal(t, 1894, b.StartYear)
+		assert.Equal(t, Missing, b.EndYear)
+		assert.Equal(t, 1, b.RuntimeMinutes)
 		assert.Equal(t, []string{"Documentary", "Short"}, b.Genres)
 	})
 
@@ -111,12 +111,12 @@ func TestReaders(t *testing.T) {
 		require.Len(t, got, 2)
 
 		assert.Equal(t, "tt0041038", got[0].ParentTconst)
-		assert.Equal(t, 1, *got[0].SeasonNumber)
-		assert.Equal(t, 9, *got[0].EpisodeNumber)
+		assert.Equal(t, 1, got[0].SeasonNumber)
+		assert.Equal(t, 9, got[0].EpisodeNumber)
 
 		assert.Equal(t, "tt32857063", got[1].ParentTconst) // 8-digit id kept as string
-		assert.Nil(t, got[1].SeasonNumber)
-		assert.Nil(t, got[1].EpisodeNumber)
+		assert.Equal(t, Missing, got[1].SeasonNumber)
+		assert.Equal(t, Missing, got[1].EpisodeNumber)
 	})
 
 	t.Run("TitlePrincipals", func(t *testing.T) {

@@ -1,13 +1,13 @@
-// Package imdb reads the IMDb non-commercial dataset TSV files into typed
+// Package reader reads the IMDb non-commercial dataset TSV files into typed
 // Go records.
 //
 // Each dataset file has a Read function that streams its rows from an
 // io.Reader as an iter.Seq2 of record and error. The records are a faithful
 // view of the file: identifiers keep their "tt"/"nm" string form and IMDb's
-// \N null marker becomes a nil pointer or an empty value.
+// \N null marker becomes an empty value, or the Missing sentinel for integers.
 //
 // See https://developer.imdb.com/non-commercial-datasets/ for the dataset.
-package imdb
+package reader
 
 import (
 	"bufio"
