@@ -63,12 +63,27 @@ func parseBool(s string) (bool, error) {
 	return b, nil
 }
 
+// akasArraySeparator is the byte title.akas puts between the values in its types
+// and attributes fields - \x02 (STX), unlike the comma every other list uses.
+const akasArraySeparator = "\x02"
+
 // splitList splits a comma-separated IMDb list; \N or empty yields nil.
 func splitList(s string) []string {
+	return splitField(s, ",")
+}
+
+// splitAkasArray splits a title.akas types or attributes field on its \x02
+// separator; \N or empty yields nil.
+func splitAkasArray(s string) []string {
+	return splitField(s, akasArraySeparator)
+}
+
+// splitField splits an IMDb list field on sep; \N or empty yields nil.
+func splitField(s, sep string) []string {
 	if s == nullMarker || s == "" {
 		return nil
 	}
-	return strings.Split(s, ",")
+	return strings.Split(s, sep)
 }
 
 // parseCharacters decodes the JSON string array in the principals characters field.

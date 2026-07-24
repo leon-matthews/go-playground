@@ -42,8 +42,8 @@ type TitleAkas struct {
 	Title           string   // localized title
 	Region          string   // "" for \N
 	Language        string   // "" for \N
-	Types           []string // "imdbDisplay" -> ["imdbDisplay"]
-	Attributes      []string // "literal title" -> ["literal title"]
+	Types           []string // \x02-separated list, eg. ["imdbDisplay", "dvd"]
+	Attributes      []string // \x02-separated list, eg. ["literal title"]
 	IsOriginalTitle bool     // 1 -> true
 }
 
@@ -62,8 +62,8 @@ func ReadTitleAkas(r io.Reader) iter.Seq2[TitleAkas, error] {
 			Title:           c.str(2),
 			Region:          c.optionalStr(3),
 			Language:        c.optionalStr(4),
-			Types:           c.list(5),
-			Attributes:      c.list(6),
+			Types:           c.akasArray(5),
+			Attributes:      c.akasArray(6),
 			IsOriginalTitle: c.boolean(7),
 		}, c.err
 	})
@@ -214,6 +214,10 @@ func (c *cursor) optionalStr(i int) string {
 
 func (c *cursor) list(i int) []string {
 	return splitList(c.fields[i])
+}
+
+func (c *cursor) akasArray(i int) []string {
+	return splitAkasArray(c.fields[i])
 }
 
 func (c *cursor) optionalInt(i int) int {

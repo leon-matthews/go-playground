@@ -55,7 +55,7 @@ func TestReaders(t *testing.T) {
 	t.Run("TitleAkas", func(t *testing.T) {
 		got, err := collect(ReadTitleAkas(openIMDB(t, FileTitleAkas)))
 		require.NoError(t, err)
-		require.Len(t, got, 2)
+		require.Len(t, got, 3)
 
 		assert.Equal(t, "tt0000001", got[0].TitleID)
 		assert.Equal(t, 1, got[0].Ordering)
@@ -69,6 +69,10 @@ func TestReaders(t *testing.T) {
 		assert.Equal(t, "HU", got[1].Region)
 		assert.Equal(t, []string{"literal title"}, got[1].Attributes)
 		assert.False(t, got[1].IsOriginalTitle)
+
+		// The types and attributes fields use \x02, not commas, between values
+		assert.Equal(t, []string{"imdbDisplay", "dvd"}, got[2].Types)
+		assert.Equal(t, []string{"reissue title", "recut version"}, got[2].Attributes)
 	})
 
 	t.Run("TitleBasics", func(t *testing.T) {

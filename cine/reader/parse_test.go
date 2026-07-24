@@ -69,6 +69,15 @@ func TestParse(t *testing.T) {
 		assert.Equal(t, []string{"a", "b", "c"}, splitList("a,b,c"))
 	})
 
+	t.Run("splitAkasArray", func(t *testing.T) {
+		assert.Nil(t, splitAkasArray(`\N`))
+		assert.Nil(t, splitAkasArray(""))
+		assert.Equal(t, []string{"literal title"}, splitAkasArray("literal title"))
+		assert.Equal(t, []string{"imdbDisplay", "dvd"}, splitAkasArray("imdbDisplay\x02dvd"))
+		// A comma is data in these fields, not a separator
+		assert.Equal(t, []string{"a,b"}, splitAkasArray("a,b"))
+	})
+
 	t.Run("parseCharacters", func(t *testing.T) {
 		names, err := parseCharacters(`\N`)
 		require.NoError(t, err)
