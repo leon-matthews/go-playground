@@ -100,10 +100,10 @@ func importTitlesLayer(ctx context.Context, tx *sql.Tx, dir string, ratings map[
 	if err != nil {
 		return err
 	}
-	if err := flushLookup(ctx, tx, "title_type", lookups.titleType); err != nil {
+	if err := flushLookup(ctx, tx, "titles_types", lookups.titleType); err != nil {
 		return err
 	}
-	return flushLookup(ctx, tx, "genre", lookups.genre)
+	return flushLookup(ctx, tx, "genres", lookups.genre)
 }
 
 // importNamesLayer runs the names pass within tx and writes its profession lookup.
@@ -118,7 +118,7 @@ func importNamesLayer(ctx context.Context, tx *sql.Tx, dir string) error {
 	if err != nil {
 		return err
 	}
-	return flushLookup(ctx, tx, "profession", profession)
+	return flushLookup(ctx, tx, "professions", profession)
 }
 
 // importEpisodesLayer runs the episodes pass within tx.
@@ -154,10 +154,10 @@ func importPrincipalsLayer(ctx context.Context, tx *sql.Tx, dir string) error {
 	if err != nil {
 		return err
 	}
-	if err := flushLookup(ctx, tx, "category", lookups.category); err != nil {
+	if err := flushLookup(ctx, tx, "principals_categories", lookups.category); err != nil {
 		return err
 	}
-	return flushLookup(ctx, tx, "job", lookups.job)
+	return flushLookup(ctx, tx, "principals_jobs", lookups.job)
 }
 
 // importAkasLayer runs the akas pass within tx and writes its region, language,
@@ -173,16 +173,16 @@ func importAkasLayer(ctx context.Context, tx *sql.Tx, dir string) error {
 	if err != nil {
 		return err
 	}
-	if err := flushLookup(ctx, tx, "region", lookups.region); err != nil {
+	if err := flushLookup(ctx, tx, "regions", lookups.region); err != nil {
 		return err
 	}
-	if err := flushLookup(ctx, tx, "language", lookups.language); err != nil {
+	if err := flushLookup(ctx, tx, "languages", lookups.language); err != nil {
 		return err
 	}
-	if err := flushLookup(ctx, tx, "aka_type", lookups.akaType); err != nil {
+	if err := flushLookup(ctx, tx, "akas_types", lookups.akaType); err != nil {
 		return err
 	}
-	return flushLookup(ctx, tx, "attribute", lookups.attribute)
+	return flushLookup(ctx, tx, "attributes", lookups.attribute)
 }
 
 // flushLookup writes an interner's entries into its two-column lookup table.

@@ -14,13 +14,13 @@
 ------------------------------------------------------------------------------
 
 -- Enumerated titleType values: movie, short, tvEpisode, ...
-CREATE TABLE IF NOT EXISTS title_type (
+CREATE TABLE IF NOT EXISTS titles_types (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
 );
 
 -- One row per genre; id is the bit position used in titles.genres.
-CREATE TABLE IF NOT EXISTS genre (
+CREATE TABLE IF NOT EXISTS genres (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
 );
@@ -28,14 +28,14 @@ CREATE TABLE IF NOT EXISTS genre (
 -- title.basics joined with title.ratings.
 CREATE TABLE IF NOT EXISTS titles (
   id               INTEGER PRIMARY KEY,
-  title_type       INTEGER NOT NULL REFERENCES title_type(id),
+  title_type       INTEGER NOT NULL REFERENCES titles_types(id),
   primary_title    TEXT    NOT NULL,
   original_title   TEXT,                          -- NULL when equal to primary_title
   is_adult         INTEGER NOT NULL DEFAULT 0,
   start_year       INTEGER,
   end_year         INTEGER,
   runtime_minutes  INTEGER,
-  genres           INTEGER NOT NULL DEFAULT 0,    -- bitmask over genre.id
+  genres           INTEGER NOT NULL DEFAULT 0,    -- bitmask over genres.id
   average_rating   INTEGER,                       -- rating in tenths; NULL if unrated
   num_votes        INTEGER                        -- NULL if unrated
 );
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS titles (
 ------------------------------------------------------------------------------
 
 -- One row per profession; id is the bit position used in names.primary_profession.
-CREATE TABLE IF NOT EXISTS profession (
+CREATE TABLE IF NOT EXISTS professions (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
 );
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS names (
   primary_name        TEXT    NOT NULL,
   birth_year          INTEGER,
   death_year          INTEGER,
-  primary_profession  INTEGER NOT NULL DEFAULT 0  -- bitmask over profession.id
+  primary_profession  INTEGER NOT NULL DEFAULT 0  -- bitmask over professions.id
 );
 
 -- title.episode: an episode's place in its parent series.
@@ -68,18 +68,11 @@ CREATE TABLE IF NOT EXISTS episodes (
 );
 
 -- title.crew: director and writer credits (role 0 = director, 1 = writer).
-CREATE TABLE IF NOT EXISTS crew (
+CREATE TABLE IF NOT EXISTS titles_credit_names (
   title_id  INTEGER NOT NULL REFERENCES titles(id),
   name_id   INTEGER NOT NULL REFERENCES names(id),
   role      INTEGER NOT NULL,
   PRIMARY KEY (title_id, name_id, role)
-) WITHOUT ROWID;
-
--- name.basics knownForTitles; populated only by the opt-in sub-layer.
-CREATE TABLE IF NOT EXISTS name_known_for (
-  name_id   INTEGER NOT NULL REFERENCES names(id),
-  title_id  INTEGER NOT NULL REFERENCES titles(id),
-  PRIMARY KEY (name_id, title_id)
 ) WITHOUT ROWID;
 
 ------------------------------------------------------------------------------
@@ -87,13 +80,13 @@ CREATE TABLE IF NOT EXISTS name_known_for (
 ------------------------------------------------------------------------------
 
 -- Enumerated principals.category: actor, director, self, ...
-CREATE TABLE IF NOT EXISTS category (
+CREATE TABLE IF NOT EXISTS principals_categories (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
 );
 
 -- Interned free-text principals.job values.
-CREATE TABLE IF NOT EXISTS job (
+CREATE TABLE IF NOT EXISTS principals_jobs (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
 );
@@ -103,33 +96,33 @@ CREATE TABLE IF NOT EXISTS principals (
   title_id    INTEGER NOT NULL REFERENCES titles(id),
   ordering    INTEGER NOT NULL,
   name_id     INTEGER NOT NULL REFERENCES names(id),
-  category    INTEGER NOT NULL REFERENCES category(id),
-  job         INTEGER REFERENCES job(id),
+  category    INTEGER NOT NULL REFERENCES principals_categories(id),
+  job         INTEGER REFERENCES principals_jobs(id),
   characters  TEXT,                               -- JSON array of names; NULL when absent
   PRIMARY KEY (title_id, ordering),
   CHECK (characters IS NULL OR json_valid(characters))
 ) WITHOUT ROWID;
 
 -- Enumerated akas.region: US, GB, ...
-CREATE TABLE IF NOT EXISTS region (
+CREATE TABLE IF NOT EXISTS regions (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
 );
 
 -- Enumerated akas.language: en, fr, ...
-CREATE TABLE IF NOT EXISTS language (
+CREATE TABLE IF NOT EXISTS languages (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
 );
 
 -- One row per akas type; id is the bit position used in akas.types.
-CREATE TABLE IF NOT EXISTS aka_type (
+CREATE TABLE IF NOT EXISTS akas_types (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
 );
 
 -- Interned akas.attributes values.
-CREATE TABLE IF NOT EXISTS attribute (
+CREATE TABLE IF NOT EXISTS attributes (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
 );
@@ -139,18 +132,18 @@ CREATE TABLE IF NOT EXISTS akas (
   title_id           INTEGER NOT NULL REFERENCES titles(id),
   ordering           INTEGER NOT NULL,
   title              TEXT    NOT NULL,
-  region             INTEGER REFERENCES region(id),
-  language           INTEGER REFERENCES language(id),
-  types              INTEGER NOT NULL DEFAULT 0,  -- bitmask over aka_type.id
+  region             INTEGER REFERENCES regions(id),
+  language           INTEGER REFERENCES languages(id),
+  types              INTEGER NOT NULL DEFAULT 0,  -- bitmask over akas_types.id
   is_original_title  INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (title_id, ordering)
 ) WITHOUT ROWID;
 
 -- Many-to-many between akas rows and their attributes.
-CREATE TABLE IF NOT EXISTS aka_attribute (
+CREATE TABLE IF NOT EXISTS akas_carry_attributes (
   title_id      INTEGER NOT NULL,
   ordering      INTEGER NOT NULL,
-  attribute_id  INTEGER NOT NULL REFERENCES attribute(id),
+  attribute_id  INTEGER NOT NULL REFERENCES attributes(id),
   PRIMARY KEY (title_id, ordering, attribute_id),
   FOREIGN KEY (title_id, ordering) REFERENCES akas(title_id, ordering)
 ) WITHOUT ROWID;

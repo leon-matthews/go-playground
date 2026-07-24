@@ -34,8 +34,8 @@ func TestImportTitles(t *testing.T) {
 	require.NoError(t, err)
 	lookups, err := importTitles(ctx, tx, strings.NewReader(basicsTSV), ratings)
 	require.NoError(t, err)
-	require.NoError(t, flushLookup(ctx, tx, "title_type", lookups.titleType))
-	require.NoError(t, flushLookup(ctx, tx, "genre", lookups.genre))
+	require.NoError(t, flushLookup(ctx, tx, "titles_types", lookups.titleType))
+	require.NoError(t, flushLookup(ctx, tx, "genres", lookups.genre))
 	require.NoError(t, tx.Commit())
 
 	t.Run("every row inserted", func(t *testing.T) {
@@ -77,13 +77,13 @@ func TestImportTitles(t *testing.T) {
 
 	t.Run("lookups populated and genre bit resolves by name", func(t *testing.T) {
 		var titleTypes int
-		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM title_type").Scan(&titleTypes))
+		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM titles_types").Scan(&titleTypes))
 		assert.Equal(t, 2, titleTypes) // short, movie
 
 		// The Matrix's bitmask must contain the Action and Sci-Fi genre bits
 		var matches int
 		require.NoError(t, db.QueryRowContext(ctx, `
-			SELECT count(*) FROM genre g, titles t
+			SELECT count(*) FROM genres g, titles t
 			WHERE t.id = 133093 AND t.genres & (1 << g.id) AND g.name IN ('Action', 'Sci-Fi')`).Scan(&matches))
 		assert.Equal(t, 2, matches)
 	})

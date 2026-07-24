@@ -39,7 +39,7 @@ func importAkas(ctx context.Context, tx *sql.Tx, akas io.Reader) (*akasLookups, 
 	if err != nil {
 		return nil, err
 	}
-	attributes, err := newBatchInserter(ctx, tx, "aka_attribute", akaAttributeColumns, bindAkaAttributeRow)
+	attributes, err := newBatchInserter(ctx, tx, "akas_carry_attributes", akaAttributeColumns, bindAkaAttributeRow)
 	if err != nil {
 		return nil, err
 	}

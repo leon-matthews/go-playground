@@ -27,7 +27,7 @@ type crewRow struct {
 // importCrew streams title.crew into the crew table, fanning each row's director
 // and writer lists out into one role-tagged row per person.
 func importCrew(ctx context.Context, tx *sql.Tx, crew io.Reader) error {
-	inserter, err := newBatchInserter(ctx, tx, "crew", crewColumns, bindCrewRow)
+	inserter, err := newBatchInserter(ctx, tx, "titles_credit_names", crewColumns, bindCrewRow)
 	if err != nil {
 		return err
 	}

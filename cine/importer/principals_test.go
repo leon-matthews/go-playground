@@ -23,8 +23,8 @@ func TestImportPrincipals(t *testing.T) {
 	require.NoError(t, err)
 	lookups, err := importPrincipals(ctx, tx, strings.NewReader(principalTSV))
 	require.NoError(t, err)
-	require.NoError(t, flushLookup(ctx, tx, "category", lookups.category))
-	require.NoError(t, flushLookup(ctx, tx, "job", lookups.job))
+	require.NoError(t, flushLookup(ctx, tx, "principals_categories", lookups.category))
+	require.NoError(t, flushLookup(ctx, tx, "principals_jobs", lookups.job))
 	require.NoError(t, tx.Commit())
 
 	t.Run("credit keeps category and characters, null job", func(t *testing.T) {
@@ -41,7 +41,7 @@ func TestImportPrincipals(t *testing.T) {
 
 		var categoryName string
 		require.NoError(t, db.QueryRowContext(ctx,
-			"SELECT name FROM category WHERE id = ?", category).Scan(&categoryName))
+			"SELECT name FROM principals_categories WHERE id = ?", category).Scan(&categoryName))
 		assert.Equal(t, "self", categoryName)
 	})
 
@@ -55,7 +55,7 @@ func TestImportPrincipals(t *testing.T) {
 	t.Run("job interned and characters queryable via json_each", func(t *testing.T) {
 		var jobName string
 		require.NoError(t, db.QueryRowContext(ctx, `
-			SELECT j.name FROM principals p JOIN job j ON j.id = p.job
+			SELECT j.name FROM principals p JOIN principals_jobs j ON j.id = p.job
 			WHERE p.title_id = 2 AND p.ordering = 1`).Scan(&jobName))
 		assert.Equal(t, "voice", jobName)
 
@@ -68,8 +68,8 @@ func TestImportPrincipals(t *testing.T) {
 
 	t.Run("lookups populated", func(t *testing.T) {
 		var categories, jobs int
-		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM category").Scan(&categories))
-		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM job").Scan(&jobs))
+		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM principals_categories").Scan(&categories))
+		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM principals_jobs").Scan(&jobs))
 		assert.Equal(t, 3, categories) // self, director, actor
 		assert.Equal(t, 1, jobs)       // voice
 	})

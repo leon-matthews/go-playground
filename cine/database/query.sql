@@ -11,7 +11,7 @@ INSERT INTO titles (
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: UpsertGenre :one
-INSERT INTO genre (id, name) VALUES (?, ?)
+INSERT INTO genres (id, name) VALUES (?, ?)
 ON CONFLICT(id) DO UPDATE SET name = excluded.name
 RETURNING id;
 

@@ -42,10 +42,10 @@ func TestDatabase(t *testing.T) {
 		require.NoError(t, rows.Err())
 
 		want := []string{
-			"title_type", "genre", "titles",
-			"profession", "names", "episodes", "crew", "name_known_for",
-			"category", "job", "principals",
-			"region", "language", "aka_type", "attribute", "akas", "aka_attribute",
+			"titles_types", "genres", "titles",
+			"professions", "names", "episodes", "titles_credit_names",
+			"principals_categories", "principals_jobs", "principals",
+			"regions", "languages", "akas_types", "attributes", "akas", "akas_carry_attributes",
 		}
 		assert.ElementsMatch(t, want, got)
 	})

@@ -22,7 +22,7 @@ func TestImportNames(t *testing.T) {
 	require.NoError(t, err)
 	profession, err := importNames(ctx, tx, strings.NewReader(nameBasicsTSV))
 	require.NoError(t, err)
-	require.NoError(t, flushLookup(ctx, tx, "profession", profession))
+	require.NoError(t, flushLookup(ctx, tx, "professions", profession))
 	require.NoError(t, tx.Commit())
 
 	t.Run("names inserted with profession bitmask and null years", func(t *testing.T) {
@@ -47,13 +47,14 @@ func TestImportNames(t *testing.T) {
 
 	t.Run("profession lookup populated", func(t *testing.T) {
 		var professions int
-		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM profession").Scan(&professions))
+		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM professions").Scan(&professions))
 		assert.Equal(t, 2, professions) // actor, producer
 	})
 
-	t.Run("knownForTitles left for the opt-in sub-layer", func(t *testing.T) {
-		var known int
-		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM name_known_for").Scan(&known))
-		assert.Equal(t, 0, known)
+	t.Run("knownForTitles has no table until the opt-in sub-layer builds it", func(t *testing.T) {
+		var tables int
+		require.NoError(t, db.QueryRowContext(ctx,
+			"SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'name_known_for'").Scan(&tables))
+		assert.Equal(t, 0, tables)
 	})
 }
