@@ -52,6 +52,7 @@ func buildInto(ctx context.Context, temp, dir string) error {
 		func(tx *sql.Tx) error { return importTitlesLayer(ctx, tx, dir, ratings) },
 		func(tx *sql.Tx) error { return importNamesLayer(ctx, tx, dir) },
 		func(tx *sql.Tx) error { return importEpisodesLayer(ctx, tx, dir) },
+		func(tx *sql.Tx) error { return importCrewLayer(ctx, tx, dir) },
 	}
 	for _, layer := range layers {
 		if err := inTx(ctx, db, layer); err != nil {
@@ -126,6 +127,16 @@ func importEpisodesLayer(ctx context.Context, tx *sql.Tx, dir string) error {
 	}
 	defer file.Close()
 	return importEpisodes(ctx, tx, file)
+}
+
+// importCrewLayer runs the crew pass within tx.
+func importCrewLayer(ctx context.Context, tx *sql.Tx, dir string) error {
+	file, err := reader.OpenGzip(filepath.Join(dir, reader.FileTitleCrew))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	return importCrew(ctx, tx, file)
 }
 
 // flushLookup writes an interner's entries into its two-column lookup table.
