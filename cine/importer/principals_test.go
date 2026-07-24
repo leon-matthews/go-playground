@@ -21,8 +21,9 @@ func TestImportPrincipals(t *testing.T) {
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	lookups, err := importPrincipals(ctx, tx, strings.NewReader(principalTSV))
+	count, lookups, err := importPrincipals(ctx, tx, strings.NewReader(principalTSV))
 	require.NoError(t, err)
+	assert.Equal(t, int64(3), count)
 	require.NoError(t, flushLookup(ctx, tx, "principals_categories", lookups.category))
 	require.NoError(t, flushLookup(ctx, tx, "principals_jobs", lookups.job))
 	require.NoError(t, tx.Commit())

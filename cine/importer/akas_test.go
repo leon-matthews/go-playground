@@ -23,8 +23,9 @@ func TestImportAkas(t *testing.T) {
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	lookups, err := importAkas(ctx, tx, strings.NewReader(akasTSV))
+	count, lookups, err := importAkas(ctx, tx, strings.NewReader(akasTSV))
 	require.NoError(t, err)
+	assert.Equal(t, int64(3), count)
 	require.NoError(t, flushLookup(ctx, tx, "regions", lookups.region))
 	require.NoError(t, flushLookup(ctx, tx, "languages", lookups.language))
 	require.NoError(t, flushLookup(ctx, tx, "akas_types", lookups.akaType))

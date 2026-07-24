@@ -48,30 +48,31 @@ type titleLookups struct {
 }
 
 // importTitles streams title.basics into the titles table, joining ratings and
-// interning the title_type and genre lookups. The caller writes the returned
-// lookups to their tables once the pass completes.
-func importTitles(ctx context.Context, tx *sql.Tx, basics io.Reader, ratings map[int64]rating) (*titleLookups, error) {
+// interning the title_type and genre lookups. It returns the number of titles
+// written; the caller writes the returned lookups to their tables once the pass
+// completes.
+func importTitles(ctx context.Context, tx *sql.Tx, basics io.Reader, ratings map[int64]rating) (int64, *titleLookups, error) {
 	lookups := &titleLookups{titleType: newInterner(), genre: newInterner()}
 	inserter, err := newBatchInserter(ctx, tx, "titles", titleColumns, bindTitleRow)
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 	for basic, err := range reader.ReadTitleBasics(basics) {
 		if err != nil {
-			return nil, err
+			return 0, nil, err
 		}
 		row, err := buildTitleRow(basic, ratings, lookups)
 		if err != nil {
-			return nil, err
+			return 0, nil, err
 		}
 		if err := inserter.Add(ctx, row); err != nil {
-			return nil, err
+			return 0, nil, err
 		}
 	}
 	if err := inserter.Flush(ctx); err != nil {
-		return nil, err
+		return 0, nil, err
 	}
-	return lookups, nil
+	return inserter.Added(), lookups, nil
 }
 
 // titleRow holds one titles row's values in column order; a nil field is stored

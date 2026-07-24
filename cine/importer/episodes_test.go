@@ -20,7 +20,9 @@ func TestImportEpisodes(t *testing.T) {
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	require.NoError(t, importEpisodes(ctx, tx, strings.NewReader(episodeTSV)))
+	count, err := importEpisodes(ctx, tx, strings.NewReader(episodeTSV))
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), count)
 	require.NoError(t, tx.Commit())
 
 	t.Run("episode keeps parent, season and number", func(t *testing.T) {

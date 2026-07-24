@@ -32,8 +32,9 @@ func TestImportTitles(t *testing.T) {
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	lookups, err := importTitles(ctx, tx, strings.NewReader(basicsTSV), ratings)
+	count, lookups, err := importTitles(ctx, tx, strings.NewReader(basicsTSV), ratings)
 	require.NoError(t, err)
+	assert.Equal(t, int64(3), count)
 	require.NoError(t, flushLookup(ctx, tx, "titles_types", lookups.titleType))
 	require.NoError(t, flushLookup(ctx, tx, "genres", lookups.genre))
 	require.NoError(t, tx.Commit())

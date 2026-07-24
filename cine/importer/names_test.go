@@ -20,8 +20,9 @@ func TestImportNames(t *testing.T) {
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	profession, err := importNames(ctx, tx, strings.NewReader(nameBasicsTSV))
+	count, profession, err := importNames(ctx, tx, strings.NewReader(nameBasicsTSV))
 	require.NoError(t, err)
+	assert.Equal(t, int64(2), count)
 	require.NoError(t, flushLookup(ctx, tx, "professions", profession))
 	require.NoError(t, tx.Commit())
 

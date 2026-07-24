@@ -26,9 +26,10 @@ type akasLookups struct {
 
 // importAkas streams title.akas into the akas table, interning its region and
 // language, folding its types into a bitmask, and fanning its attributes out
-// into the aka_attribute junction. The caller writes the returned lookups to
-// their tables once the pass completes.
-func importAkas(ctx context.Context, tx *sql.Tx, akas io.Reader) (*akasLookups, error) {
+// into the akas_carry_attributes junction. It returns the number of akas rows
+// written; the caller writes the returned lookups to their tables once the pass
+// completes.
+func importAkas(ctx context.Context, tx *sql.Tx, akas io.Reader) (int64, *akasLookups, error) {
 	lookups := &akasLookups{
 		region:    newInterner(),
 		language:  newInterner(),
@@ -37,35 +38,35 @@ func importAkas(ctx context.Context, tx *sql.Tx, akas io.Reader) (*akasLookups, 
 	}
 	titles, err := newBatchInserter(ctx, tx, "akas", akasColumns, bindAkasRow)
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 	attributes, err := newBatchInserter(ctx, tx, "akas_carry_attributes", akaAttributeColumns, bindAkaAttributeRow)
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 	for record, err := range reader.ReadTitleAkas(akas) {
 		if err != nil {
-			return nil, err
+			return 0, nil, err
 		}
 		titleID, err := parseID(record.TitleID)
 		if err != nil {
-			return nil, err
+			return 0, nil, err
 		}
 		ordering := int64(record.Ordering)
 		if err := titles.Add(ctx, buildAkasRow(record, titleID, ordering, lookups)); err != nil {
-			return nil, err
+			return 0, nil, err
 		}
 		if err := addAttributes(ctx, attributes, titleID, ordering, record.Attributes, lookups.attribute); err != nil {
-			return nil, err
+			return 0, nil, err
 		}
 	}
 	if err := titles.Flush(ctx); err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 	if err := attributes.Flush(ctx); err != nil {
-		return nil, err
+		return 0, nil, err
 	}
-	return lookups, nil
+	return titles.Added(), lookups, nil
 }
 
 // akasRow holds one akas row's values in column order; a nil field is stored as

@@ -31,6 +31,7 @@ type batchInserter[T any] struct {
 
 	buffer []T
 	args   []any
+	added  int64
 }
 
 // newBatchInserter prepares the reusable chunk statement on tx, sizing the chunk
@@ -60,6 +61,7 @@ func newSizedInserter[T any](ctx context.Context, tx *sql.Tx, table string, colu
 // Add buffers one row, flushing a full chunk once enough have accumulated.
 func (b *batchInserter[T]) Add(ctx context.Context, row T) error {
 	b.buffer = append(b.buffer, row)
+	b.added++
 	if len(b.buffer) < b.chunkRows {
 		return nil
 	}
@@ -83,6 +85,11 @@ func (b *batchInserter[T]) Flush(ctx context.Context) error {
 	}
 	b.buffer = b.buffer[:0]
 	return nil
+}
+
+// Added reports how many rows have been passed to Add over this inserter's life.
+func (b *batchInserter[T]) Added() int64 {
+	return b.added
 }
 
 // bindRows flattens the buffered rows into one bind-argument slice, reusing the

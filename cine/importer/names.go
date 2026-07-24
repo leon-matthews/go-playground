@@ -14,31 +14,31 @@ var nameColumns = []string{
 }
 
 // importNames streams name.basics into the names table, interning the
-// primary_profession bitmask. The caller writes the returned interner to the
-// profession lookup once the pass completes. knownForTitles is left for the
-// opt-in name_known_for sub-layer.
-func importNames(ctx context.Context, tx *sql.Tx, basics io.Reader) (*interner, error) {
+// primary_profession bitmask. It returns the number of names written; the caller
+// writes the returned interner to the profession lookup once the pass completes.
+// knownForTitles is left for the opt-in name_known_for sub-layer.
+func importNames(ctx context.Context, tx *sql.Tx, basics io.Reader) (int64, *interner, error) {
 	profession := newInterner()
 	inserter, err := newBatchInserter(ctx, tx, "names", nameColumns, bindNameRow)
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 	for record, err := range reader.ReadNameBasics(basics) {
 		if err != nil {
-			return nil, err
+			return 0, nil, err
 		}
 		row, err := buildNameRow(record, profession)
 		if err != nil {
-			return nil, err
+			return 0, nil, err
 		}
 		if err := inserter.Add(ctx, row); err != nil {
-			return nil, err
+			return 0, nil, err
 		}
 	}
 	if err := inserter.Flush(ctx); err != nil {
-		return nil, err
+		return 0, nil, err
 	}
-	return profession, nil
+	return inserter.Added(), profession, nil
 }
 
 // nameRow holds one names row's values in column order; a nil field is stored as
