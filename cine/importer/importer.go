@@ -54,6 +54,7 @@ func buildInto(ctx context.Context, temp, dir string) error {
 		func(tx *sql.Tx) error { return importEpisodesLayer(ctx, tx, dir) },
 		func(tx *sql.Tx) error { return importCrewLayer(ctx, tx, dir) },
 		func(tx *sql.Tx) error { return importPrincipalsLayer(ctx, tx, dir) },
+		func(tx *sql.Tx) error { return importAkasLayer(ctx, tx, dir) },
 	}
 	for _, layer := range layers {
 		if err := inTx(ctx, db, layer); err != nil {
@@ -157,6 +158,31 @@ func importPrincipalsLayer(ctx context.Context, tx *sql.Tx, dir string) error {
 		return err
 	}
 	return flushLookup(ctx, tx, "job", lookups.job)
+}
+
+// importAkasLayer runs the akas pass within tx and writes its region, language,
+// aka_type and attribute lookups.
+func importAkasLayer(ctx context.Context, tx *sql.Tx, dir string) error {
+	file, err := reader.OpenGzip(filepath.Join(dir, reader.FileTitleAkas))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	lookups, err := importAkas(ctx, tx, file)
+	if err != nil {
+		return err
+	}
+	if err := flushLookup(ctx, tx, "region", lookups.region); err != nil {
+		return err
+	}
+	if err := flushLookup(ctx, tx, "language", lookups.language); err != nil {
+		return err
+	}
+	if err := flushLookup(ctx, tx, "aka_type", lookups.akaType); err != nil {
+		return err
+	}
+	return flushLookup(ctx, tx, "attribute", lookups.attribute)
 }
 
 // flushLookup writes an interner's entries into its two-column lookup table.
