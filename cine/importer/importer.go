@@ -33,7 +33,8 @@ func Import(ctx context.Context, path, dir string) error {
 	return nil
 }
 
-// buildInto opens a fresh database at temp and imports every layer into it.
+// buildInto opens a fresh database at temp and imports every layer into it, each
+// file within its own transaction.
 func buildInto(ctx context.Context, temp, dir string) error {
 	_, db, err := database.Open(ctx, temp)
 	if err != nil {
@@ -46,18 +47,32 @@ func buildInto(ctx context.Context, temp, dir string) error {
 		return err
 	}
 
+	// Each layer imports one file within its own transaction, in dependency order.
+	layers := []func(*sql.Tx) error{
+		func(tx *sql.Tx) error { return importTitlesLayer(ctx, tx, dir, ratings) },
+		func(tx *sql.Tx) error { return importNamesLayer(ctx, tx, dir) },
+		func(tx *sql.Tx) error { return importEpisodesLayer(ctx, tx, dir) },
+	}
+	for _, layer := range layers {
+		if err := inTx(ctx, db, layer); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// inTx runs fn inside a transaction, committing on success and discarding the
+// transaction (the whole build is thrown away) on failure.
+func inTx(ctx context.Context, db *sql.DB, fn func(*sql.Tx) error) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("beginning transaction: %w", err)
 	}
-	if err := importTitlesLayer(ctx, tx, dir, ratings); err != nil {
+	if err := fn(tx); err != nil {
 		_ = tx.Rollback()
 		return err
 	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("committing titles: %w", err)
-	}
-	return nil
+	return tx.Commit()
 }
 
 // readRatings loads title.ratings from dir into a lookup map.
@@ -86,6 +101,31 @@ func importTitlesLayer(ctx context.Context, tx *sql.Tx, dir string, ratings map[
 		return err
 	}
 	return flushLookup(ctx, tx, "genre", lookups.genre)
+}
+
+// importNamesLayer runs the names pass within tx and writes its profession lookup.
+func importNamesLayer(ctx context.Context, tx *sql.Tx, dir string) error {
+	file, err := reader.OpenGzip(filepath.Join(dir, reader.FileNameBasics))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	profession, err := importNames(ctx, tx, file)
+	if err != nil {
+		return err
+	}
+	return flushLookup(ctx, tx, "profession", profession)
+}
+
+// importEpisodesLayer runs the episodes pass within tx.
+func importEpisodesLayer(ctx context.Context, tx *sql.Tx, dir string) error {
+	file, err := reader.OpenGzip(filepath.Join(dir, reader.FileTitleEpisode))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	return importEpisodes(ctx, tx, file)
 }
 
 // flushLookup writes an interner's entries into its two-column lookup table.
