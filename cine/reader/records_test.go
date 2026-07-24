@@ -38,7 +38,7 @@ func TestReaders(t *testing.T) {
 		assert.Equal(t, []string{"actor", "producer"}, got[0].PrimaryProfession)
 		assert.Equal(t, []string{"tt0072308", "tt0050419"}, got[0].KnownForTitles)
 
-		assert.Equal(t, Missing, got[1].DeathYear)
+		assert.Equal(t, missing, got[1].DeathYear)
 		assert.Nil(t, got[1].PrimaryProfession)
 		assert.Nil(t, got[1].KnownForTitles)
 	})
@@ -81,7 +81,7 @@ func TestReaders(t *testing.T) {
 		assert.Equal(t, "Carmencita", b.OriginalTitle) // kept even when equal
 		assert.False(t, b.IsAdult)
 		assert.Equal(t, 1894, b.StartYear)
-		assert.Equal(t, Missing, b.EndYear)
+		assert.Equal(t, missing, b.EndYear)
 		assert.Equal(t, 1, b.RuntimeMinutes)
 		assert.Equal(t, []string{"Documentary", "Short"}, b.Genres)
 	})
@@ -115,8 +115,8 @@ func TestReaders(t *testing.T) {
 		assert.Equal(t, 9, got[0].EpisodeNumber)
 
 		assert.Equal(t, "tt32857063", got[1].ParentTconst) // 8-digit id kept as string
-		assert.Equal(t, Missing, got[1].SeasonNumber)
-		assert.Equal(t, Missing, got[1].EpisodeNumber)
+		assert.Equal(t, missing, got[1].SeasonNumber)
+		assert.Equal(t, missing, got[1].EpisodeNumber)
 	})
 
 	t.Run("TitlePrincipals", func(t *testing.T) {

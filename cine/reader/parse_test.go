@@ -1,6 +1,7 @@
 package reader
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,30 +10,30 @@ import (
 
 func TestParse(t *testing.T) {
 	t.Run("optString", func(t *testing.T) {
-		assert.Equal(t, "", optString(`\N`))
-		assert.Equal(t, "US", optString("US"))
-		assert.Equal(t, "", optString(""))
+		assert.Equal(t, "", optionalString(`\N`))
+		assert.Equal(t, "US", optionalString("US"))
+		assert.Equal(t, "", optionalString(""))
 	})
 
 	t.Run("optInt", func(t *testing.T) {
-		n, err := optInt(`\N`)
+		n, err := optionalInt(`\N`)
 		require.NoError(t, err)
-		assert.Equal(t, Missing, n)
+		assert.Equal(t, missing, n)
 
-		n, err = optInt("1987")
+		n, err = optionalInt("1987")
 		require.NoError(t, err)
 		assert.Equal(t, 1987, n)
 
-		_, err = optInt("12x")
+		_, err = optionalInt("12x")
 		assert.Error(t, err)
 	})
 
 	t.Run("reqInt", func(t *testing.T) {
-		n, err := reqInt("42")
+		n, err := requiredInt("42")
 		require.NoError(t, err)
 		assert.Equal(t, 42, n)
 
-		_, err = reqInt(`\N`)
+		_, err = requiredInt(`\N`)
 		assert.Error(t, err)
 	})
 
@@ -82,6 +83,20 @@ func TestParse(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, []string{"Man, seated", "Bond"}, names)
 
+		// Raw UTF-8 has no backslash, so it stays on the fast path
+		names, err = parseCharacters(`["Renée"]`)
+		require.NoError(t, err)
+		assert.Equal(t, []string{"Renée"}, names)
+
+		// Escapes take the encoding/json fallback and are unescaped
+		names, err = parseCharacters(`["\"Doc\" Holliday"]`)
+		require.NoError(t, err)
+		assert.Equal(t, []string{`"Doc" Holliday`}, names)
+
+		names, err = parseCharacters(`["a\\b"]`)
+		require.NoError(t, err)
+		assert.Equal(t, []string{`a\b`}, names)
+
 		_, err = parseCharacters(`[oops`)
 		assert.Error(t, err)
 	})
@@ -108,4 +123,71 @@ func TestSplitTabs(t *testing.T) {
 			assert.Equal(t, tc.want, dst)
 		})
 	}
+}
+
+// jsonUnmarshal is the plain json-based semantics parseCharacters must
+// reproduce: \N is nil, otherwise a JSON string array. It reports only whether
+// decoding failed, since the wrapped error message is allowed to differ.
+func jsonUnmarshal(s string) (names []string, failed bool) {
+	if s == nullMarker {
+		return nil, false
+	}
+	if err := json.Unmarshal([]byte(s), &names); err != nil {
+		return nil, true
+	}
+	return names, false
+}
+
+// TestParseCharactersMatchesJSON locks the fast path to encoding/json across a
+// table of well-formed, escaped, and malformed inputs.
+func TestParseCharactersMatchesJSON(t *testing.T) {
+	inputs := []string{
+		`\N`,
+		`["Self"]`,
+		`["Man, seated","Bond"]`,
+		`["A","B","C"]`,
+		`[""]`,
+		`[]`,
+		`["\"Doc\" Holliday"]`,
+		`["a\\b"]`,
+		`[ "spaced" ]`,
+		`["a"`,
+		`[1,2]`,
+		`["a"b"]`,
+		`not json`,
+	}
+	for _, in := range inputs {
+		t.Run(in, func(t *testing.T) {
+			got, err := parseCharacters(in)
+			want, failed := jsonUnmarshal(in)
+			if failed {
+				assert.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, want, got)
+		})
+	}
+}
+
+// FuzzParseCharacters asserts the same equivalence on random input, so the fast
+// path can never silently diverge from encoding/json.
+func FuzzParseCharacters(f *testing.F) {
+	seeds := []string{
+		`\N`, `["Self"]`, `["Man, seated","Bond"]`, `[""]`, `[]`,
+		`["\"Doc\" Holliday"]`, `["a\\b"]`, `["a"b"]`, `[1,2]`, `not json`,
+	}
+	for _, s := range seeds {
+		f.Add(s)
+	}
+	f.Fuzz(func(t *testing.T, s string) {
+		got, err := parseCharacters(s)
+		want, failed := jsonUnmarshal(s)
+		if failed {
+			assert.Error(t, err)
+			return
+		}
+		require.NoError(t, err)
+		assert.Equal(t, want, got)
+	})
 }

@@ -24,7 +24,7 @@ import (
 )
 
 // summaryLine formats one row of the records/errors/throughput report.
-const summaryLine = "%-22s %10d records  %6d errors  %10s  %10.0f rec/s\n"
+const summaryLine = "%-23s %10d records  %6d errors  %10s  %10.0f rec/s\n"
 
 func main() {
 	log.SetFlags(0)

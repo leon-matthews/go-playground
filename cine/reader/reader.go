@@ -4,7 +4,7 @@
 // Each dataset file has a Read function that streams its rows from an
 // io.Reader as an iter.Seq2 of record and error. The records are a faithful
 // view of the file: identifiers keep their "tt"/"nm" string form and IMDb's
-// \N null marker becomes an empty value, or the Missing sentinel for integers.
+// \N null marker becomes an empty value, or the missing sentinel for integers.
 //
 // See https://developer.imdb.com/non-commercial-datasets/ for the dataset.
 package reader

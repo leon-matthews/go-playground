@@ -5,38 +5,39 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // nullMarker is the token IMDb uses in the TSV files for an absent field.
 const nullMarker = `\N`
 
-// Missing is the value of an absent optional integer field, standing in for
-// IMDb's \N. Code writing these records to a database must map Missing to SQL
+// missing is the value of an absent optional integer field, standing in for
+// IMDb's \N. Code writing these records to a database must map missing to SQL
 // NULL rather than storing it as -1.
-const Missing = -1
+const missing = -1
 
-// optString maps IMDb's \N to the empty string and passes anything else through.
-func optString(s string) string {
+// optionalString maps IMDb's \N to the empty string and passes anything else through.
+func optionalString(s string) string {
 	if s == nullMarker {
 		return ""
 	}
 	return s
 }
 
-// optInt parses an optional integer field, mapping \N to Missing.
-func optInt(s string) (int, error) {
+// optionalInt parses an optional integer field, mapping \N to missing.
+func optionalInt(s string) (int, error) {
 	if s == nullMarker {
-		return Missing, nil
+		return missing, nil
 	}
 	n, err := strconv.Atoi(s)
 	if err != nil {
-		return Missing, fmt.Errorf("invalid integer %q: %w", s, err)
+		return missing, fmt.Errorf("invalid integer %q: %w", s, err)
 	}
 	return n, nil
 }
 
-// reqInt parses a required integer field.
-func reqInt(s string) (int, error) {
+// requiredInt parses a required integer field.
+func requiredInt(s string) (int, error) {
 	n, err := strconv.Atoi(s)
 	if err != nil {
 		return 0, fmt.Errorf("invalid integer %q: %w", s, err)
@@ -70,11 +71,16 @@ func splitList(s string) []string {
 	return strings.Split(s, ",")
 }
 
-// parseCharacters decodes the JSON string array held in the principals
-// characters field; \N yields nil.
+// parseCharacters decodes the JSON string array in the principals characters field.
+// A literal "\N" input returns nil.
 func parseCharacters(s string) ([]string, error) {
 	if s == nullMarker {
 		return nil, nil
+	}
+
+	// Try to use fast-path parser
+	if names, ok := fastUnmarshalStringSlice(s); ok {
+		return names, nil
 	}
 	var names []string
 	if err := json.Unmarshal([]byte(s), &names); err != nil {
@@ -83,66 +89,27 @@ func parseCharacters(s string) ([]string, error) {
 	return names, nil
 }
 
-// cursor extracts typed values from one row's tab-separated fields, keeping the
-// first parse error so a record can be built in a single declarative block.
-// The read core guarantees the field count, so indexing is always in range.
-type cursor struct {
-	fields []string
-	err    error
-}
-
-func (c *cursor) str(i int) string    { return c.fields[i] }
-func (c *cursor) optStr(i int) string { return optString(c.fields[i]) }
-func (c *cursor) list(i int) []string { return splitList(c.fields[i]) }
-
-func (c *cursor) optInt(i int) int {
-	if c.err != nil {
-		return Missing
+// fastUnmarshalStringSlice parses a plain ["a","b"] JSON array into a slice of strings.
+// It returns ok false for anything challenging. The caller should then defer
+// to encoding/json for more robust handling.
+func fastUnmarshalStringSlice(s string) (names []string, ok bool) {
+	if len(s) < 4 || !strings.HasPrefix(s, `["`) || !strings.HasSuffix(s, `"]`) {
+		return nil, false
 	}
-	n, err := optInt(c.fields[i])
-	c.keep(err)
-	return n
-}
-
-func (c *cursor) reqInt(i int) int {
-	if c.err != nil {
-		return 0
+	// Escapes and invalid UTF-8 both change what encoding/json would produce
+	if strings.IndexByte(s, '\\') >= 0 || !utf8.ValidString(s) {
+		return nil, false
 	}
-	n, err := reqInt(c.fields[i])
-	c.keep(err)
-	return n
-}
-
-func (c *cursor) boolean(i int) bool {
-	if c.err != nil {
-		return false
+	// No backslash means every quote is a delimiter, so "," separates elements
+	names = strings.Split(s[2:len(s)-2], `","`)
+	for _, name := range names {
+		// A bare quote or control byte is invalid JSON inside a string, so
+		// defer those to the fallback and keep encoding/json authoritative
+		for i := 0; i < len(name); i++ {
+			if b := name[i]; b == '"' || b < 0x20 {
+				return nil, false
+			}
+		}
 	}
-	b, err := parseBool(c.fields[i])
-	c.keep(err)
-	return b
-}
-
-func (c *cursor) float(i int) float64 {
-	if c.err != nil {
-		return 0
-	}
-	f, err := parseFloat(c.fields[i])
-	c.keep(err)
-	return f
-}
-
-func (c *cursor) characters(i int) []string {
-	if c.err != nil {
-		return nil
-	}
-	names, err := parseCharacters(c.fields[i])
-	c.keep(err)
-	return names
-}
-
-// keep records the first error seen.
-func (c *cursor) keep(err error) {
-	if c.err == nil {
-		c.err = err
-	}
+	return names, true
 }

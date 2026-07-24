@@ -9,8 +9,8 @@ import (
 type NameBasics struct {
 	Nconst            string   // "nm0000001"
 	PrimaryName       string   // "Fred Astaire"
-	BirthYear         int      // Missing (-1) for \N; map to SQL NULL
-	DeathYear         int      // Missing (-1) for \N; map to SQL NULL
+	BirthYear         int      // missing (-1) for \N; map to SQL NULL
+	DeathYear         int      // missing (-1) for \N; map to SQL NULL
 	PrimaryProfession []string // "actor,producer" -> ["actor", "producer"]
 	KnownForTitles    []string // tconsts the person is known for
 }
@@ -27,8 +27,8 @@ func ReadNameBasics(r io.Reader) iter.Seq2[NameBasics, error] {
 		return NameBasics{
 			Nconst:            c.str(0),
 			PrimaryName:       c.str(1),
-			BirthYear:         c.optInt(2),
-			DeathYear:         c.optInt(3),
+			BirthYear:         c.optionalInt(2),
+			DeathYear:         c.optionalInt(3),
 			PrimaryProfession: c.list(4),
 			KnownForTitles:    c.list(5),
 		}, c.err
@@ -58,10 +58,10 @@ func ReadTitleAkas(r io.Reader) iter.Seq2[TitleAkas, error] {
 		c := cursor{fields: f}
 		return TitleAkas{
 			TitleID:         c.str(0),
-			Ordering:        c.reqInt(1),
+			Ordering:        c.requiredInt(1),
 			Title:           c.str(2),
-			Region:          c.optStr(3),
-			Language:        c.optStr(4),
+			Region:          c.optionalStr(3),
+			Language:        c.optionalStr(4),
 			Types:           c.list(5),
 			Attributes:      c.list(6),
 			IsOriginalTitle: c.boolean(7),
@@ -76,9 +76,9 @@ type TitleBasics struct {
 	PrimaryTitle   string   // promotional title
 	OriginalTitle  string   // title in the original language
 	IsAdult        bool     // 1 -> true
-	StartYear      int      // Missing (-1) for \N; map to SQL NULL
-	EndYear        int      // Missing (-1) for \N; map to SQL NULL
-	RuntimeMinutes int      // Missing (-1) for \N; map to SQL NULL
+	StartYear      int      // missing (-1) for \N; map to SQL NULL
+	EndYear        int      // missing (-1) for \N; map to SQL NULL
+	RuntimeMinutes int      // missing (-1) for \N; map to SQL NULL
 	Genres         []string // "Documentary,Short" -> ["Documentary", "Short"]
 }
 
@@ -97,9 +97,9 @@ func ReadTitleBasics(r io.Reader) iter.Seq2[TitleBasics, error] {
 			PrimaryTitle:   c.str(2),
 			OriginalTitle:  c.str(3),
 			IsAdult:        c.boolean(4),
-			StartYear:      c.optInt(5),
-			EndYear:        c.optInt(6),
-			RuntimeMinutes: c.optInt(7),
+			StartYear:      c.optionalInt(5),
+			EndYear:        c.optionalInt(6),
+			RuntimeMinutes: c.optionalInt(7),
 			Genres:         c.list(8),
 		}, c.err
 	})
@@ -130,8 +130,8 @@ func ReadTitleCrew(r io.Reader) iter.Seq2[TitleCrew, error] {
 type TitleEpisode struct {
 	Tconst        string // episode tconst
 	ParentTconst  string // series tconst
-	SeasonNumber  int    // Missing (-1) for \N; map to SQL NULL
-	EpisodeNumber int    // Missing (-1) for \N; map to SQL NULL
+	SeasonNumber  int    // missing (-1) for \N; map to SQL NULL
+	EpisodeNumber int    // missing (-1) for \N; map to SQL NULL
 }
 
 var titleEpisodeHeader = []string{"tconst", "parentTconst", "seasonNumber", "episodeNumber"}
@@ -143,8 +143,8 @@ func ReadTitleEpisode(r io.Reader) iter.Seq2[TitleEpisode, error] {
 		return TitleEpisode{
 			Tconst:        c.str(0),
 			ParentTconst:  c.str(1),
-			SeasonNumber:  c.optInt(2),
-			EpisodeNumber: c.optInt(3),
+			SeasonNumber:  c.optionalInt(2),
+			EpisodeNumber: c.optionalInt(3),
 		}, c.err
 	})
 }
@@ -167,10 +167,10 @@ func ReadTitlePrincipals(r io.Reader) iter.Seq2[TitlePrincipals, error] {
 		c := cursor{fields: f}
 		return TitlePrincipals{
 			Tconst:     c.str(0),
-			Ordering:   c.reqInt(1),
+			Ordering:   c.requiredInt(1),
 			Nconst:     c.str(2),
 			Category:   c.str(3),
-			Job:        c.optStr(4),
+			Job:        c.optionalStr(4),
 			Characters: c.characters(5),
 		}, c.err
 	})
@@ -192,7 +192,7 @@ func ReadTitleRatings(r io.Reader) iter.Seq2[TitleRatings, error] {
 		return TitleRatings{
 			Tconst:        c.str(0),
 			AverageRating: c.float(1),
-			NumVotes:      c.reqInt(2),
+			NumVotes:      c.requiredInt(2),
 		}, c.err
 	})
 }
