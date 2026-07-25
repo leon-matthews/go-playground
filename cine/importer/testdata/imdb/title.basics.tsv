@@ -1,0 +1,4 @@
+tconst	titleType	primaryTitle	originalTitle	isAdult	startYear	endYear	runtimeMinutes	genres
+tt0000001	short	Carmencita	Carmencita	0	1894	\N	1	Documentary,Short
+tt0133093	movie	The Matrix	The Matrix	0	1999	\N	136	Action,Sci-Fi
+tt9999999	movie	Titulo	Original Titulo	0	\N	\N	\N	\N

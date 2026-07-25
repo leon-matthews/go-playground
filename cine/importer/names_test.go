@@ -3,16 +3,13 @@ package importer
 import (
 	"context"
 	"database/sql"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-)
 
-const nameBasicsTSV = "nconst\tprimaryName\tbirthYear\tdeathYear\tprimaryProfession\tknownForTitles\n" +
-	"nm0000001\tFred Astaire\t1899\t1987\tactor,producer\ttt0072308,tt0050419\n" +
-	"nm9999999\tNo Credits\t\\N\t\\N\t\\N\t\\N\n"
+	"local.dev/cine/reader"
+)
 
 func TestImportNames(t *testing.T) {
 	ctx := context.Background()
@@ -20,7 +17,7 @@ func TestImportNames(t *testing.T) {
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	count, profession, err := importNames(ctx, tx, strings.NewReader(nameBasicsTSV))
+	count, profession, err := importNames(ctx, tx, openIMDB(t, reader.FileNameBasics))
 	require.NoError(t, err)
 	assert.Equal(t, int64(2), count)
 	require.NoError(t, flushLookup(ctx, tx, "professions", profession))

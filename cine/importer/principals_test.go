@@ -3,17 +3,13 @@ package importer
 import (
 	"context"
 	"database/sql"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-)
 
-const principalTSV = "tconst\tordering\tnconst\tcategory\tjob\tcharacters\n" +
-	"tt0000001\t1\tnm0000001\tself\t\\N\t[\"Self\"]\n" +
-	"tt0000001\t2\tnm0000002\tdirector\t\\N\t\\N\n" +
-	"tt0000002\t1\tnm0000003\tactor\tvoice\t[\"Narrator\",\"Guard\"]\n"
+	"local.dev/cine/reader"
+)
 
 func TestImportPrincipals(t *testing.T) {
 	ctx := context.Background()
@@ -21,7 +17,7 @@ func TestImportPrincipals(t *testing.T) {
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	count, lookups, err := importPrincipals(ctx, tx, strings.NewReader(principalTSV))
+	count, lookups, err := importPrincipals(ctx, tx, openIMDB(t, reader.FileTitlePrincipals))
 	require.NoError(t, err)
 	assert.Equal(t, int64(3), count)
 	require.NoError(t, flushLookup(ctx, tx, "principals_categories", lookups.category))

@@ -2,16 +2,13 @@ package importer
 
 import (
 	"context"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-)
 
-const crewTSV = "tconst\tdirectors\twriters\n" +
-	"tt0000001\tnm0000005,nm0000006\tnm0000005\n" + // nm5 both directed and wrote
-	"tt0000002\t\\N\tnm0000007\n" // no director, one writer
+	"local.dev/cine/reader"
+)
 
 func TestImportCrew(t *testing.T) {
 	ctx := context.Background()
@@ -19,7 +16,7 @@ func TestImportCrew(t *testing.T) {
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	count, err := importCrew(ctx, tx, strings.NewReader(crewTSV))
+	count, err := importCrew(ctx, tx, openIMDB(t, reader.FileTitleCrew))
 	require.NoError(t, err)
 	assert.Equal(t, int64(4), count) // 2 input rows fan out to 4 credits
 	require.NoError(t, tx.Commit())

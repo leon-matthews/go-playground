@@ -3,16 +3,13 @@ package importer
 import (
 	"context"
 	"database/sql"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-)
 
-const episodeTSV = "tconst\tparentTconst\tseasonNumber\tepisodeNumber\n" +
-	"tt0041038\ttt0040021\t1\t9\n" +
-	"tt9999999\ttt8888888\t\\N\t\\N\n"
+	"local.dev/cine/reader"
+)
 
 func TestImportEpisodes(t *testing.T) {
 	ctx := context.Background()
@@ -20,7 +17,7 @@ func TestImportEpisodes(t *testing.T) {
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	count, err := importEpisodes(ctx, tx, strings.NewReader(episodeTSV))
+	count, err := importEpisodes(ctx, tx, openIMDB(t, reader.FileTitleEpisode))
 	require.NoError(t, err)
 	assert.Equal(t, int64(2), count)
 	require.NoError(t, tx.Commit())

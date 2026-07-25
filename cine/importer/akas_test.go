@@ -3,19 +3,13 @@ package importer
 import (
 	"context"
 	"database/sql"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-)
 
-// akasTSV exercises a null region/language row, an original-title row with no
-// types, and a row whose types and attributes are \x02-separated arrays.
-const akasTSV = "titleId\tordering\ttitle\tregion\tlanguage\ttypes\tattributes\tisOriginalTitle\n" +
-	"tt0000001\t1\tCarmencita\tUS\t\\N\timdbDisplay\t\\N\t0\n" +
-	"tt0000001\t2\tCarmencita\t\\N\t\\N\t\\N\t\\N\t1\n" +
-	"tt0000002\t1\tLe clown\tFR\tfr\timdbDisplay\x02dvd\tliteral title\x022014 restoration\t0\n"
+	"local.dev/cine/reader"
+)
 
 func TestImportAkas(t *testing.T) {
 	ctx := context.Background()
@@ -23,7 +17,7 @@ func TestImportAkas(t *testing.T) {
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	count, lookups, err := importAkas(ctx, tx, strings.NewReader(akasTSV))
+	count, lookups, err := importAkas(ctx, tx, openIMDB(t, reader.FileTitleAkas))
 	require.NoError(t, err)
 	assert.Equal(t, int64(3), count)
 	require.NoError(t, flushLookup(ctx, tx, "regions", lookups.region))

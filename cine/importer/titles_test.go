@@ -3,6 +3,8 @@ package importer
 import (
 	"context"
 	"database/sql"
+	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -11,28 +13,20 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"local.dev/cine/database"
+	"local.dev/cine/reader"
 )
-
-const ratingsTSV = "tconst\taverageRating\tnumVotes\n" +
-	"tt0133093\t8.7\t2000000\n" +
-	"tt0000001\t5.7\t2220\n"
-
-const basicsTSV = "tconst\ttitleType\tprimaryTitle\toriginalTitle\tisAdult\tstartYear\tendYear\truntimeMinutes\tgenres\n" +
-	"tt0000001\tshort\tCarmencita\tCarmencita\t0\t1894\t\\N\t1\tDocumentary,Short\n" +
-	"tt0133093\tmovie\tThe Matrix\tThe Matrix\t0\t1999\t\\N\t136\tAction,Sci-Fi\n" +
-	"tt9999999\tmovie\tTitulo\tOriginal Titulo\t0\t\\N\t\\N\t\\N\t\\N\n"
 
 func TestImportTitles(t *testing.T) {
 	ctx := context.Background()
 	db := openImportDB(t)
 
-	ratings, err := loadRatings(strings.NewReader(ratingsTSV))
+	ratings, err := loadRatings(openIMDB(t, reader.FileTitleRatings))
 	require.NoError(t, err)
 	require.Len(t, ratings, 2)
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	count, lookups, err := importTitles(ctx, tx, strings.NewReader(basicsTSV), ratings)
+	count, lookups, err := importTitles(ctx, tx, openIMDB(t, reader.FileTitleBasics), ratings)
 	require.NoError(t, err)
 	assert.Equal(t, int64(3), count)
 	require.NoError(t, flushLookup(ctx, tx, "titles_types", lookups.titleType))
@@ -99,4 +93,15 @@ func openImportDB(t *testing.T) *sql.DB {
 	require.NoError(t, err)
 	t.Cleanup(func() { db.Close() })
 	return db
+}
+
+// openIMDB opens a sample dataset file from testdata/imdb, keyed off the
+// canonical gzip file name with its .gz suffix dropped, mirroring the reader
+// package's fixtures.
+func openIMDB(t *testing.T, gzName string) io.Reader {
+	t.Helper()
+	f, err := os.Open(filepath.Join("testdata", "imdb", strings.TrimSuffix(gzName, ".gz")))
+	require.NoError(t, err)
+	t.Cleanup(func() { f.Close() })
+	return f
 }

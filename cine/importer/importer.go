@@ -10,6 +10,7 @@ import (
 
 	"github.com/charmbracelet/log"
 
+	"local.dev/cine/common"
 	"local.dev/cine/database"
 	"local.dev/cine/reader"
 )
@@ -37,14 +38,19 @@ func Import(ctx context.Context, path, dir string, logger *log.Logger) error {
 	if err := os.Rename(temp, path); err != nil {
 		return fmt.Errorf("installing database: %w", err)
 	}
-	logger.Info("database built", "path", path, "took", time.Since(start).Round(time.Millisecond))
+
+	fields := []any{"path", path, "took", time.Since(start).Round(time.Millisecond)}
+	if info, err := os.Stat(path); err == nil {
+		fields = append(fields, "size", common.Bytes(info.Size()))
+	}
+	logger.Info("database built", fields...)
 	return nil
 }
 
 // layer imports one dataset file within its own transaction and reports the
 // number of rows written to its primary table.
 type layer struct {
-	name string
+	file string // canonical dataset file name, for logging and errors
 	run  func(*sql.Tx) (int64, error)
 }
 
@@ -62,26 +68,32 @@ func buildInto(ctx context.Context, temp, dir string, logger *log.Logger) error 
 	if err != nil {
 		return err
 	}
-	logger.Info("ratings loaded", "count", len(ratings), "took", time.Since(ratingsStart).Round(time.Millisecond))
+	logger.Info("ratings loaded",
+		"file", reader.FileTitleRatings,
+		"count", common.Commas(int64(len(ratings))),
+		"took", time.Since(ratingsStart).Round(time.Millisecond))
 
 	// Each layer imports one file within its own transaction, in dependency order.
 	layers := []layer{
-		{"titles", func(tx *sql.Tx) (int64, error) { return importTitlesLayer(ctx, tx, dir, ratings) }},
-		{"names", func(tx *sql.Tx) (int64, error) { return importNamesLayer(ctx, tx, dir) }},
-		{"episodes", func(tx *sql.Tx) (int64, error) { return importEpisodesLayer(ctx, tx, dir) }},
-		{"crew", func(tx *sql.Tx) (int64, error) { return importCrewLayer(ctx, tx, dir) }},
-		{"principals", func(tx *sql.Tx) (int64, error) { return importPrincipalsLayer(ctx, tx, dir) }},
-		{"akas", func(tx *sql.Tx) (int64, error) { return importAkasLayer(ctx, tx, dir) }},
+		{reader.FileTitleBasics, func(tx *sql.Tx) (int64, error) { return importTitlesLayer(ctx, tx, dir, ratings) }},
+		{reader.FileNameBasics, func(tx *sql.Tx) (int64, error) { return importNamesLayer(ctx, tx, dir) }},
+		{reader.FileTitleEpisode, func(tx *sql.Tx) (int64, error) { return importEpisodesLayer(ctx, tx, dir) }},
+		{reader.FileTitleCrew, func(tx *sql.Tx) (int64, error) { return importCrewLayer(ctx, tx, dir) }},
+		{reader.FileTitlePrincipals, func(tx *sql.Tx) (int64, error) { return importPrincipalsLayer(ctx, tx, dir) }},
+		{reader.FileTitleAkas, func(tx *sql.Tx) (int64, error) { return importAkasLayer(ctx, tx, dir) }},
 	}
 	for _, l := range layers {
-		logger.Info("importing", "file", l.name)
 		start := time.Now()
 		count, err := inTx(ctx, db, l.run)
 		if err != nil {
-			return fmt.Errorf("%s: %w", l.name, err)
+			return fmt.Errorf("%s: %w", l.file, err)
 		}
-		logger.Info("imported", "file", l.name, "rows", count,
-			"took", time.Since(start).Round(time.Millisecond))
+		elapsed := time.Since(start)
+		logger.Info("imported",
+			"file", l.file,
+			"rows", common.Commas(count),
+			"took", elapsed.Round(time.Millisecond),
+			"rate", ratePerSecond(count, elapsed))
 	}
 	return nil
 }
@@ -103,6 +115,15 @@ func inTx(ctx context.Context, db *sql.DB, fn func(*sql.Tx) (int64, error)) (int
 		return 0, err
 	}
 	return count, nil
+}
+
+// ratePerSecond formats an import throughput as comma-grouped rows per second.
+func ratePerSecond(count int64, d time.Duration) string {
+	secs := d.Seconds()
+	if secs <= 0 {
+		return common.Commas(count) + "/s"
+	}
+	return common.Commas(int64(float64(count)/secs)) + "/s"
 }
 
 // readRatings loads title.ratings from dir into a lookup map.
