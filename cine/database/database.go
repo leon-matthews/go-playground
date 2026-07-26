@@ -20,7 +20,7 @@ var schema string
 // SchemaVersion is the layout that schema.sql builds, mirroring the
 // user_version it sets. A reader compares it before trusting any table to
 // exist, since the pragma is readable from a database of any age.
-const SchemaVersion = 1
+const SchemaVersion = 2
 
 // bulkLoadPragmas tune SQLite for the single-writer bulk rebuild. The importer
 // builds a throwaway file that is renamed into place only once it succeeds, so

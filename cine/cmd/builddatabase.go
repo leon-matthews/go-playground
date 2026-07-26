@@ -23,7 +23,7 @@ are logged as the import runs.`,
 			if err := requireFolder(folder); err != nil {
 				return err
 			}
-			return importer.Import(cmd.Context(), out, folder, newLogger())
+			return importer.Import(cmd.Context(), out, folder, importer.FilterRules{}, newLogger())
 		},
 	}
 }

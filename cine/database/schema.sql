@@ -26,15 +26,26 @@
 ------------------------------------------------------------------------------
 
 -- Schema version, readable before any table is trusted to exist.
-PRAGMA user_version = 1;
+PRAGMA user_version = 2;
 
 -- One row, written once the build has succeeded.
+--
+-- The filter_ columns record which row filters ran, so a query can tell what a
+-- database was never given rather than guessing from what it fails to find.
+-- They are a separate axis from layer: layers choose which tables get populated,
+-- filters choose which rows.
+--
+-- Each rule is applied independently to title.basics. Episodes are not judged by
+-- the rules at all - an episode is kept exactly when its parent series is kept,
+-- whichever rule decided that - so every series here has all of its episodes.
 CREATE TABLE IF NOT EXISTS build_info (
-  id            INTEGER PRIMARY KEY CHECK (id = 1),
-  layer         INTEGER NOT NULL,  -- base layer: 0 Core, 1 People, 2 Full
-  cine_version  TEXT    NOT NULL,
-  started_at    TEXT    NOT NULL,  -- RFC 3339, UTC
-  finished_at   TEXT    NOT NULL
+  id                INTEGER PRIMARY KEY CHECK (id = 1),
+  layer             INTEGER NOT NULL,  -- base layer: 0 Core, 1 People, 2 Full
+  cine_version      TEXT    NOT NULL,
+  started_at        TEXT    NOT NULL,  -- RFC 3339, UTC
+  finished_at       TEXT    NOT NULL,
+  filter_rated      INTEGER NOT NULL DEFAULT 0,  -- kept only titles IMDb has rated
+  filter_not_adult  INTEGER NOT NULL DEFAULT 0   -- dropped titles flagged isAdult
 );
 
 -- One row per source file consumed. A missing row means that file was not

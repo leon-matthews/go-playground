@@ -28,7 +28,12 @@ const layerFull = 2
 // The database is built in a temporary file and renamed into place only once the
 // whole import succeeds, so an interrupted or failed run leaves any database
 // already at path untouched.
-func Import(ctx context.Context, path, dir string, logger *log.Logger) error {
+func Import(ctx context.Context, path, dir string, rules FilterRules, logger *log.Logger) error {
+	// Refused rather than recorded: build_info must not claim a filter that no pass consulted.
+	if rules.any() {
+		return fmt.Errorf("filtered builds are not implemented yet")
+	}
+
 	logger.Info("building database", "path", path)
 	start := time.Now()
 
@@ -37,7 +42,7 @@ func Import(ctx context.Context, path, dir string, logger *log.Logger) error {
 		return fmt.Errorf("clearing %s: %w", temp, err)
 	}
 
-	if err := buildInto(ctx, temp, dir, logger); err != nil {
+	if err := buildInto(ctx, temp, dir, rules, logger); err != nil {
 		os.Remove(temp) // don't leave a half-built file behind
 		return err
 	}
@@ -77,7 +82,7 @@ type sourceRow struct {
 
 // buildInto opens a fresh database at temp and imports every layer into it, each
 // file within its own transaction, logging per-file progress.
-func buildInto(ctx context.Context, temp, dir string, logger *log.Logger) error {
+func buildInto(ctx context.Context, temp, dir string, rules FilterRules, logger *log.Logger) error {
 	started := time.Now()
 	_, db, err := database.Open(ctx, temp)
 	if err != nil {
@@ -133,7 +138,7 @@ func buildInto(ctx context.Context, temp, dir string, logger *log.Logger) error 
 	}
 
 	return inTx(ctx, db, func(tx *sql.Tx) error {
-		return writeBuildMetadata(ctx, tx, sources, started, time.Now())
+		return writeBuildMetadata(ctx, tx, sources, rules, started, time.Now())
 	})
 }
 
@@ -166,7 +171,7 @@ func bindSourceRow(args []any, s sourceRow) []any {
 
 // writeBuildMetadata records what the build consumed and when it ran. It runs
 // last, because a build that fails is discarded whole and has nothing to say.
-func writeBuildMetadata(ctx context.Context, tx *sql.Tx, sources []sourceRow, started, finished time.Time) error {
+func writeBuildMetadata(ctx context.Context, tx *sql.Tx, sources []sourceRow, rules FilterRules, started, finished time.Time) error {
 	inserter, err := newBatchInserter(ctx, tx, "build_sources", buildSourceColumns, bindSourceRow)
 	if err != nil {
 		return err
@@ -180,10 +185,12 @@ func writeBuildMetadata(ctx context.Context, tx *sql.Tx, sources []sourceRow, st
 		return err
 	}
 
-	const insert = `INSERT INTO build_info (id, layer, cine_version, started_at, finished_at)
-		VALUES (1, ?, ?, ?, ?)`
+	const insert = `INSERT INTO build_info
+		(id, layer, cine_version, started_at, finished_at, filter_rated, filter_not_adult)
+		VALUES (1, ?, ?, ?, ?, ?, ?)`
 	if _, err := tx.ExecContext(ctx, insert,
-		layerFull, Version, timestamp(started), timestamp(finished)); err != nil {
+		layerFull, Version, timestamp(started), timestamp(finished),
+		boolToInt(rules.Rated), boolToInt(rules.NotAdult)); err != nil {
 		return fmt.Errorf("writing build_info: %w", err)
 	}
 	return nil

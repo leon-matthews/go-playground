@@ -57,8 +57,9 @@ func TestBuildMetadata(t *testing.T) {
 		started := time.Date(2026, 7, 26, 1, 0, 0, 0, time.UTC)
 		finished := started.Add(30 * time.Minute)
 
+		rules := FilterRules{Rated: true, NotAdult: true}
 		require.NoError(t, inTx(ctx, db, func(tx *sql.Tx) error {
-			return writeBuildMetadata(ctx, tx, sources, started, finished)
+			return writeBuildMetadata(ctx, tx, sources, rules, started, finished)
 		}))
 
 		t.Run("one build_sources row per file, keeping each wave apart", func(t *testing.T) {
@@ -91,11 +92,26 @@ func TestBuildMetadata(t *testing.T) {
 			assert.Equal(t, "2026-07-26T01:00:00Z", startedAt)
 			assert.Equal(t, "2026-07-26T01:30:00Z", finishedAt)
 		})
+
+		t.Run("build_info records which rules ran", func(t *testing.T) {
+			var rated, notAdult int64
+			require.NoError(t, db.QueryRowContext(ctx,
+				"SELECT filter_rated, filter_not_adult FROM build_info").Scan(&rated, &notAdult))
+			assert.Equal(t, int64(1), rated)
+			assert.Equal(t, int64(1), notAdult)
+		})
+	})
+
+	t.Run("a filtered build is refused until the passes consult the filter", func(t *testing.T) {
+		out := filepath.Join(t.TempDir(), "cine.db")
+		err := Import(ctx, out, t.TempDir(), FilterRules{NotAdult: true}, log.New(io.Discard))
+		assert.ErrorContains(t, err, "not implemented")
+		assert.NoFileExists(t, out, "nothing written for a build that cannot honour its rules")
 	})
 
 	t.Run("a full build records all seven source files", func(t *testing.T) {
 		out := filepath.Join(t.TempDir(), "cine.db")
-		require.NoError(t, Import(ctx, out, gzipFixtures(t), log.New(io.Discard)))
+		require.NoError(t, Import(ctx, out, gzipFixtures(t), FilterRules{}, log.New(io.Discard)))
 
 		_, db, err := database.Open(ctx, out)
 		require.NoError(t, err)

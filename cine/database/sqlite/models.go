@@ -35,11 +35,13 @@ type Attribute struct {
 }
 
 type BuildInfo struct {
-	ID          int64
-	Layer       int64
-	CineVersion string
-	StartedAt   string
-	FinishedAt  string
+	ID             int64
+	Layer          int64
+	CineVersion    string
+	StartedAt      string
+	FinishedAt     string
+	FilterRated    int64
+	FilterNotAdult int64
 }
 
 type BuildSource struct {
