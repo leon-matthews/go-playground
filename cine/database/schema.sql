@@ -100,6 +100,18 @@ CREATE TABLE IF NOT EXISTS names (
   primary_profession  INTEGER NOT NULL DEFAULT 0  -- bitmask over professions.id
 );
 
+-- name.basics knownForTitles: the titles a person is best known for.
+--
+-- position is 1-based and preserves IMDb's own order, matching akas.ordering and
+-- principals.ordering. That order carries information rather than being a sorted
+-- set: 29% of the lists in the 2026-07 dump are not in tconst order.
+CREATE TABLE IF NOT EXISTS name_known_for (
+  name_id   INTEGER NOT NULL,
+  position  INTEGER NOT NULL,
+  title_id  INTEGER NOT NULL,
+  PRIMARY KEY (name_id, position)
+) WITHOUT ROWID;
+
 -- title.episode: an episode's place in its parent series.
 CREATE TABLE IF NOT EXISTS episodes (
   id              INTEGER PRIMARY KEY,

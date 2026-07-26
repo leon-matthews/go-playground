@@ -74,6 +74,12 @@ type Name struct {
 	PrimaryProfession int64
 }
 
+type NameKnownFor struct {
+	NameID   int64
+	Position int64
+	TitleID  int64
+}
+
 type Principal struct {
 	TitleID    int64
 	Ordering   int64

@@ -44,7 +44,7 @@ func TestDatabase(t *testing.T) {
 		want := []string{
 			"build_info", "build_sources",
 			"titles_types", "genres", "titles",
-			"professions", "names", "episodes", "titles_credit_names",
+			"professions", "names", "name_known_for", "episodes", "titles_credit_names",
 			"principals_categories", "principals_jobs", "principals",
 			"regions", "languages", "akas_types", "attributes", "akas", "akas_carry_attributes",
 		}

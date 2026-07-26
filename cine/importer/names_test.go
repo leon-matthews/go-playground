@@ -56,10 +56,28 @@ func TestImportNames(t *testing.T) {
 		assert.Equal(t, 2, professions) // actor, producer
 	})
 
-	t.Run("knownForTitles has no table until the opt-in sub-layer builds it", func(t *testing.T) {
-		var tables int
+	t.Run("knownForTitles keeps IMDb's order, not a sorted one", func(t *testing.T) {
+		rows, err := db.QueryContext(ctx,
+			"SELECT position, title_id FROM name_known_for WHERE name_id = 1 ORDER BY position")
+		require.NoError(t, err)
+		defer rows.Close()
+
+		var got [][2]int64
+		for rows.Next() {
+			var position, titleID int64
+			require.NoError(t, rows.Scan(&position, &titleID))
+			got = append(got, [2]int64{position, titleID})
+		}
+		require.NoError(t, rows.Err())
+
+		// tt0072308,tt0050419 - descending, so a sorted junction would lose this
+		assert.Equal(t, [][2]int64{{1, 72308}, {2, 50419}}, got)
+	})
+
+	t.Run("a \\N known-for list contributes no rows", func(t *testing.T) {
+		var total int
 		require.NoError(t, db.QueryRowContext(ctx,
-			"SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'name_known_for'").Scan(&tables))
-		assert.Equal(t, 0, tables)
+			"SELECT count(*) FROM name_known_for WHERE name_id IN (9999999, 1000000)").Scan(&total))
+		assert.Equal(t, 0, total)
 	})
 }
