@@ -7,28 +7,29 @@ import (
 	"local.dev/humanise"
 )
 
+// Trailing underscore preserves function's name in gotestdox output.
 func TestFileSize_(t *testing.T) {
 	tests := []struct {
 		name string
 		size int64
 		want string
 	}{
-		{"zero", 0, "0B"},
-		{"bytes", 512, "512B"},
-		{"just under a kilobyte", 999, "999B"},
-		{"one kilobyte", 1000, "1kB"},
-		{"three figures with decimals", 1234, "1.23kB"},
-		{"one decimal", 4200, "4.2kB"},
-		{"whole thousands", 4000, "4kB"},
-		{"whole number", 42000, "42kB"},
-		{"three significant figures", 456000, "456kB"},
-		{"megabytes", 1500000, "1.5MB"},
-		{"just under rollover", 999499, "999kB"},
-		{"rollover promotes to next unit", 999999, "1MB"},
-		{"terabytes", 1_000_000_000_000, "1TB"},
-		{"negative bytes render by magnitude", -512, "-512B"},
-		{"negative kilobytes", -4200, "-4.2kB"},
-		{"most negative int64", math.MinInt64, "-9.22EB"},
+		{"zero", 0, "0 B"},
+		{"bytes", 512, "512 B"},
+		{"just under a kilobyte", 999, "999 B"},
+		{"one kilobyte", 1000, "1 kB"},
+		{"three figures with decimals", 1234, "1.23 kB"},
+		{"one decimal", 4200, "4.2 kB"},
+		{"whole thousands", 4000, "4 kB"},
+		{"whole number", 42000, "42 kB"},
+		{"three significant figures", 456000, "456 kB"},
+		{"megabytes", 1500000, "1.5 MB"},
+		{"just under rollover", 999499, "999 kB"},
+		{"rollover promotes to next unit", 999999, "1 MB"},
+		{"terabytes", 1_000_000_000_000, "1 TB"},
+		{"negative bytes render by magnitude", -512, "-512 B"},
+		{"negative kilobytes", -4200, "-4.2 kB"},
+		{"most negative int64", math.MinInt64, "-9.22 EB"},
 	}
 
 	for _, tt := range tests {
@@ -46,16 +47,16 @@ func TestFileSizeIEC_(t *testing.T) {
 		size int64
 		want string
 	}{
-		{"zero", 0, "0B"},
-		{"bytes", 512, "512B"},
-		{"just under a kibibyte", 1023, "1023B"},
-		{"one kibibyte", 1024, "1KiB"},
-		{"one decimal", 4200, "4.1KiB"},
-		{"three significant figures", 50000, "48.8KiB"},
-		{"hundreds", 500000, "488KiB"},
-		{"mebibytes", 1048576, "1MiB"},
-		{"negative bytes render by magnitude", -512, "-512B"},
-		{"most negative int64", math.MinInt64, "-8EiB"},
+		{"zero", 0, "0 B"},
+		{"bytes", 512, "512 B"},
+		{"just under a kibibyte", 1023, "1023 B"},
+		{"one kibibyte", 1024, "1 KiB"},
+		{"one decimal", 4200, "4.1 KiB"},
+		{"three significant figures", 50000, "48.8 KiB"},
+		{"hundreds", 500000, "488 KiB"},
+		{"mebibytes", 1048576, "1 MiB"},
+		{"negative bytes render by magnitude", -512, "-512 B"},
+		{"most negative int64", math.MinInt64, "-8 EiB"},
 	}
 
 	for _, tt := range tests {

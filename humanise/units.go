@@ -16,7 +16,7 @@ var (
 //
 // Counts below 1000 render as a whole number of bytes; larger counts use decimal
 // multiples of 1000 (kB, MB, GB …) carrying up to three significant figures, so 4200
-// becomes "4.2kB". A negative count renders by its magnitude with a leading minus.
+// becomes "4.2 kB". A negative count renders by its magnitude with a leading minus.
 func FileSize(size int64) string {
 	return formatFileSize(size, 1000, siSuffixes)
 }
@@ -25,7 +25,7 @@ func FileSize(size int64) string {
 //
 // Counts below 1024 render as a whole number of bytes; larger counts use binary
 // multiples of 1024 (KiB, MiB, GiB …) carrying up to three significant figures, so 4200
-// becomes "4.1KiB". A negative count renders by its magnitude with a leading minus.
+// becomes "4.1 KiB". A negative count renders by its magnitude with a leading minus.
 func FileSizeIEC(size int64) string {
 	return formatFileSize(size, 1024, iecSuffixes)
 }
@@ -40,11 +40,11 @@ func formatFileSize(size int64, base float64, suffixes []string) string {
 	}
 
 	if bytes < base {
-		return sign + strconv.FormatFloat(bytes, 'f', 0, 64) + "B"
+		return sign + withUnit(strconv.FormatFloat(bytes, 'f', 0, 64), "B")
 	}
 
 	mantissa, index := scale(bytes, base, len(suffixes)-1)
-	return sign + formatMantissa(mantissa) + suffixes[index]
+	return sign + withUnit(formatMantissa(mantissa), suffixes[index])
 }
 
 // siPrefixes are the SI prefixes from quecto (10^-30) up to quetta (10^30) in
@@ -60,11 +60,11 @@ const metricCentre = 10
 
 // Metric renders a value with an SI prefix and unit, eg. 1500, "V" becomes "1.5 kV".
 //
-// The prefix is chosen so the mantissa reads between 1 and 1000, spanning quecto
-// (10^-30) to quetta (10^30); values outside that range keep the extreme prefix.
-// Small values take the fractional prefixes, so 0.005, "A" becomes "5 mA". The
-// mantissa carries up to three significant figures and negatives keep their sign.
-// It returns an error for non-finite values.
+// The prefix is chosen so the mantissa reads between 1 and 1000, spanning quecto to
+// quetta (10^±30); beyond that the extreme prefix holds, so 1e40, "V" becomes
+// "1e+10 QV". Small values take fractional prefixes, so 0.005, "A" becomes "5 mA",
+// and an empty unit yields the prefix alone. The mantissa carries up to three
+// significant figures and negatives keep their sign. Non-finite values are an error.
 func Metric(value float64, unit string) (string, error) {
 	switch {
 	case math.IsNaN(value) || math.IsInf(value, 0):

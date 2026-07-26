@@ -17,7 +17,7 @@ func scale(value, base float64, maxIndex int) (float64, int) {
 	}
 	rounded := Significant(value, 3)
 	if rounded >= base && index < maxIndex {
-		rounded /= base // rounding tipped the mantissa up a unit, eg. 999.5 -> "1MB"
+		rounded /= base // rounding tipped the mantissa up a unit, eg. 999.5 -> "1 MB"
 		index++
 	}
 	return rounded, index

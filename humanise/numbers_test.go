@@ -105,6 +105,7 @@ func BenchmarkOrdinal(b *testing.B) {
 	}
 }
 
+// Trailing underscore preserves function's name in gotestdox output.
 func TestWords_(t *testing.T) {
 	tests := []struct {
 		name string

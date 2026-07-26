@@ -47,11 +47,10 @@ var titleMinorWords = map[string]struct{}{
 
 // Title capitalises a string as a title, eg. "taming of the shrew" becomes "Taming of the Shrew".
 //
-// Each word's first letter is capitalised and the rest is left as typed, so
-// deliberate capitals such as "McDonald" and "NASA" survive. A short set of minor
-// words (a, an, and, but, by, for, from, in, of, the, with) is lowercased between the
-// first and last words, which are always capitalised. Whitespace runs collapse to
-// single spaces.
+// Minor words (a, an, and, but, by, for, from, in, of, the, with) are lowercased
+// between the first and last words. Every other word keeps a capital of its own, so
+// "NASA", "McDonald" and "iPhone" survive untouched, and otherwise has its first
+// letter capitalised. Whitespace runs collapse to single spaces.
 func Title(title string) string {
 	words := strings.Fields(title)
 	last := len(words) - 1
@@ -60,14 +59,19 @@ func Title(title string) string {
 		if _, minor := titleMinorWords[lower]; i > 0 && i < last && minor {
 			words[i] = lower
 		} else {
-			words[i] = capitaliseFirst(word)
+			words[i] = capitaliseWord(word)
 		}
 	}
 	return strings.Join(words, " ")
 }
 
-// capitaliseFirst upper-cases the first rune of word, leaving the rest unchanged.
-func capitaliseFirst(word string) string {
+// capitaliseWord upper-cases the first rune of word, leaving the rest unchanged.
+func capitaliseWord(word string) string {
+	// A capital anywhere marks deliberate casing, as in "NASA", "McDonald" or "iPhone".
+	if strings.ContainsFunc(word, unicode.IsUpper) {
+		return word
+	}
+
 	r, size := utf8.DecodeRuneInString(word)
 	if r == utf8.RuneError {
 		return word

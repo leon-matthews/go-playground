@@ -77,13 +77,13 @@ func Ordinal(n int64) string {
 	return string(b)
 }
 
-// longScaleWords name each thousandfold multiple for Words, smallest first.
-var longScaleWords = []string{"thousand", "million", "billion", "trillion", "quadrillion", "quintillion"}
+// scaleWords name each thousandfold multiple for Words, smallest first.
+var scaleWords = []string{"thousand", "million", "billion", "trillion", "quadrillion", "quintillion"}
 
 // compactSuffixes abbreviate each thousandfold multiple for WordsCompact, smallest first.
 var compactSuffixes = []string{"K", "M", "B", "T"}
 
-// Words renders an integer with a long scale word, eg. 1200000 becomes "1.2 million".
+// Words renders an integer with a scale word, eg. 1200000 becomes "1.2 million".
 //
 // Values below two thousand are grouped with commas rather than worded, so an
 // awkward "1.2 thousand" never appears; the thousands unit always renders as a
@@ -94,7 +94,7 @@ func Words(n int64) string {
 	}
 
 	value := magnitude(n)
-	mantissa, index := scale(value, 1000, len(longScaleWords)-1)
+	mantissa, index := scale(value, 1000, len(scaleWords)-1)
 
 	var body string
 	if index == 0 {
@@ -102,7 +102,7 @@ func Words(n int64) string {
 		thousands := int64(math.RoundToEven(value / 1000))
 		body = strconv.FormatInt(thousands, 10) + " thousand"
 	} else {
-		body = formatMantissa(mantissa) + " " + longScaleWords[index]
+		body = formatMantissa(mantissa) + " " + scaleWords[index]
 	}
 
 	if n < 0 {
@@ -111,11 +111,11 @@ func Words(n int64) string {
 	return body
 }
 
-// WordsCompact renders an integer with a short scale suffix, eg. 1200000 becomes "1.2M".
+// WordsCompact abbreviates an integer's scale word, eg. 1200000 becomes "1.2M".
 //
-// Suffixes run K, M, B, T; a value beyond a thousand trillion keeps the T suffix
-// and groups its mantissa with commas ("1,000T"). Values below a thousand are
-// returned as plain digits.
+// Suffixes run K, M, B and T, where B is billion rather than bytes; a value beyond a
+// thousand trillion keeps the T suffix and groups its mantissa with commas ("1,000T").
+// Values below a thousand are returned as plain digits.
 func WordsCompact(n int64) string {
 	if -1000 < n && n < 1000 {
 		return Comma(n)
@@ -140,8 +140,8 @@ func WordsCompact(n int64) string {
 // Significant rounds number to the given number of significant digits.
 //
 // Rounding uses round-half-to-even; NaN, ±Inf and zero pass through unchanged.
-// It panics when digits is less than one. Significant is the shared rounding
-// primitive the scaled formatters build on.
+// It panics when digits is less than one. Use it to match the three-figure
+// rounding of the scaled formatters.
 func Significant(number float64, digits int) float64 {
 	if digits < 1 {
 		panic(fmt.Sprintf("humanise: digits must be at least 1, got %d", digits))

@@ -24,10 +24,11 @@ var durationUnits = []struct {
 
 // Duration renders a time span as an approximate human-readable phrase.
 //
-// The span is described with the largest unit of which it holds two or more,
-// pluralised, eg. a 300-second span becomes "5 minutes". A span holding just one
-// of a unit drops to the next unit down, so an exact week becomes "7 days".
-// Sub-second precision is discarded and negative spans are described by their magnitude.
+// Units run from years down through months, weeks, days, hours and minutes to
+// seconds. The span is described with the largest unit of which it holds two or more,
+// pluralised, eg. a 300-second span becomes "5 minutes". A span holding just one of a
+// unit drops to the next unit down, so an hour becomes "60 minutes". Sub-second spans
+// become "0 seconds" and negative spans are described by their magnitude.
 func Duration(d time.Duration) string {
 	// Take the magnitude in seconds; dividing first keeps MinInt64 from overflowing on negate.
 	seconds := int64(d / time.Second)
@@ -71,7 +72,8 @@ func Relative(d time.Duration) string {
 // Age is counted the way people count it: a year is only claimed once its
 // birthday has arrived. Someone born on 29 February ticks over on 1 March in
 // non-leap years, which falls out of the day comparison without a special case.
-// A born date in the future yields a negative age.
+// Both times should have the same location. A born date in the future yields a
+// negative age.
 func Age(born, today time.Time) int {
 	years := today.Year() - born.Year()
 
