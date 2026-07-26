@@ -18,7 +18,7 @@ func TestImportCrew(t *testing.T) {
 	require.NoError(t, err)
 	count, err := importCrew(ctx, tx, openIMDB(t, reader.FileTitleCrew))
 	require.NoError(t, err)
-	assert.Equal(t, int64(4), count) // 2 input rows fan out to 4 credits
+	assert.Equal(t, counts{read: 2, written: 4}, count) // 2 input rows fan out to 4 credits
 	require.NoError(t, tx.Commit())
 
 	t.Run("directors and writers fan out to role-tagged rows", func(t *testing.T) {

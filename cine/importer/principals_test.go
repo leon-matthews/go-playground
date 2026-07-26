@@ -19,7 +19,7 @@ func TestImportPrincipals(t *testing.T) {
 	require.NoError(t, err)
 	count, lookups, err := importPrincipals(ctx, tx, openIMDB(t, reader.FileTitlePrincipals))
 	require.NoError(t, err)
-	assert.Equal(t, int64(3), count)
+	assert.Equal(t, counts{read: 3, written: 3}, count)
 	require.NoError(t, flushLookup(ctx, tx, "principals_categories", lookups.category))
 	require.NoError(t, flushLookup(ctx, tx, "principals_jobs", lookups.job))
 	require.NoError(t, tx.Commit())

@@ -34,6 +34,21 @@ type Attribute struct {
 	Name string
 }
 
+type BuildInfo struct {
+	ID          int64
+	Layer       int64
+	CineVersion string
+	StartedAt   string
+	FinishedAt  string
+}
+
+type BuildSource struct {
+	File         string
+	LastModified string
+	Bytes        int64
+	RowsRead     int64
+}
+
 type Episode struct {
 	ID            int64
 	ParentID      int64
@@ -53,7 +68,7 @@ type Language struct {
 
 type Name struct {
 	ID                int64
-	PrimaryName       string
+	PrimaryName       sql.NullString
 	BirthYear         sql.NullInt64
 	DeathYear         sql.NullInt64
 	PrimaryProfession int64

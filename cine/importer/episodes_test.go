@@ -19,7 +19,7 @@ func TestImportEpisodes(t *testing.T) {
 	require.NoError(t, err)
 	count, err := importEpisodes(ctx, tx, openIMDB(t, reader.FileTitleEpisode))
 	require.NoError(t, err)
-	assert.Equal(t, int64(2), count)
+	assert.Equal(t, counts{read: 2, written: 2}, count)
 	require.NoError(t, tx.Commit())
 
 	t.Run("episode keeps parent, season and number", func(t *testing.T) {

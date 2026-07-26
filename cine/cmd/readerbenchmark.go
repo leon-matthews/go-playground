@@ -1,24 +1,14 @@
-// Command reader-test reads every record from every IMDb dataset file under a
-// folder, under a CPU profile, to validate and optimise the reader package.
-//
-// Usage:
-//
-//	reader-test <imdb-data-folder>
-//
-// It logs any error encountered while reading, prints a per-file and total
-// summary of records, errors, and throughput, and writes cpu.pprof to the
-// working directory.
 package main
 
 import (
 	"fmt"
 	"io"
 	"iter"
-	"log"
-	"os"
 	"path/filepath"
-	"runtime/pprof"
 	"time"
+
+	"github.com/charmbracelet/log"
+	"github.com/spf13/cobra"
 
 	"local.dev/cine/reader"
 )
@@ -26,32 +16,29 @@ import (
 // summaryLine formats one row of the records/errors/throughput report.
 const summaryLine = "%-23s %10d records  %6d errors  %10s  %10.0f rec/s\n"
 
-func main() {
-	log.SetFlags(0)
-	if len(os.Args) != 2 {
-		fmt.Fprintf(os.Stderr, "usage: %s <imdb-data-folder>\n", filepath.Base(os.Args[0]))
-		os.Exit(2)
-	}
-	if err := run(os.Args[1]); err != nil {
-		log.Fatal(err)
+// newReaderBenchmarkCmd builds the "reader-benchmark" sub-command.
+func newReaderBenchmarkCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "reader-benchmark <imdb-data-folder>",
+		Short: "Read every dataset record, reporting throughput",
+		Long: `Read every dataset record, reporting throughput.
+
+Reads every record from every IMDb dataset file in the folder to validate and
+optimise the reader package. Any error encountered is logged, and a per-file and
+total summary of records, errors and throughput is printed. Pass --profile to
+write a CPU profile of the run.`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			return benchmarkReaders(args[0], newLogger())
+		},
 	}
 }
 
-// run reads every dataset file in folder under a CPU profile.
-func run(folder string) error {
-	info, err := os.Stat(folder)
-	if err != nil {
+// benchmarkReaders reads every dataset file in folder, printing a summary of each.
+func benchmarkReaders(folder string, logger *log.Logger) error {
+	if err := requireFolder(folder); err != nil {
 		return err
 	}
-	if !info.IsDir() {
-		return fmt.Errorf("%s is not a directory", folder)
-	}
-
-	stop, err := startCPUProfile("cpu.pprof")
-	if err != nil {
-		return err
-	}
-	defer stop()
 
 	files := []fileReader{
 		readFile(reader.FileNameBasics, reader.ReadNameBasics),
@@ -66,7 +53,7 @@ func run(folder string) error {
 	start := time.Now()
 	var totalRecords, totalErrors int
 	for _, read := range files {
-		records, errors := read(folder)
+		records, errors := read(folder, logger)
 		totalRecords += records
 		totalErrors += errors
 	}
@@ -76,14 +63,14 @@ func run(folder string) error {
 
 // fileReader reads every record of one dataset file, printing a summary line
 // and returning the record and error counts.
-type fileReader func(folder string) (records, errors int)
+type fileReader func(folder string, logger *log.Logger) (records, errors int)
 
 // readFile builds a fileReader for the named file and its typed reader.
 func readFile[T any](name string, readRecords func(io.Reader) iter.Seq2[T, error]) fileReader {
-	return func(folder string) (records, errors int) {
+	return func(folder string, logger *log.Logger) (records, errors int) {
 		file, err := reader.OpenGzip(filepath.Join(folder, name))
 		if err != nil {
-			log.Printf("%s: %v", name, err)
+			logger.Error("could not open file", "file", name, "err", err)
 			return 0, 1
 		}
 		defer file.Close()
@@ -91,7 +78,7 @@ func readFile[T any](name string, readRecords func(io.Reader) iter.Seq2[T, error
 		start := time.Now()
 		for _, err := range readRecords(file) {
 			if err != nil {
-				log.Printf("%s: %v", name, err)
+				logger.Error("could not read record", "file", name, "err", err)
 				errors++
 				continue
 			}
@@ -113,21 +100,4 @@ func rate(records int, elapsed time.Duration) float64 {
 		return 0
 	}
 	return float64(records) / elapsed.Seconds()
-}
-
-// startCPUProfile begins CPU profiling to path; the returned function stops the
-// profile and closes the file.
-func startCPUProfile(path string) (func(), error) {
-	file, err := os.Create(path)
-	if err != nil {
-		return nil, fmt.Errorf("creating cpu profile: %w", err)
-	}
-	if err := pprof.StartCPUProfile(file); err != nil {
-		file.Close()
-		return nil, fmt.Errorf("starting cpu profile: %w", err)
-	}
-	return func() {
-		pprof.StopCPUProfile()
-		file.Close()
-	}, nil
 }

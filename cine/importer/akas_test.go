@@ -19,7 +19,7 @@ func TestImportAkas(t *testing.T) {
 	require.NoError(t, err)
 	count, lookups, err := importAkas(ctx, tx, openIMDB(t, reader.FileTitleAkas))
 	require.NoError(t, err)
-	assert.Equal(t, int64(3), count)
+	assert.Equal(t, counts{read: 3, written: 3}, count)
 	require.NoError(t, flushLookup(ctx, tx, "regions", lookups.region))
 	require.NoError(t, flushLookup(ctx, tx, "languages", lookups.language))
 	require.NoError(t, flushLookup(ctx, tx, "akas_types", lookups.akaType))

@@ -19,7 +19,7 @@ func TestImportNames(t *testing.T) {
 	require.NoError(t, err)
 	count, profession, err := importNames(ctx, tx, openIMDB(t, reader.FileNameBasics))
 	require.NoError(t, err)
-	assert.Equal(t, int64(2), count)
+	assert.Equal(t, counts{read: 3, written: 3}, count)
 	require.NoError(t, flushLookup(ctx, tx, "professions", profession))
 	require.NoError(t, tx.Commit())
 
@@ -41,6 +41,13 @@ func TestImportNames(t *testing.T) {
 		require.NoError(t, db.QueryRowContext(ctx,
 			"SELECT primary_profession FROM names WHERE id = 9999999").Scan(&absent))
 		assert.Equal(t, int64(0), absent)
+	})
+
+	t.Run("missing primary name is stored as NULL", func(t *testing.T) {
+		var name sql.NullString
+		require.NoError(t, db.QueryRowContext(ctx,
+			"SELECT primary_name FROM names WHERE id = 1000000").Scan(&name))
+		assert.False(t, name.Valid) // not the literal "\N" the source writes
 	})
 
 	t.Run("profession lookup populated", func(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 // NameBasics is one row of name.basics.tsv: a person's core biography.
 type NameBasics struct {
 	Nconst            string   // "nm0000001"
-	PrimaryName       string   // "Fred Astaire"
+	PrimaryName       string   // "Fred Astaire"; "" for \N
 	BirthYear         int      // Missing (-1) for \N; map to SQL NULL
 	DeathYear         int      // Missing (-1) for \N; map to SQL NULL
 	PrimaryProfession []string // "actor,producer" -> ["actor", "producer"]
@@ -26,7 +26,7 @@ func ReadNameBasics(r io.Reader) iter.Seq2[NameBasics, error] {
 		c := cursor{fields: f}
 		return NameBasics{
 			Nconst:            c.str(0),
-			PrimaryName:       c.str(1),
+			PrimaryName:       c.optionalStr(1),
 			BirthYear:         c.optionalInt(2),
 			DeathYear:         c.optionalInt(3),
 			PrimaryProfession: c.list(4),

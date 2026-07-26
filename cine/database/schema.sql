@@ -8,6 +8,47 @@
 -- Conventions: tconst/nconst identifiers are stored as the integer that remains
 -- once the "tt"/"nm" prefix is dropped; IMDb's \N becomes SQL NULL; ratings are
 -- stored in tenths (57 means 5.7).
+--
+-- Two kinds of reference appear below. Lookup ids that the importer generates
+-- itself are declared as foreign keys and always resolve, so a finished build
+-- must return nothing from PRAGMA foreign_key_check.
+--
+-- Columns holding an IMDb identifier - title_id, name_id, episodes.id and
+-- episodes.parent_id - carry no foreign key on purpose. IMDb publishes its
+-- seven files in waves hours apart and rotates which ones lag, so a credit
+-- can name a title or person that no file in the same download describes:
+-- about 10,000 such rows in a recent full build. They are kept as they are,
+-- because they do describe the source faithfully. Read these columns with
+-- LEFT JOIN; an inner join drops the orphans silently.
+
+------------------------------------------------------------------------------
+-- Build metadata: what this database was made from, and when
+------------------------------------------------------------------------------
+
+-- Schema version, readable before any table is trusted to exist.
+PRAGMA user_version = 1;
+
+-- One row, written once the build has succeeded.
+CREATE TABLE IF NOT EXISTS build_info (
+  id            INTEGER PRIMARY KEY CHECK (id = 1),
+  layer         INTEGER NOT NULL,  -- base layer: 0 Core, 1 People, 2 Full
+  cine_version  TEXT    NOT NULL,
+  started_at    TEXT    NOT NULL,  -- RFC 3339, UTC
+  finished_at   TEXT    NOT NULL
+);
+
+-- One row per source file consumed. A missing row means that file was not
+-- imported, which is how an empty table is told apart from an absent one.
+--
+-- last_modified is the file's own timestamp, which wget copies from the
+-- server: IMDb publishes its files in waves hours apart, so there is no single
+-- date for a download and each file has to carry its own.
+CREATE TABLE IF NOT EXISTS build_sources (
+  file           TEXT PRIMARY KEY,  -- "title.basics.tsv.gz"
+  last_modified  TEXT    NOT NULL,  -- RFC 3339, UTC
+  bytes          INTEGER NOT NULL,
+  rows_read      INTEGER NOT NULL
+);
 
 ------------------------------------------------------------------------------
 -- Layer 0 - Core: titles and their ratings
@@ -53,7 +94,7 @@ CREATE TABLE IF NOT EXISTS professions (
 -- name.basics.
 CREATE TABLE IF NOT EXISTS names (
   id                  INTEGER PRIMARY KEY,
-  primary_name        TEXT    NOT NULL,
+  primary_name        TEXT,                        -- NULL when the source has \N
   birth_year          INTEGER,
   death_year          INTEGER,
   primary_profession  INTEGER NOT NULL DEFAULT 0  -- bitmask over professions.id
@@ -61,16 +102,16 @@ CREATE TABLE IF NOT EXISTS names (
 
 -- title.episode: an episode's place in its parent series.
 CREATE TABLE IF NOT EXISTS episodes (
-  id              INTEGER PRIMARY KEY REFERENCES titles(id),
-  parent_id       INTEGER NOT NULL REFERENCES titles(id),
+  id              INTEGER PRIMARY KEY,
+  parent_id       INTEGER NOT NULL,
   season_number   INTEGER,
   episode_number  INTEGER
 );
 
 -- title.crew: director and writer credits (role 0 = director, 1 = writer).
 CREATE TABLE IF NOT EXISTS titles_credit_names (
-  title_id  INTEGER NOT NULL REFERENCES titles(id),
-  name_id   INTEGER NOT NULL REFERENCES names(id),
+  title_id  INTEGER NOT NULL,
+  name_id   INTEGER NOT NULL,
   role      INTEGER NOT NULL,
   PRIMARY KEY (title_id, name_id, role)
 ) WITHOUT ROWID;
@@ -93,9 +134,9 @@ CREATE TABLE IF NOT EXISTS principals_jobs (
 
 -- title.principals: one cast or crew credit per row.
 CREATE TABLE IF NOT EXISTS principals (
-  title_id    INTEGER NOT NULL REFERENCES titles(id),
+  title_id    INTEGER NOT NULL,
   ordering    INTEGER NOT NULL,
-  name_id     INTEGER NOT NULL REFERENCES names(id),
+  name_id     INTEGER NOT NULL,
   category    INTEGER NOT NULL REFERENCES principals_categories(id),
   job         INTEGER REFERENCES principals_jobs(id),
   characters  TEXT,                               -- JSON array of names; NULL when absent
@@ -129,7 +170,7 @@ CREATE TABLE IF NOT EXISTS attributes (
 
 -- title.akas: localized and alternate titles.
 CREATE TABLE IF NOT EXISTS akas (
-  title_id           INTEGER NOT NULL REFERENCES titles(id),
+  title_id           INTEGER NOT NULL,
   ordering           INTEGER NOT NULL,
   title              TEXT    NOT NULL,
   region             INTEGER REFERENCES regions(id),

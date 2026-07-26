@@ -27,30 +27,32 @@ type crewRow struct {
 // importCrew streams title.crew into the titles_credit_names table, fanning each
 // row's director and writer lists out into one role-tagged row per person. It
 // returns the number of credit rows written.
-func importCrew(ctx context.Context, tx *sql.Tx, crew io.Reader) (int64, error) {
+func importCrew(ctx context.Context, tx *sql.Tx, crew io.Reader) (counts, error) {
 	inserter, err := newBatchInserter(ctx, tx, "titles_credit_names", crewColumns, bindCrewRow)
 	if err != nil {
-		return 0, err
+		return counts{}, err
 	}
+	var read int64
 	for record, err := range reader.ReadTitleCrew(crew) {
 		if err != nil {
-			return 0, err
+			return counts{}, err
 		}
+		read++
 		titleID, err := parseID(record.Tconst)
 		if err != nil {
-			return 0, err
+			return counts{}, err
 		}
 		if err := addCrew(ctx, inserter, titleID, record.Directors, roleDirector); err != nil {
-			return 0, err
+			return counts{}, err
 		}
 		if err := addCrew(ctx, inserter, titleID, record.Writers, roleWriter); err != nil {
-			return 0, err
+			return counts{}, err
 		}
 	}
 	if err := inserter.Flush(ctx); err != nil {
-		return 0, err
+		return counts{}, err
 	}
-	return inserter.Added(), nil
+	return counts{read: read, written: inserter.Added()}, nil
 }
 
 // addCrew adds one crew row per person in the list, all tagged with role.

@@ -29,7 +29,7 @@ type akasLookups struct {
 // into the akas_carry_attributes junction. It returns the number of akas rows
 // written; the caller writes the returned lookups to their tables once the pass
 // completes.
-func importAkas(ctx context.Context, tx *sql.Tx, akas io.Reader) (int64, *akasLookups, error) {
+func importAkas(ctx context.Context, tx *sql.Tx, akas io.Reader) (counts, *akasLookups, error) {
 	lookups := &akasLookups{
 		region:    newInterner(),
 		language:  newInterner(),
@@ -38,35 +38,37 @@ func importAkas(ctx context.Context, tx *sql.Tx, akas io.Reader) (int64, *akasLo
 	}
 	titles, err := newBatchInserter(ctx, tx, "akas", akasColumns, bindAkasRow)
 	if err != nil {
-		return 0, nil, err
+		return counts{}, nil, err
 	}
 	attributes, err := newBatchInserter(ctx, tx, "akas_carry_attributes", akaAttributeColumns, bindAkaAttributeRow)
 	if err != nil {
-		return 0, nil, err
+		return counts{}, nil, err
 	}
+	var read int64
 	for record, err := range reader.ReadTitleAkas(akas) {
 		if err != nil {
-			return 0, nil, err
+			return counts{}, nil, err
 		}
+		read++
 		titleID, err := parseID(record.TitleID)
 		if err != nil {
-			return 0, nil, err
+			return counts{}, nil, err
 		}
 		ordering := int64(record.Ordering)
 		if err := titles.Add(ctx, buildAkasRow(record, titleID, ordering, lookups)); err != nil {
-			return 0, nil, err
+			return counts{}, nil, err
 		}
 		if err := addAttributes(ctx, attributes, titleID, ordering, record.Attributes, lookups.attribute); err != nil {
-			return 0, nil, err
+			return counts{}, nil, err
 		}
 	}
 	if err := titles.Flush(ctx); err != nil {
-		return 0, nil, err
+		return counts{}, nil, err
 	}
 	if err := attributes.Flush(ctx); err != nil {
-		return 0, nil, err
+		return counts{}, nil, err
 	}
-	return titles.Added(), lookups, nil
+	return counts{read: read, written: titles.Added()}, lookups, nil
 }
 
 // akasRow holds one akas row's values in column order; a nil field is stored as

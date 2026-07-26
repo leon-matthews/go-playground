@@ -23,28 +23,30 @@ type principalLookups struct {
 // importPrincipals streams title.principals into the principals table, interning
 // the category and job lookups. It returns the number of credits written; the
 // caller writes the lookups to their tables once the pass completes.
-func importPrincipals(ctx context.Context, tx *sql.Tx, principals io.Reader) (int64, *principalLookups, error) {
+func importPrincipals(ctx context.Context, tx *sql.Tx, principals io.Reader) (counts, *principalLookups, error) {
 	lookups := &principalLookups{category: newInterner(), job: newInterner()}
 	inserter, err := newBatchInserter(ctx, tx, "principals", principalColumns, bindPrincipalRow)
 	if err != nil {
-		return 0, nil, err
+		return counts{}, nil, err
 	}
+	var read int64
 	for record, err := range reader.ReadTitlePrincipals(principals) {
 		if err != nil {
-			return 0, nil, err
+			return counts{}, nil, err
 		}
+		read++
 		row, err := buildPrincipalRow(record, lookups)
 		if err != nil {
-			return 0, nil, err
+			return counts{}, nil, err
 		}
 		if err := inserter.Add(ctx, row); err != nil {
-			return 0, nil, err
+			return counts{}, nil, err
 		}
 	}
 	if err := inserter.Flush(ctx); err != nil {
-		return 0, nil, err
+		return counts{}, nil, err
 	}
-	return inserter.Added(), lookups, nil
+	return counts{read: read, written: inserter.Added()}, lookups, nil
 }
 
 // principalRow holds one principals row's values in column order; a nil field is

@@ -15,6 +15,13 @@ import (
 	"local.dev/cine/reader"
 )
 
+// Version is the cine release recorded in each build's build_info row.
+const Version = "0.1.0"
+
+// layerFull is the base layer recorded in build_info.layer. It is the only one
+// produced so far, because buildInto imports every dataset file.
+const layerFull = 2
+
 // Import builds a cine database at path from the IMDb dataset files in dir,
 // logging progress to logger.
 //
@@ -47,16 +54,31 @@ func Import(ctx context.Context, path, dir string, logger *log.Logger) error {
 	return nil
 }
 
-// layer imports one dataset file within its own transaction and reports the
-// number of rows written to its primary table.
+// counts reports what one import pass consumed and produced. The two differ
+// wherever a pass fans out: each title.crew row becomes one credit per person.
+type counts struct {
+	read    int64 // source rows consumed from the file
+	written int64 // rows written to the pass's primary table
+}
+
+// layer imports one dataset file within its own transaction.
 type layer struct {
 	file string // canonical dataset file name, for logging and errors
-	run  func(*sql.Tx) (int64, error)
+	run  func(*sql.Tx) (counts, error)
+}
+
+// sourceRow is one consumed dataset file, destined for build_sources.
+type sourceRow struct {
+	file         string
+	lastModified string
+	bytes        int64
+	rowsRead     int64
 }
 
 // buildInto opens a fresh database at temp and imports every layer into it, each
 // file within its own transaction, logging per-file progress.
 func buildInto(ctx context.Context, temp, dir string, logger *log.Logger) error {
+	started := time.Now()
 	_, db, err := database.Open(ctx, temp)
 	if err != nil {
 		return err
@@ -64,7 +86,7 @@ func buildInto(ctx context.Context, temp, dir string, logger *log.Logger) error 
 	defer db.Close()
 
 	ratingsStart := time.Now()
-	ratings, err := readRatings(dir)
+	ratings, ratingsRead, err := readRatings(dir)
 	if err != nil {
 		return err
 	}
@@ -73,48 +95,117 @@ func buildInto(ctx context.Context, temp, dir string, logger *log.Logger) error 
 		"count", common.Commas(int64(len(ratings))),
 		"took", time.Since(ratingsStart).Round(time.Millisecond))
 
+	// title.ratings has no table of its own, so record it before the layers.
+	sources, err := appendSource(nil, dir, reader.FileTitleRatings, ratingsRead)
+	if err != nil {
+		return err
+	}
+
 	// Each layer imports one file within its own transaction, in dependency order.
 	layers := []layer{
-		{reader.FileTitleBasics, func(tx *sql.Tx) (int64, error) { return importTitlesLayer(ctx, tx, dir, ratings) }},
-		{reader.FileNameBasics, func(tx *sql.Tx) (int64, error) { return importNamesLayer(ctx, tx, dir) }},
-		{reader.FileTitleEpisode, func(tx *sql.Tx) (int64, error) { return importEpisodesLayer(ctx, tx, dir) }},
-		{reader.FileTitleCrew, func(tx *sql.Tx) (int64, error) { return importCrewLayer(ctx, tx, dir) }},
-		{reader.FileTitlePrincipals, func(tx *sql.Tx) (int64, error) { return importPrincipalsLayer(ctx, tx, dir) }},
-		{reader.FileTitleAkas, func(tx *sql.Tx) (int64, error) { return importAkasLayer(ctx, tx, dir) }},
+		{reader.FileTitleBasics, func(tx *sql.Tx) (counts, error) { return importTitlesLayer(ctx, tx, dir, ratings) }},
+		{reader.FileNameBasics, func(tx *sql.Tx) (counts, error) { return importNamesLayer(ctx, tx, dir) }},
+		{reader.FileTitleEpisode, func(tx *sql.Tx) (counts, error) { return importEpisodesLayer(ctx, tx, dir) }},
+		{reader.FileTitleCrew, func(tx *sql.Tx) (counts, error) { return importCrewLayer(ctx, tx, dir) }},
+		{reader.FileTitlePrincipals, func(tx *sql.Tx) (counts, error) { return importPrincipalsLayer(ctx, tx, dir) }},
+		{reader.FileTitleAkas, func(tx *sql.Tx) (counts, error) { return importAkasLayer(ctx, tx, dir) }},
 	}
 	for _, l := range layers {
 		start := time.Now()
-		count, err := inTx(ctx, db, l.run)
+		var count counts
+		err := inTx(ctx, db, func(tx *sql.Tx) error {
+			var err error
+			count, err = l.run(tx)
+			return err
+		})
 		if err != nil {
 			return fmt.Errorf("%s: %w", l.file, err)
+		}
+		if sources, err = appendSource(sources, dir, l.file, count.read); err != nil {
+			return err
 		}
 		elapsed := time.Since(start)
 		logger.Info("imported",
 			"file", l.file,
-			"rows", common.Commas(count),
+			"rows", common.Commas(count.written),
 			"took", elapsed.Round(time.Millisecond),
-			"rate", ratePerSecond(count, elapsed))
+			"rate", ratePerSecond(count.written, elapsed))
+	}
+
+	return inTx(ctx, db, func(tx *sql.Tx) error {
+		return writeBuildMetadata(ctx, tx, sources, started, time.Now())
+	})
+}
+
+// appendSource stats one consumed dataset file and appends its provenance.
+//
+// A file's own timestamp is the only provenance a build can keep: wget copies it
+// from the server, and IMDb publishes its files in waves hours apart, so there
+// is no single date for a download.
+func appendSource(sources []sourceRow, dir, file string, rowsRead int64) ([]sourceRow, error) {
+	info, err := os.Stat(filepath.Join(dir, file))
+	if err != nil {
+		return nil, fmt.Errorf("recording source %s: %w", file, err)
+	}
+	return append(sources, sourceRow{
+		file:         file,
+		lastModified: timestamp(info.ModTime()),
+		bytes:        info.Size(),
+		rowsRead:     rowsRead,
+	}), nil
+}
+
+// buildSourceColumns are the build_sources columns in the order bindSourceRow
+// writes them.
+var buildSourceColumns = []string{"file", "last_modified", "bytes", "rows_read"}
+
+// bindSourceRow appends a build_sources row's values in buildSourceColumns order.
+func bindSourceRow(args []any, s sourceRow) []any {
+	return append(args, s.file, s.lastModified, s.bytes, s.rowsRead)
+}
+
+// writeBuildMetadata records what the build consumed and when it ran. It runs
+// last, because a build that fails is discarded whole and has nothing to say.
+func writeBuildMetadata(ctx context.Context, tx *sql.Tx, sources []sourceRow, started, finished time.Time) error {
+	inserter, err := newBatchInserter(ctx, tx, "build_sources", buildSourceColumns, bindSourceRow)
+	if err != nil {
+		return err
+	}
+	for _, source := range sources {
+		if err := inserter.Add(ctx, source); err != nil {
+			return err
+		}
+	}
+	if err := inserter.Flush(ctx); err != nil {
+		return err
+	}
+
+	const insert = `INSERT INTO build_info (id, layer, cine_version, started_at, finished_at)
+		VALUES (1, ?, ?, ?, ?)`
+	if _, err := tx.ExecContext(ctx, insert,
+		layerFull, Version, timestamp(started), timestamp(finished)); err != nil {
+		return fmt.Errorf("writing build_info: %w", err)
 	}
 	return nil
 }
 
+// timestamp formats an instant the way the metadata tables store one.
+func timestamp(t time.Time) string {
+	return t.UTC().Format(time.RFC3339)
+}
+
 // inTx runs fn inside a transaction, committing on success and discarding the
-// transaction (the whole build is thrown away) on failure. It passes through
-// fn's row count.
-func inTx(ctx context.Context, db *sql.DB, fn func(*sql.Tx) (int64, error)) (int64, error) {
+// transaction (the whole build is thrown away) on failure.
+func inTx(ctx context.Context, db *sql.DB, fn func(*sql.Tx) error) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return 0, fmt.Errorf("beginning transaction: %w", err)
+		return fmt.Errorf("beginning transaction: %w", err)
 	}
-	count, err := fn(tx)
-	if err != nil {
+	if err := fn(tx); err != nil {
 		_ = tx.Rollback()
-		return 0, err
+		return err
 	}
-	if err := tx.Commit(); err != nil {
-		return 0, err
-	}
-	return count, nil
+	return tx.Commit()
 }
 
 // ratePerSecond formats an import throughput as comma-grouped rows per second.
@@ -126,70 +217,71 @@ func ratePerSecond(count int64, d time.Duration) string {
 	return common.Commas(int64(float64(count)/secs)) + "/s"
 }
 
-// readRatings loads title.ratings from dir into a lookup map.
-func readRatings(dir string) (map[int64]rating, error) {
+// readRatings loads title.ratings from dir into a lookup map, reporting how many
+// source rows it read.
+func readRatings(dir string) (map[int64]rating, int64, error) {
 	file, err := reader.OpenGzip(filepath.Join(dir, reader.FileTitleRatings))
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer file.Close()
 	return loadRatings(file)
 }
 
 // importTitlesLayer runs the titles pass within tx and writes its lookup tables.
-func importTitlesLayer(ctx context.Context, tx *sql.Tx, dir string, ratings map[int64]rating) (int64, error) {
+func importTitlesLayer(ctx context.Context, tx *sql.Tx, dir string, ratings map[int64]rating) (counts, error) {
 	file, err := reader.OpenGzip(filepath.Join(dir, reader.FileTitleBasics))
 	if err != nil {
-		return 0, err
+		return counts{}, err
 	}
 	defer file.Close()
 
 	count, lookups, err := importTitles(ctx, tx, file, ratings)
 	if err != nil {
-		return 0, err
+		return counts{}, err
 	}
 	if err := flushLookup(ctx, tx, "titles_types", lookups.titleType); err != nil {
-		return 0, err
+		return counts{}, err
 	}
 	if err := flushLookup(ctx, tx, "genres", lookups.genre); err != nil {
-		return 0, err
+		return counts{}, err
 	}
 	return count, nil
 }
 
 // importNamesLayer runs the names pass within tx and writes its profession lookup.
-func importNamesLayer(ctx context.Context, tx *sql.Tx, dir string) (int64, error) {
+func importNamesLayer(ctx context.Context, tx *sql.Tx, dir string) (counts, error) {
 	file, err := reader.OpenGzip(filepath.Join(dir, reader.FileNameBasics))
 	if err != nil {
-		return 0, err
+		return counts{}, err
 	}
 	defer file.Close()
 
 	count, profession, err := importNames(ctx, tx, file)
 	if err != nil {
-		return 0, err
+		return counts{}, err
 	}
 	if err := flushLookup(ctx, tx, "professions", profession); err != nil {
-		return 0, err
+		return counts{}, err
 	}
 	return count, nil
 }
 
 // importEpisodesLayer runs the episodes pass within tx.
-func importEpisodesLayer(ctx context.Context, tx *sql.Tx, dir string) (int64, error) {
+func importEpisodesLayer(ctx context.Context, tx *sql.Tx, dir string) (counts, error) {
 	file, err := reader.OpenGzip(filepath.Join(dir, reader.FileTitleEpisode))
 	if err != nil {
-		return 0, err
+		return counts{}, err
 	}
 	defer file.Close()
 	return importEpisodes(ctx, tx, file)
 }
 
 // importCrewLayer runs the crew pass within tx.
-func importCrewLayer(ctx context.Context, tx *sql.Tx, dir string) (int64, error) {
+func importCrewLayer(ctx context.Context, tx *sql.Tx, dir string) (counts, error) {
 	file, err := reader.OpenGzip(filepath.Join(dir, reader.FileTitleCrew))
 	if err != nil {
-		return 0, err
+		return counts{}, err
 	}
 	defer file.Close()
 	return importCrew(ctx, tx, file)
@@ -197,50 +289,50 @@ func importCrewLayer(ctx context.Context, tx *sql.Tx, dir string) (int64, error)
 
 // importPrincipalsLayer runs the principals pass within tx and writes its
 // category and job lookups.
-func importPrincipalsLayer(ctx context.Context, tx *sql.Tx, dir string) (int64, error) {
+func importPrincipalsLayer(ctx context.Context, tx *sql.Tx, dir string) (counts, error) {
 	file, err := reader.OpenGzip(filepath.Join(dir, reader.FileTitlePrincipals))
 	if err != nil {
-		return 0, err
+		return counts{}, err
 	}
 	defer file.Close()
 
 	count, lookups, err := importPrincipals(ctx, tx, file)
 	if err != nil {
-		return 0, err
+		return counts{}, err
 	}
 	if err := flushLookup(ctx, tx, "principals_categories", lookups.category); err != nil {
-		return 0, err
+		return counts{}, err
 	}
 	if err := flushLookup(ctx, tx, "principals_jobs", lookups.job); err != nil {
-		return 0, err
+		return counts{}, err
 	}
 	return count, nil
 }
 
 // importAkasLayer runs the akas pass within tx and writes its region, language,
 // aka_type and attribute lookups.
-func importAkasLayer(ctx context.Context, tx *sql.Tx, dir string) (int64, error) {
+func importAkasLayer(ctx context.Context, tx *sql.Tx, dir string) (counts, error) {
 	file, err := reader.OpenGzip(filepath.Join(dir, reader.FileTitleAkas))
 	if err != nil {
-		return 0, err
+		return counts{}, err
 	}
 	defer file.Close()
 
 	count, lookups, err := importAkas(ctx, tx, file)
 	if err != nil {
-		return 0, err
+		return counts{}, err
 	}
 	if err := flushLookup(ctx, tx, "regions", lookups.region); err != nil {
-		return 0, err
+		return counts{}, err
 	}
 	if err := flushLookup(ctx, tx, "languages", lookups.language); err != nil {
-		return 0, err
+		return counts{}, err
 	}
 	if err := flushLookup(ctx, tx, "akas_types", lookups.akaType); err != nil {
-		return 0, err
+		return counts{}, err
 	}
 	if err := flushLookup(ctx, tx, "attributes", lookups.attribute); err != nil {
-		return 0, err
+		return counts{}, err
 	}
 	return count, nil
 }

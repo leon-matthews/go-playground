@@ -17,35 +17,37 @@ var nameColumns = []string{
 // primary_profession bitmask. It returns the number of names written; the caller
 // writes the returned interner to the profession lookup once the pass completes.
 // knownForTitles is left for the opt-in name_known_for sub-layer.
-func importNames(ctx context.Context, tx *sql.Tx, basics io.Reader) (int64, *interner, error) {
+func importNames(ctx context.Context, tx *sql.Tx, basics io.Reader) (counts, *interner, error) {
 	profession := newInterner()
 	inserter, err := newBatchInserter(ctx, tx, "names", nameColumns, bindNameRow)
 	if err != nil {
-		return 0, nil, err
+		return counts{}, nil, err
 	}
+	var read int64
 	for record, err := range reader.ReadNameBasics(basics) {
 		if err != nil {
-			return 0, nil, err
+			return counts{}, nil, err
 		}
+		read++
 		row, err := buildNameRow(record, profession)
 		if err != nil {
-			return 0, nil, err
+			return counts{}, nil, err
 		}
 		if err := inserter.Add(ctx, row); err != nil {
-			return 0, nil, err
+			return counts{}, nil, err
 		}
 	}
 	if err := inserter.Flush(ctx); err != nil {
-		return 0, nil, err
+		return counts{}, nil, err
 	}
-	return inserter.Added(), profession, nil
+	return counts{read: read, written: inserter.Added()}, profession, nil
 }
 
 // nameRow holds one names row's values in column order; a nil field is stored as
 // SQL NULL.
 type nameRow struct {
 	id                int64
-	primaryName       string
+	primaryName       any
 	birthYear         any
 	deathYear         any
 	primaryProfession int64
@@ -64,7 +66,7 @@ func buildNameRow(n reader.NameBasics, profession *interner) (nameRow, error) {
 	}
 	return nameRow{
 		id:                id,
-		primaryName:       n.PrimaryName,
+		primaryName:       nullableStr(n.PrimaryName),
 		birthYear:         nullableInt(n.BirthYear),
 		deathYear:         nullableInt(n.DeathYear),
 		primaryProfession: professions,

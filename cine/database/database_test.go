@@ -42,10 +42,67 @@ func TestDatabase(t *testing.T) {
 		require.NoError(t, rows.Err())
 
 		want := []string{
+			"build_info", "build_sources",
 			"titles_types", "genres", "titles",
 			"professions", "names", "episodes", "titles_credit_names",
 			"principals_categories", "principals_jobs", "principals",
 			"regions", "languages", "akas_types", "attributes", "akas", "akas_carry_attributes",
+		}
+		assert.ElementsMatch(t, want, got)
+	})
+
+	t.Run("schema.sql sets the user_version SchemaVersion promises", func(t *testing.T) {
+		ctx := context.Background()
+		_, db := open(t)
+
+		var version int
+		require.NoError(t, db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version))
+		assert.Equal(t, database.SchemaVersion, version)
+	})
+
+	t.Run("build_info holds at most one row", func(t *testing.T) {
+		ctx := context.Background()
+		_, db := open(t)
+
+		const insert = `INSERT INTO build_info (id, layer, cine_version, started_at, finished_at)
+			VALUES (?, 2, '0.1.0', '2026-07-26T00:00:00Z', '2026-07-26T00:30:00Z')`
+		_, err := db.ExecContext(ctx, insert, 1)
+		require.NoError(t, err)
+
+		_, err = db.ExecContext(ctx, insert, 2)
+		assert.ErrorContains(t, err, "CHECK constraint failed")
+	})
+
+	t.Run("only importer-generated references are declared", func(t *testing.T) {
+		ctx := context.Background()
+		_, db := open(t)
+
+		rows, err := db.QueryContext(ctx, `
+			SELECT m.name || '.' || f."from" || ' -> ' || f."table"
+			FROM sqlite_master m
+			JOIN pragma_foreign_key_list(m.name) f
+			WHERE m.type = 'table'`)
+		require.NoError(t, err)
+		defer rows.Close()
+
+		var got []string
+		for rows.Next() {
+			var ref string
+			require.NoError(t, rows.Scan(&ref))
+			got = append(got, ref)
+		}
+		require.NoError(t, rows.Err())
+
+		// titles and names must never appear as a parent: IMDb's own files disagree.
+		want := []string{
+			"titles.title_type -> titles_types",
+			"principals.category -> principals_categories",
+			"principals.job -> principals_jobs",
+			"akas.region -> regions",
+			"akas.language -> languages",
+			"akas_carry_attributes.attribute_id -> attributes",
+			"akas_carry_attributes.title_id -> akas", // composite key, one row per column
+			"akas_carry_attributes.ordering -> akas",
 		}
 		assert.ElementsMatch(t, want, got)
 	})

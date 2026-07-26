@@ -38,7 +38,7 @@ func TestReaders(t *testing.T) {
 	t.Run("NameBasics", func(t *testing.T) {
 		got, err := collect(ReadNameBasics(openIMDB(t, FileNameBasics)))
 		require.NoError(t, err)
-		require.Len(t, got, 2)
+		require.Len(t, got, 3)
 
 		assert.Equal(t, "nm0000001", got[0].Nconst)
 		assert.Equal(t, "Fred Astaire", got[0].PrimaryName)
@@ -50,6 +50,8 @@ func TestReaders(t *testing.T) {
 		assert.Equal(t, Missing, got[1].DeathYear)
 		assert.Nil(t, got[1].PrimaryProfession)
 		assert.Nil(t, got[1].KnownForTitles)
+
+		assert.Empty(t, got[2].PrimaryName) // \N, not the literal "\N"
 	})
 
 	t.Run("TitleAkas", func(t *testing.T) {

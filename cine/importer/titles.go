@@ -22,23 +22,27 @@ type rating struct {
 }
 
 // loadRatings reads title.ratings into a map keyed by integer title id, ready to
-// join onto titles during their pass.
-func loadRatings(r io.Reader) (map[int64]rating, error) {
+// join onto titles during their pass. It also reports how many source rows it
+// read, which is the only record of them: ratings have no table of their own, and
+// any whose title is absent from title.basics are dropped by the join.
+func loadRatings(r io.Reader) (map[int64]rating, int64, error) {
 	ratings := make(map[int64]rating)
+	var read int64
 	for rec, err := range reader.ReadTitleRatings(r) {
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
+		read++
 		id, err := parseID(rec.Tconst)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		ratings[id] = rating{
 			average: int64(math.Round(rec.AverageRating * 10)),
 			votes:   int64(rec.NumVotes),
 		}
 	}
-	return ratings, nil
+	return ratings, read, nil
 }
 
 // titleLookups holds the interners populated while reading title.basics.
@@ -51,28 +55,30 @@ type titleLookups struct {
 // interning the title_type and genre lookups. It returns the number of titles
 // written; the caller writes the returned lookups to their tables once the pass
 // completes.
-func importTitles(ctx context.Context, tx *sql.Tx, basics io.Reader, ratings map[int64]rating) (int64, *titleLookups, error) {
+func importTitles(ctx context.Context, tx *sql.Tx, basics io.Reader, ratings map[int64]rating) (counts, *titleLookups, error) {
 	lookups := &titleLookups{titleType: newInterner(), genre: newInterner()}
 	inserter, err := newBatchInserter(ctx, tx, "titles", titleColumns, bindTitleRow)
 	if err != nil {
-		return 0, nil, err
+		return counts{}, nil, err
 	}
+	var read int64
 	for basic, err := range reader.ReadTitleBasics(basics) {
 		if err != nil {
-			return 0, nil, err
+			return counts{}, nil, err
 		}
+		read++
 		row, err := buildTitleRow(basic, ratings, lookups)
 		if err != nil {
-			return 0, nil, err
+			return counts{}, nil, err
 		}
 		if err := inserter.Add(ctx, row); err != nil {
-			return 0, nil, err
+			return counts{}, nil, err
 		}
 	}
 	if err := inserter.Flush(ctx); err != nil {
-		return 0, nil, err
+		return counts{}, nil, err
 	}
-	return inserter.Added(), lookups, nil
+	return counts{read: read, written: inserter.Added()}, lookups, nil
 }
 
 // titleRow holds one titles row's values in column order; a nil field is stored
@@ -136,6 +142,15 @@ func nullableInt(n int) any {
 		return nil
 	}
 	return int64(n)
+}
+
+// nullableStr maps the reader's empty string to nil, so an absent optional
+// string is stored as SQL NULL.
+func nullableStr(s string) any {
+	if s == "" {
+		return nil
+	}
+	return s
 }
 
 // droppedIfEqual returns nil when value equals other, so a redundant

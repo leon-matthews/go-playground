@@ -13,27 +13,29 @@ var episodeColumns = []string{"id", "parent_id", "season_number", "episode_numbe
 
 // importEpisodes streams title.episode into the episodes table, returning the
 // number of episodes written.
-func importEpisodes(ctx context.Context, tx *sql.Tx, episodes io.Reader) (int64, error) {
+func importEpisodes(ctx context.Context, tx *sql.Tx, episodes io.Reader) (counts, error) {
 	inserter, err := newBatchInserter(ctx, tx, "episodes", episodeColumns, bindEpisodeRow)
 	if err != nil {
-		return 0, err
+		return counts{}, err
 	}
+	var read int64
 	for record, err := range reader.ReadTitleEpisode(episodes) {
 		if err != nil {
-			return 0, err
+			return counts{}, err
 		}
+		read++
 		row, err := buildEpisodeRow(record)
 		if err != nil {
-			return 0, err
+			return counts{}, err
 		}
 		if err := inserter.Add(ctx, row); err != nil {
-			return 0, err
+			return counts{}, err
 		}
 	}
 	if err := inserter.Flush(ctx); err != nil {
-		return 0, err
+		return counts{}, err
 	}
-	return inserter.Added(), nil
+	return counts{read: read, written: inserter.Added()}, nil
 }
 
 // episodeRow holds one episodes row's values in column order; a nil field is
