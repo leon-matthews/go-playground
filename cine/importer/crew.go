@@ -15,13 +15,14 @@ const (
 )
 
 // crewColumns are the crew columns in the order bindCrewRow writes them.
-var crewColumns = []string{"title_id", "name_id", "role"}
+var crewColumns = []string{"title_id", "name_id", "role", "position"}
 
 // crewRow is one director or writer credit.
 type crewRow struct {
-	titleID int64
-	nameID  int64
-	role    int64
+	titleID  int64
+	nameID   int64
+	role     int64
+	position int64
 }
 
 // importCrew streams title.crew into the titles_credit_names table, fanning each
@@ -55,14 +56,16 @@ func importCrew(ctx context.Context, tx *sql.Tx, crew io.Reader) (counts, error)
 	return counts{read: read, written: inserter.Added()}, nil
 }
 
-// addCrew adds one crew row per person in the list, all tagged with role.
+// addCrew adds one crew row per person in the list, all tagged with role and
+// numbered from one so that IMDb's order within the list survives.
 func addCrew(ctx context.Context, inserter *batchInserter[crewRow], titleID int64, people []string, role int64) error {
-	for _, nconst := range people {
+	for i, nconst := range people {
 		nameID, err := parseID(nconst)
 		if err != nil {
 			return err
 		}
-		if err := inserter.Add(ctx, crewRow{titleID: titleID, nameID: nameID, role: role}); err != nil {
+		row := crewRow{titleID: titleID, nameID: nameID, role: role, position: int64(i + 1)}
+		if err := inserter.Add(ctx, row); err != nil {
 			return err
 		}
 	}
@@ -71,5 +74,5 @@ func addCrew(ctx context.Context, inserter *batchInserter[crewRow], titleID int6
 
 // bindCrewRow appends a crew row's values in crewColumns order.
 func bindCrewRow(args []any, r crewRow) []any {
-	return append(args, r.titleID, r.nameID, r.role)
+	return append(args, r.titleID, r.nameID, r.role, r.position)
 }

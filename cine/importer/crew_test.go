@@ -34,6 +34,24 @@ func TestImportCrew(t *testing.T) {
 		assert.Equal(t, 2, roles) // role 0 and role 1
 	})
 
+	t.Run("position keeps IMDb's order and restarts per role", func(t *testing.T) {
+		rows, err := db.QueryContext(ctx,
+			"SELECT role, position, name_id FROM titles_credit_names WHERE title_id = 1 ORDER BY role, position")
+		require.NoError(t, err)
+		defer rows.Close()
+
+		var got [][3]int64
+		for rows.Next() {
+			var role, position, nameID int64
+			require.NoError(t, rows.Scan(&role, &position, &nameID))
+			got = append(got, [3]int64{role, position, nameID})
+		}
+		require.NoError(t, rows.Err())
+
+		// directors are nm0000006,nm0000005 - descending, so a sorted table would lose this
+		assert.Equal(t, [][3]int64{{0, 1, 6}, {0, 2, 5}, {1, 1, 5}}, got)
+	})
+
 	t.Run("a null director list adds no rows", func(t *testing.T) {
 		var directors int
 		require.NoError(t, db.QueryRowContext(ctx,

@@ -129,9 +129,10 @@ type Title struct {
 }
 
 type TitlesCreditName struct {
-	TitleID int64
-	NameID  int64
-	Role    int64
+	TitleID  int64
+	NameID   int64
+	Role     int64
+	Position int64
 }
 
 type TitlesType struct {

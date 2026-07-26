@@ -61,6 +61,20 @@ CREATE TABLE IF NOT EXISTS titles_types (
 );
 
 -- One row per genre; id is the bit position used in titles.genres.
+--
+-- A bitmask rather than a junction, unlike the two name.basics list fields, and
+-- the difference is in the data: 0 of the 12,129,448 genre lists in the 2026-07
+-- dump are in non-alphabetical order, so IMDb emits a sorted set and the order
+-- carries nothing. A mask represents a set exactly, and sorting by name on read
+-- recovers IMDb's order, so nothing is lost. It also stays compact where a
+-- junction would not - 55% of titles carry a single genre, which as a junction
+-- row would pay per-row overhead to store one value.
+--
+-- The cost is that a mask predicate cannot use an index: genres & (1 << id)
+-- always scans titles. That suits genre as a secondary filter alongside an
+-- indexed year or rating, and a partial index (... WHERE genres & 512) can cover
+-- a hot genre. Should that stop being enough, the junction is derivable at any
+-- time by exploding the set bits, because the mask is lossless here.
 CREATE TABLE IF NOT EXISTS genres (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
@@ -135,10 +149,22 @@ CREATE TABLE IF NOT EXISTS episodes (
 );
 
 -- title.crew: director and writer credits (role 0 = director, 1 = writer).
+--
+-- position is 1-based and restarts per title and role, preserving IMDb's order
+-- within each list: 2,909,077 of the crew lists in the 2026-07 dump are not in
+-- nconst order, so the order is content. It is a payload column rather than part
+-- of the key, so the primary key keeps enforcing that nobody is credited twice in
+-- the same role on the same title.
+--
+-- Beware that these lists describe a whole title, so for a long-running series
+-- they accumulate decades of crew - up to 1,442 writers and 548 directors on one
+-- tvSeries - and position means far less at that length than it does on a film
+-- with two directors.
 CREATE TABLE IF NOT EXISTS titles_credit_names (
   title_id  INTEGER NOT NULL,
   name_id   INTEGER NOT NULL,
   role      INTEGER NOT NULL,
+  position  INTEGER NOT NULL,
   PRIMARY KEY (title_id, name_id, role)
 ) WITHOUT ROWID;
 
@@ -183,6 +209,12 @@ CREATE TABLE IF NOT EXISTS languages (
 );
 
 -- One row per akas type; id is the bit position used in akas.types.
+--
+-- A bitmask discards list order, which here is measured rather than assumed: of
+-- 19,311,752 type lists in the 2026-07 dump only 429 hold more than one value,
+-- and 288 of those are non-alphabetical. So the order is information, but for
+-- 0.002% of rows and with no evident meaning - not worth a junction over a
+-- 19M-row column. Only 8 distinct values, so the 63-bit ceiling is remote.
 CREATE TABLE IF NOT EXISTS akas_types (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
@@ -207,6 +239,12 @@ CREATE TABLE IF NOT EXISTS akas (
 ) WITHOUT ROWID;
 
 -- Many-to-many between akas rows and their attributes.
+--
+-- Deliberately no position column, unlike the name.basics junctions: of 312,930
+-- attribute lists in the 2026-07 dump only 36 hold more than one value, and 23
+-- of those are non-alphabetical, so the order lost amounts to 23 rows in 58.6
+-- million. Interned rather than a bitmask because there are 164 distinct values,
+-- well past what an integer mask holds.
 CREATE TABLE IF NOT EXISTS akas_carry_attributes (
   title_id      INTEGER NOT NULL,
   ordering      INTEGER NOT NULL,
