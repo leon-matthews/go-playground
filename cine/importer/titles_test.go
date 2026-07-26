@@ -27,7 +27,7 @@ func TestImportTitles(t *testing.T) {
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	count, lookups, err := importTitles(ctx, tx, openIMDB(t, reader.FileTitleBasics), ratings)
+	count, lookups, err := importTitles(ctx, tx, openIMDB(t, reader.FileTitleBasics), ratings, titleFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, counts{read: 3, written: 3}, count)
 	require.NoError(t, flushLookup(ctx, tx, "titles_types", lookups.titleType))
@@ -82,6 +82,58 @@ func TestImportTitles(t *testing.T) {
 			SELECT count(*) FROM genres g, titles t
 			WHERE t.id = 133093 AND t.genres & (1 << g.id) AND g.name IN ('Action', 'Sci-Fi')`).Scan(&matches))
 		assert.Equal(t, 2, matches)
+	})
+}
+
+func TestImportTitlesFiltered(t *testing.T) {
+	ctx := context.Background()
+	db := openImportDB(t)
+
+	ratings, _, err := loadRatings(openIMDB(t, reader.FileTitleRatings))
+	require.NoError(t, err)
+
+	tx, err := db.BeginTx(ctx, nil)
+	require.NoError(t, err)
+	count, lookups, err := importTitles(ctx, tx, openIMDB(t, reader.FileTitleBasics), ratings, allowOnly(1))
+	require.NoError(t, err)
+	require.NoError(t, flushLookup(ctx, tx, "titles_types", lookups.titleType))
+	require.NoError(t, flushLookup(ctx, tx, "genres", lookups.genre))
+	require.NoError(t, tx.Commit())
+
+	t.Run("every source row is read, only the allowed ones written", func(t *testing.T) {
+		assert.Equal(t, counts{read: 3, written: 1}, count)
+	})
+
+	t.Run("refused titles are absent", func(t *testing.T) {
+		var ids []int64
+		rows, err := db.QueryContext(ctx, "SELECT id FROM titles ORDER BY id")
+		require.NoError(t, err)
+		defer rows.Close()
+		for rows.Next() {
+			var id int64
+			require.NoError(t, rows.Scan(&id))
+			ids = append(ids, id)
+		}
+		require.NoError(t, rows.Err())
+		assert.Equal(t, []int64{1}, ids)
+	})
+
+	t.Run("interners never see a refused row's values", func(t *testing.T) {
+		var names []string
+		rows, err := db.QueryContext(ctx, "SELECT name FROM genres ORDER BY name")
+		require.NoError(t, err)
+		defer rows.Close()
+		for rows.Next() {
+			var name string
+			require.NoError(t, rows.Scan(&name))
+			names = append(names, name)
+		}
+		require.NoError(t, rows.Err())
+		assert.Equal(t, []string{"Documentary", "Short"}, names, "no Action or Sci-Fi from The Matrix")
+
+		var titleTypes int
+		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM titles_types").Scan(&titleTypes))
+		assert.Equal(t, 1, titleTypes, "short only, no movie")
 	})
 }
 

@@ -28,7 +28,7 @@ func TestBuildMetadata(t *testing.T) {
 		path := filepath.Join(dir, reader.FileTitleBasics)
 		require.NoError(t, os.WriteFile(path, []byte("0123456789"), 0o644))
 
-		// The wave IMDb actually published title.basics in, on 25 July 2026.
+		// The timestamp IMDb's own title.basics carried on 25 July 2026.
 		modified := time.Date(2026, 7, 25, 12, 35, 3, 0, time.UTC)
 		require.NoError(t, os.Chtimes(path, modified, modified))
 
@@ -62,7 +62,7 @@ func TestBuildMetadata(t *testing.T) {
 			return writeBuildMetadata(ctx, tx, sources, rules, started, finished)
 		}))
 
-		t.Run("one build_sources row per file, keeping each wave apart", func(t *testing.T) {
+		t.Run("one build_sources row per file, keeping each timestamp apart", func(t *testing.T) {
 			rows, err := db.QueryContext(ctx,
 				"SELECT file, last_modified, bytes, rows_read FROM build_sources ORDER BY file")
 			require.NoError(t, err)
@@ -102,11 +102,57 @@ func TestBuildMetadata(t *testing.T) {
 		})
 	})
 
-	t.Run("a filtered build is refused until the passes consult the filter", func(t *testing.T) {
+	t.Run("a filtered build keeps only the allowed titles and their rows", func(t *testing.T) {
+		// Only tt0000001 and tt0133093 are rated, and no episode's parent is, so the
+		// rated rule leaves the two films and drops everything keyed to any other id.
 		out := filepath.Join(t.TempDir(), "cine.db")
-		err := Import(ctx, out, t.TempDir(), FilterRules{NotAdult: true}, log.New(io.Discard))
-		assert.ErrorContains(t, err, "not implemented")
-		assert.NoFileExists(t, out, "nothing written for a build that cannot honour its rules")
+		require.NoError(t, Import(ctx, out, gzipFixtures(t), FilterRules{Rated: true}, log.New(io.Discard)))
+
+		_, db, err := database.Open(ctx, out)
+		require.NoError(t, err)
+		t.Cleanup(func() { db.Close() })
+
+		count := func(t *testing.T, table string) int {
+			t.Helper()
+			var n int
+			require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM "+table).Scan(&n))
+			return n
+		}
+
+		t.Run("titles keyed to a refused id are gone from every table", func(t *testing.T) {
+			assert.Equal(t, 2, count(t, "titles"), "tt9999999 is unrated")
+			assert.Zero(t, count(t, "episodes"), "neither parent series is rated")
+			assert.Equal(t, 3, count(t, "titles_credit_names"), "tt0000002's writer dropped")
+			assert.Equal(t, 2, count(t, "principals"))
+			assert.Equal(t, 2, count(t, "akas"))
+		})
+
+		t.Run("names are not filtered, being keyed to people not titles", func(t *testing.T) {
+			assert.Equal(t, 3, count(t, "names"))
+		})
+
+		t.Run("build_sources still counts source rows, not written ones", func(t *testing.T) {
+			var read int64
+			require.NoError(t, db.QueryRowContext(ctx,
+				"SELECT rows_read FROM build_sources WHERE file = ?", reader.FileTitleBasics).Scan(&read))
+			assert.Equal(t, int64(3), read, "provenance describes the file, not the build")
+		})
+
+		t.Run("build_info records the rule that ran", func(t *testing.T) {
+			var rated, notAdult int64
+			require.NoError(t, db.QueryRowContext(ctx,
+				"SELECT filter_rated, filter_not_adult FROM build_info").Scan(&rated, &notAdult))
+			assert.Equal(t, int64(1), rated)
+			assert.Equal(t, int64(0), notAdult)
+		})
+
+		t.Run("generated lookup ids all still resolve", func(t *testing.T) {
+			rows, err := db.QueryContext(ctx, "PRAGMA foreign_key_check")
+			require.NoError(t, err)
+			defer rows.Close()
+			assert.False(t, rows.Next(), "a filtered build must leave no dangling lookup id")
+			require.NoError(t, rows.Err())
+		})
 	})
 
 	t.Run("a full build records all seven source files", func(t *testing.T) {

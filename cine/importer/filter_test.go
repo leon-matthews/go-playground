@@ -36,6 +36,16 @@ func TestTitleFilter(t *testing.T) {
 	})
 }
 
+// allowOnly builds a filter that allows exactly the given title ids, so a pass
+// can be tested against a known allow-list without building one from a file.
+func allowOnly(ids ...int64) titleFilter {
+	allowed := bitset.New(0)
+	for _, id := range ids {
+		allowed.Set(uint(id))
+	}
+	return titleFilter{allowed: allowed}
+}
+
 func TestFilterBuilder(t *testing.T) {
 	// Series 100 is rated and clean, and episode 102 of it is flagged adult.
 	// Series 200 is unrated, series 300 is rated but adult. Film 900 is rated and
@@ -143,6 +153,13 @@ func TestFilterBuilder(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "negative title identifier")
 	})
+}
+
+func TestFilterRulesString(t *testing.T) {
+	assert.Equal(t, "none", FilterRules{}.String())
+	assert.Equal(t, "rated", FilterRules{Rated: true}.String())
+	assert.Equal(t, "not-adult", FilterRules{NotAdult: true}.String())
+	assert.Equal(t, "rated,not-adult", FilterRules{Rated: true, NotAdult: true}.String())
 }
 
 func TestBuildFilterRules(t *testing.T) {

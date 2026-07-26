@@ -14,12 +14,18 @@
 -- must return nothing from PRAGMA foreign_key_check.
 --
 -- Columns holding an IMDb identifier - title_id, name_id, episodes.id and
--- episodes.parent_id - carry no foreign key on purpose. IMDb publishes its
--- seven files in waves hours apart and rotates which ones lag, so a credit
--- can name a title or person that no file in the same download describes:
--- about 10,000 such rows in a recent full build. They are kept as they are,
--- because they do describe the source faithfully. Read these columns with
--- LEFT JOIN; an inner join drops the orphans silently.
+-- episodes.parent_id - carry no foreign key on purpose. The datasets themselves
+-- are not closed over their own identifiers: a credit can name a title or person
+-- that no file in the download describes, about 10,000 such rows in a recent full
+-- build. This was first assumed to be a download-timing artefact; a multi-day
+-- experiment fetching the files repeatedly disproved that, so the orphans are
+-- inherent to the source and no amount of re-downloading resolves them. They are
+-- kept as they are, because they do describe the source faithfully. Read these
+-- columns with LEFT JOIN; an inner join drops the orphans silently.
+--
+-- A filtered build is the exception: an id absent from title.basics is never in
+-- the allow-list, so filtering removes these orphans along with the rows the
+-- rules refused. See build_info.filter_.
 
 ------------------------------------------------------------------------------
 -- Build metadata: what this database was made from, and when
@@ -51,9 +57,9 @@ CREATE TABLE IF NOT EXISTS build_info (
 -- One row per source file consumed. A missing row means that file was not
 -- imported, which is how an empty table is told apart from an absent one.
 --
--- last_modified is the file's own timestamp, which wget copies from the
--- server: IMDb publishes its files in waves hours apart, so there is no single
--- date for a download and each file has to carry its own.
+-- last_modified is the file's own timestamp, which wget copies from the server.
+-- The seven files carry timestamps hours apart, so there is no single date for a
+-- download and each file has to carry its own.
 CREATE TABLE IF NOT EXISTS build_sources (
   file           TEXT PRIMARY KEY,  -- "title.basics.tsv.gz"
   last_modified  TEXT    NOT NULL,  -- RFC 3339, UTC

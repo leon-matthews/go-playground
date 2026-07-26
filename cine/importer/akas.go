@@ -26,10 +26,10 @@ type akasLookups struct {
 
 // importAkas streams title.akas into the akas table, interning its region and
 // language, folding its types into a bitmask, and fanning its attributes out
-// into the akas_carry_attributes junction. It returns the number of akas rows
-// written; the caller writes the returned lookups to their tables once the pass
-// completes.
-func importAkas(ctx context.Context, tx *sql.Tx, akas io.Reader) (counts, *akasLookups, error) {
+// into the akas_carry_attributes junction. Rows for titles the filter refuses are
+// not written. It returns the number of akas rows written; the caller writes the
+// returned lookups to their tables once the pass completes.
+func importAkas(ctx context.Context, tx *sql.Tx, akas io.Reader, filter titleFilter) (counts, *akasLookups, error) {
 	lookups := &akasLookups{
 		region:    newInterner(),
 		language:  newInterner(),
@@ -53,6 +53,10 @@ func importAkas(ctx context.Context, tx *sql.Tx, akas io.Reader) (counts, *akasL
 		titleID, err := parseID(record.TitleID)
 		if err != nil {
 			return counts{}, nil, err
+		}
+		// Refusing before the row is built keeps dropped values out of the interners.
+		if !filter.allows(titleID) {
+			continue
 		}
 		ordering := int64(record.Ordering)
 		if err := titles.Add(ctx, buildAkasRow(record, titleID, ordering, lookups)); err != nil {

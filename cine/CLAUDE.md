@@ -53,10 +53,13 @@ Three packages in a straight line, plus a thin cobra layer:
   bitmask when its order carries nothing (genres, akas types) and a junction with a 1-based
   `position` when IMDb's order is content (primary professions, known-for titles, crew).
   The `interner` serves both: `id()` for lookup foreign keys, `bit()` for bitmask positions.
-- **Columns holding IMDb identifiers carry no foreign key on purpose.** IMDb publishes its
-  files in waves hours apart, so credits can reference titles or people absent from the same
-  download. Read them with `LEFT JOIN`. Generated lookup ids *are* foreign keys and must
-  always resolve - a finished build returns nothing from `PRAGMA foreign_key_check`.
+- **Columns holding IMDb identifiers carry no foreign key on purpose.** The datasets are not
+  closed over their own identifiers - credits reference titles and people no file in the
+  download describes. This was assumed to be a download-timing artefact until a multi-day
+  experiment disproved it, so the orphans are inherent to the source and re-downloading does
+  not resolve them. Read these columns with `LEFT JOIN`. Generated lookup ids *are* foreign
+  keys and must always resolve - a finished build returns nothing from
+  `PRAGMA foreign_key_check`.
 - **Bulk inserts are hand-written, not sqlc.** sqlc cannot emit multi-row SQLite inserts.
   `batchInserter` chunks rows to `bindParamBudget` (36) bind parameters, a figure measured by
   `BenchmarkInsertChunkSizes` against the modernc driver - don't raise it on intuition.
@@ -66,7 +69,7 @@ Three packages in a straight line, plus a thin cobra layer:
   returning `counts{read, written}` plus any interners for the caller to flush.
 - Comments are one line where possible, and API docs put the first sentence on its own line.
 
-### In-flight work: the row filter
+### The row filter
 
 `importer/filter.go` builds the allow-list for a smaller second database. `FilterRules`
 selects which rules run, and there are two so far - `Rated` and `NotAdult`. The zero value
@@ -96,21 +99,41 @@ claim a rule that did not run. Per-rule exclusion counts are deliberately *not* 
 pass already returns `counts{read, written}` and logs both, so a filtered pass shows the
 number where it is useful without freezing it into the file.
 
-Nothing consults the filter yet - `buildFilter` is written and tested but unreferenced, and
-`Import` refuses a non-zero `FilterRules` rather than record a filter no pass honoured.
-Remaining work, in order:
+`build-database` takes `--allow-adult` and `--allow-unrated`, both off, so the default run
+asks for both rules. The flags name what to keep and `FilterRules` names what to restrict,
+so `cmd` inverts each once.
 
-- Thread `titleFilter` into the six import passes, and add a flag to `build-database` so a
-  filtered build can be asked for.
+`buildInto` calls `buildFilter` just after the ratings load - where `ratings` exists and
+still before any layer writes - and hands the result to the five title-keyed passes: titles,
+episodes, crew, principals and akas, but not names. The allow-list is settled whole before
+the first write, so no pass accumulates it for the next and each stays a function of its file
+and the filter. Fusing the work into the titles and episodes passes would save re-reading two
+files, but it would make the layers order-dependent in a way transactions-per-layer should
+not be; the saving is small against a build measured in tens of minutes.
+
+Each pass checks the filter *after* `read++` and *before* building its row. That ordering is
+load-bearing twice over: `counts.read` stays a count of source rows, which is what
+`build_sources.rows_read` records as provenance about the file, and the interners never see
+values that occur only on refused rows, so a filtered build's lookup tables carry no dead
+genres, regions or jobs. `importEpisodes` checks the episode id alone - the filter allows an
+episode only where it kept the parent, so a second check would be redundant.
+
+**A filtered build also drops the source's inherent orphans**, because an id absent from
+`title.basics` is never in the allow-list. This is deliberate. Unfiltered, those rows are kept
+as a faithful record of the source; filtered, no reader can tell an orphan from a title the
+rules refused, and rows nothing can join to are only bytes.
+
+Remaining work:
+
 - Whether ~4.8 GiB is small enough. If not, a vote threshold on the series would keep the
   invariant and cut deeply, but it reintroduces a magic number the current rules avoid.
 - The `names` tables are ~913 MiB and no title filter touches them. Restricting them to
   people credited in a kept title is an independent, larger lever - but the ids needed to
   decide that only appear once crew and principals have streamed, which is after `names`
   imports, so it forces a change to the layer ordering.
-- Whether `names_known_for_titles` rows pointing at dropped titles stay. The schema keeps
-  orphans on purpose because IMDb's publication waves create them; a filtered build makes an
-  orphan mean something different.
+- `names_known_for_titles` rows can now point at titles the filter dropped, since the names
+  pass is unfiltered. Deciding that needs the same title allow-list the other passes take,
+  so it is cheap to do and only waiting on whether those rows are wanted.
 
 The `layer` column in `build_info` is a separate, unimplemented axis: layers would choose
 which *tables* get populated, the filter chooses which *rows*. Only `layerFull` (2) is

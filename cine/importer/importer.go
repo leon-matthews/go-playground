@@ -29,12 +29,7 @@ const layerFull = 2
 // whole import succeeds, so an interrupted or failed run leaves any database
 // already at path untouched.
 func Import(ctx context.Context, path, dir string, rules FilterRules, logger *log.Logger) error {
-	// Refused rather than recorded: build_info must not claim a filter that no pass consulted.
-	if rules.any() {
-		return fmt.Errorf("filtered builds are not implemented yet")
-	}
-
-	logger.Info("building database", "path", path)
+	logger.Info("building database", "path", path, "filter", rules)
 	start := time.Now()
 
 	temp := path + ".tmp"
@@ -106,14 +101,33 @@ func buildInto(ctx context.Context, temp, dir string, rules FilterRules, logger 
 		return err
 	}
 
+	// The allow-list is settled in full before any layer writes, so every pass sees
+	// the same one and none has to accumulate it for the next.
+	filterStart := time.Now()
+	filter, err := buildFilter(dir, rules, ratings)
+	if err != nil {
+		return err
+	}
+	if kept, filtering := filter.size(); filtering {
+		logger.Info("filter built",
+			"rules", rules,
+			"titles", common.Commas(int64(kept)),
+			"took", time.Since(filterStart).Round(time.Millisecond))
+	}
+
 	// Each layer imports one file within its own transaction, in dependency order.
+	// Every title-keyed layer takes the filter; names is not keyed by title.
 	layers := []layer{
-		{reader.FileTitleBasics, func(tx *sql.Tx) (counts, error) { return importTitlesLayer(ctx, tx, dir, ratings) }},
+		{reader.FileTitleBasics, func(tx *sql.Tx) (counts, error) {
+			return importTitlesLayer(ctx, tx, dir, ratings, filter)
+		}},
 		{reader.FileNameBasics, func(tx *sql.Tx) (counts, error) { return importNamesLayer(ctx, tx, dir) }},
-		{reader.FileTitleEpisode, func(tx *sql.Tx) (counts, error) { return importEpisodesLayer(ctx, tx, dir) }},
-		{reader.FileTitleCrew, func(tx *sql.Tx) (counts, error) { return importCrewLayer(ctx, tx, dir) }},
-		{reader.FileTitlePrincipals, func(tx *sql.Tx) (counts, error) { return importPrincipalsLayer(ctx, tx, dir) }},
-		{reader.FileTitleAkas, func(tx *sql.Tx) (counts, error) { return importAkasLayer(ctx, tx, dir) }},
+		{reader.FileTitleEpisode, func(tx *sql.Tx) (counts, error) { return importEpisodesLayer(ctx, tx, dir, filter) }},
+		{reader.FileTitleCrew, func(tx *sql.Tx) (counts, error) { return importCrewLayer(ctx, tx, dir, filter) }},
+		{reader.FileTitlePrincipals, func(tx *sql.Tx) (counts, error) {
+			return importPrincipalsLayer(ctx, tx, dir, filter)
+		}},
+		{reader.FileTitleAkas, func(tx *sql.Tx) (counts, error) { return importAkasLayer(ctx, tx, dir, filter) }},
 	}
 	for _, l := range layers {
 		start := time.Now()
@@ -130,8 +144,10 @@ func buildInto(ctx context.Context, temp, dir string, rules FilterRules, logger 
 			return err
 		}
 		elapsed := time.Since(start)
+		// Both counts are logged: they part company wherever a pass filters or fans out.
 		logger.Info("imported",
 			"file", l.file,
+			"read", common.Commas(count.read),
 			"rows", common.Commas(count.written),
 			"took", elapsed.Round(time.Millisecond),
 			"rate", ratePerSecond(count.written, elapsed))
@@ -145,8 +161,8 @@ func buildInto(ctx context.Context, temp, dir string, rules FilterRules, logger 
 // appendSource stats one consumed dataset file and appends its provenance.
 //
 // A file's own timestamp is the only provenance a build can keep: wget copies it
-// from the server, and IMDb publishes its files in waves hours apart, so there
-// is no single date for a download.
+// from the server, and the seven files carry timestamps hours apart, so there is
+// no single date for a download.
 func appendSource(sources []sourceRow, dir, file string, rowsRead int64) ([]sourceRow, error) {
 	info, err := os.Stat(filepath.Join(dir, file))
 	if err != nil {
@@ -236,14 +252,14 @@ func readRatings(dir string) (map[int64]rating, int64, error) {
 }
 
 // importTitlesLayer runs the titles pass within tx and writes its lookup tables.
-func importTitlesLayer(ctx context.Context, tx *sql.Tx, dir string, ratings map[int64]rating) (counts, error) {
+func importTitlesLayer(ctx context.Context, tx *sql.Tx, dir string, ratings map[int64]rating, filter titleFilter) (counts, error) {
 	file, err := reader.OpenGzip(filepath.Join(dir, reader.FileTitleBasics))
 	if err != nil {
 		return counts{}, err
 	}
 	defer file.Close()
 
-	count, lookups, err := importTitles(ctx, tx, file, ratings)
+	count, lookups, err := importTitles(ctx, tx, file, ratings, filter)
 	if err != nil {
 		return counts{}, err
 	}
@@ -275,35 +291,35 @@ func importNamesLayer(ctx context.Context, tx *sql.Tx, dir string) (counts, erro
 }
 
 // importEpisodesLayer runs the episodes pass within tx.
-func importEpisodesLayer(ctx context.Context, tx *sql.Tx, dir string) (counts, error) {
+func importEpisodesLayer(ctx context.Context, tx *sql.Tx, dir string, filter titleFilter) (counts, error) {
 	file, err := reader.OpenGzip(filepath.Join(dir, reader.FileTitleEpisode))
 	if err != nil {
 		return counts{}, err
 	}
 	defer file.Close()
-	return importEpisodes(ctx, tx, file)
+	return importEpisodes(ctx, tx, file, filter)
 }
 
 // importCrewLayer runs the crew pass within tx.
-func importCrewLayer(ctx context.Context, tx *sql.Tx, dir string) (counts, error) {
+func importCrewLayer(ctx context.Context, tx *sql.Tx, dir string, filter titleFilter) (counts, error) {
 	file, err := reader.OpenGzip(filepath.Join(dir, reader.FileTitleCrew))
 	if err != nil {
 		return counts{}, err
 	}
 	defer file.Close()
-	return importCrew(ctx, tx, file)
+	return importCrew(ctx, tx, file, filter)
 }
 
 // importPrincipalsLayer runs the principals pass within tx and writes its
 // category and job lookups.
-func importPrincipalsLayer(ctx context.Context, tx *sql.Tx, dir string) (counts, error) {
+func importPrincipalsLayer(ctx context.Context, tx *sql.Tx, dir string, filter titleFilter) (counts, error) {
 	file, err := reader.OpenGzip(filepath.Join(dir, reader.FileTitlePrincipals))
 	if err != nil {
 		return counts{}, err
 	}
 	defer file.Close()
 
-	count, lookups, err := importPrincipals(ctx, tx, file)
+	count, lookups, err := importPrincipals(ctx, tx, file, filter)
 	if err != nil {
 		return counts{}, err
 	}
@@ -318,14 +334,14 @@ func importPrincipalsLayer(ctx context.Context, tx *sql.Tx, dir string) (counts,
 
 // importAkasLayer runs the akas pass within tx and writes its region, language,
 // aka_type and attribute lookups.
-func importAkasLayer(ctx context.Context, tx *sql.Tx, dir string) (counts, error) {
+func importAkasLayer(ctx context.Context, tx *sql.Tx, dir string, filter titleFilter) (counts, error) {
 	file, err := reader.OpenGzip(filepath.Join(dir, reader.FileTitleAkas))
 	if err != nil {
 		return counts{}, err
 	}
 	defer file.Close()
 
-	count, lookups, err := importAkas(ctx, tx, file)
+	count, lookups, err := importAkas(ctx, tx, file, filter)
 	if err != nil {
 		return counts{}, err
 	}

@@ -26,9 +26,10 @@ type crewRow struct {
 }
 
 // importCrew streams title.crew into the titles_credit_names table, fanning each
-// row's director and writer lists out into one role-tagged row per person. It
-// returns the number of credit rows written.
-func importCrew(ctx context.Context, tx *sql.Tx, crew io.Reader) (counts, error) {
+// row's director and writer lists out into one role-tagged row per person. Credits
+// for titles the filter refuses are not written. It returns the number of credit
+// rows written.
+func importCrew(ctx context.Context, tx *sql.Tx, crew io.Reader, filter titleFilter) (counts, error) {
 	inserter, err := newBatchInserter(ctx, tx, "titles_credit_names", crewColumns, bindCrewRow)
 	if err != nil {
 		return counts{}, err
@@ -42,6 +43,9 @@ func importCrew(ctx context.Context, tx *sql.Tx, crew io.Reader) (counts, error)
 		titleID, err := parseID(record.Tconst)
 		if err != nil {
 			return counts{}, err
+		}
+		if !filter.allows(titleID) {
+			continue
 		}
 		if err := addCrew(ctx, inserter, titleID, record.Directors, roleDirector); err != nil {
 			return counts{}, err

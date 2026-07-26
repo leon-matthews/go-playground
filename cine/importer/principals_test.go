@@ -17,7 +17,7 @@ func TestImportPrincipals(t *testing.T) {
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	count, lookups, err := importPrincipals(ctx, tx, openIMDB(t, reader.FileTitlePrincipals))
+	count, lookups, err := importPrincipals(ctx, tx, openIMDB(t, reader.FileTitlePrincipals), titleFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, counts{read: 3, written: 3}, count)
 	require.NoError(t, flushLookup(ctx, tx, "principals_categories", lookups.category))
@@ -69,5 +69,28 @@ func TestImportPrincipals(t *testing.T) {
 		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM principals_jobs").Scan(&jobs))
 		assert.Equal(t, 3, categories) // self, director, actor
 		assert.Equal(t, 1, jobs)       // voice
+	})
+
+	t.Run("a refused title leaves nothing behind, not even in the lookups", func(t *testing.T) {
+		db := openImportDB(t)
+		tx, err := db.BeginTx(ctx, nil)
+		require.NoError(t, err)
+		count, lookups, err := importPrincipals(ctx, tx, openIMDB(t, reader.FileTitlePrincipals), allowOnly(1))
+		require.NoError(t, err)
+		require.NoError(t, flushLookup(ctx, tx, "principals_categories", lookups.category))
+		require.NoError(t, flushLookup(ctx, tx, "principals_jobs", lookups.job))
+		require.NoError(t, tx.Commit())
+		assert.Equal(t, counts{read: 3, written: 2}, count)
+
+		var credits int
+		require.NoError(t, db.QueryRowContext(ctx,
+			"SELECT count(*) FROM principals WHERE title_id = 2").Scan(&credits))
+		assert.Zero(t, credits)
+
+		var categories, jobs int
+		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM principals_categories").Scan(&categories))
+		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM principals_jobs").Scan(&jobs))
+		assert.Equal(t, 2, categories, "self and director, no actor from title 2")
+		assert.Zero(t, jobs, "voice was title 2's only job")
 	})
 }

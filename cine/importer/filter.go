@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strings"
 
 	"github.com/bits-and-blooms/bitset"
 
@@ -22,6 +23,21 @@ type FilterRules struct {
 // any reports whether any rule is enabled, and so whether a filter is built.
 func (r FilterRules) any() bool {
 	return r.Rated || r.NotAdult
+}
+
+// String names the enabled rules for a log line, in build_info's column order.
+func (r FilterRules) String() string {
+	var names []string
+	if r.Rated {
+		names = append(names, "rated")
+	}
+	if r.NotAdult {
+		names = append(names, "not-adult")
+	}
+	if len(names) == 0 {
+		return "none"
+	}
+	return strings.Join(names, ",")
 }
 
 // titleFilter decides which title ids a build keeps.

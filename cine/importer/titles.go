@@ -52,10 +52,10 @@ type titleLookups struct {
 }
 
 // importTitles streams title.basics into the titles table, joining ratings and
-// interning the title_type and genre lookups. It returns the number of titles
-// written; the caller writes the returned lookups to their tables once the pass
-// completes.
-func importTitles(ctx context.Context, tx *sql.Tx, basics io.Reader, ratings map[int64]rating) (counts, *titleLookups, error) {
+// interning the title_type and genre lookups. Titles the filter refuses are not
+// written. It returns the number of titles written; the caller writes the
+// returned lookups to their tables once the pass completes.
+func importTitles(ctx context.Context, tx *sql.Tx, basics io.Reader, ratings map[int64]rating, filter titleFilter) (counts, *titleLookups, error) {
 	lookups := &titleLookups{titleType: newInterner(), genre: newInterner()}
 	inserter, err := newBatchInserter(ctx, tx, "titles", titleColumns, bindTitleRow)
 	if err != nil {
@@ -67,11 +67,15 @@ func importTitles(ctx context.Context, tx *sql.Tx, basics io.Reader, ratings map
 			return counts{}, nil, err
 		}
 		read++
-		row, err := buildTitleRow(basic, ratings, lookups)
+		id, err := parseID(basic.Tconst)
 		if err != nil {
 			return counts{}, nil, err
 		}
-		if err := inserter.Add(ctx, row); err != nil {
+		// Refusing before the row is built keeps dropped values out of the interners.
+		if !filter.allows(id) {
+			continue
+		}
+		if err := inserter.Add(ctx, buildTitleRow(basic, id, ratings, lookups)); err != nil {
 			return counts{}, nil, err
 		}
 	}
@@ -99,12 +103,7 @@ type titleRow struct {
 
 // buildTitleRow transforms a reader record into a titles row, interning its
 // title type and genres and joining any rating.
-func buildTitleRow(b reader.TitleBasics, ratings map[int64]rating, lookups *titleLookups) (titleRow, error) {
-	id, err := parseID(b.Tconst)
-	if err != nil {
-		return titleRow{}, err
-	}
-
+func buildTitleRow(b reader.TitleBasics, id int64, ratings map[int64]rating, lookups *titleLookups) titleRow {
 	var genres int64
 	for _, name := range b.Genres {
 		genres |= lookups.genre.bit(name)
@@ -125,7 +124,7 @@ func buildTitleRow(b reader.TitleBasics, ratings map[int64]rating, lookups *titl
 		row.averageRating = r.average
 		row.numVotes = r.votes
 	}
-	return row, nil
+	return row
 }
 
 // bindTitleRow appends a titles row's values in titleColumns order.

@@ -17,7 +17,7 @@ func TestImportEpisodes(t *testing.T) {
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	count, err := importEpisodes(ctx, tx, openIMDB(t, reader.FileTitleEpisode))
+	count, err := importEpisodes(ctx, tx, openIMDB(t, reader.FileTitleEpisode), titleFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, counts{read: 2, written: 2}, count)
 	require.NoError(t, tx.Commit())
@@ -42,5 +42,21 @@ func TestImportEpisodes(t *testing.T) {
 		require.NoError(t, row.Scan(&season, &episode))
 		assert.False(t, season.Valid)
 		assert.False(t, episode.Valid)
+	})
+
+	t.Run("the filter drops an episode it did not allow", func(t *testing.T) {
+		// Only the episode is checked: the filter allows one only where it kept the
+		// parent, so 41038 being allowed already means 40021 was.
+		db := openImportDB(t)
+		tx, err := db.BeginTx(ctx, nil)
+		require.NoError(t, err)
+		count, err := importEpisodes(ctx, tx, openIMDB(t, reader.FileTitleEpisode), allowOnly(41038))
+		require.NoError(t, err)
+		require.NoError(t, tx.Commit())
+		assert.Equal(t, counts{read: 2, written: 1}, count)
+
+		var remaining int64
+		require.NoError(t, db.QueryRowContext(ctx, "SELECT id FROM episodes").Scan(&remaining))
+		assert.Equal(t, int64(41038), remaining)
 	})
 }

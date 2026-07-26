@@ -21,9 +21,10 @@ type principalLookups struct {
 }
 
 // importPrincipals streams title.principals into the principals table, interning
-// the category and job lookups. It returns the number of credits written; the
-// caller writes the lookups to their tables once the pass completes.
-func importPrincipals(ctx context.Context, tx *sql.Tx, principals io.Reader) (counts, *principalLookups, error) {
+// the category and job lookups and skipping credits for titles the filter refuses.
+// It returns the number of credits written; the caller writes the lookups to their
+// tables once the pass completes.
+func importPrincipals(ctx context.Context, tx *sql.Tx, principals io.Reader, filter titleFilter) (counts, *principalLookups, error) {
 	lookups := &principalLookups{category: newInterner(), job: newInterner()}
 	inserter, err := newBatchInserter(ctx, tx, "principals", principalColumns, bindPrincipalRow)
 	if err != nil {
@@ -35,7 +36,15 @@ func importPrincipals(ctx context.Context, tx *sql.Tx, principals io.Reader) (co
 			return counts{}, nil, err
 		}
 		read++
-		row, err := buildPrincipalRow(record, lookups)
+		titleID, err := parseID(record.Tconst)
+		if err != nil {
+			return counts{}, nil, err
+		}
+		// Refusing before the row is built keeps dropped values out of the interners.
+		if !filter.allows(titleID) {
+			continue
+		}
+		row, err := buildPrincipalRow(record, titleID, lookups)
 		if err != nil {
 			return counts{}, nil, err
 		}
@@ -62,11 +71,7 @@ type principalRow struct {
 
 // buildPrincipalRow transforms a reader record into a principals row, interning
 // its category and job and re-encoding its characters as JSON text.
-func buildPrincipalRow(p reader.TitlePrincipals, lookups *principalLookups) (principalRow, error) {
-	titleID, err := parseID(p.Tconst)
-	if err != nil {
-		return principalRow{}, err
-	}
+func buildPrincipalRow(p reader.TitlePrincipals, titleID int64, lookups *principalLookups) (principalRow, error) {
 	nameID, err := parseID(p.Nconst)
 	if err != nil {
 		return principalRow{}, err

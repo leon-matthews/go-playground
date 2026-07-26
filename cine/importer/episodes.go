@@ -11,9 +11,9 @@ import (
 // episodeColumns are the episodes columns in the order bindEpisodeRow writes them.
 var episodeColumns = []string{"id", "parent_id", "season_number", "episode_number"}
 
-// importEpisodes streams title.episode into the episodes table, returning the
-// number of episodes written.
-func importEpisodes(ctx context.Context, tx *sql.Tx, episodes io.Reader) (counts, error) {
+// importEpisodes streams title.episode into the episodes table, skipping
+// episodes the filter refuses, and returns the number of episodes written.
+func importEpisodes(ctx context.Context, tx *sql.Tx, episodes io.Reader, filter titleFilter) (counts, error) {
 	inserter, err := newBatchInserter(ctx, tx, "episodes", episodeColumns, bindEpisodeRow)
 	if err != nil {
 		return counts{}, err
@@ -24,7 +24,16 @@ func importEpisodes(ctx context.Context, tx *sql.Tx, episodes io.Reader) (counts
 			return counts{}, err
 		}
 		read++
-		row, err := buildEpisodeRow(record)
+		id, err := parseID(record.Tconst)
+		if err != nil {
+			return counts{}, err
+		}
+		// The parent needs no check of its own: the filter allows an episode only
+		// where it kept the parent, so allowing the episode already implies it.
+		if !filter.allows(id) {
+			continue
+		}
+		row, err := buildEpisodeRow(record, id)
 		if err != nil {
 			return counts{}, err
 		}
@@ -48,11 +57,7 @@ type episodeRow struct {
 }
 
 // buildEpisodeRow transforms a reader record into an episodes row.
-func buildEpisodeRow(e reader.TitleEpisode) (episodeRow, error) {
-	id, err := parseID(e.Tconst)
-	if err != nil {
-		return episodeRow{}, err
-	}
+func buildEpisodeRow(e reader.TitleEpisode, id int64) (episodeRow, error) {
 	parentID, err := parseID(e.ParentTconst)
 	if err != nil {
 		return episodeRow{}, err

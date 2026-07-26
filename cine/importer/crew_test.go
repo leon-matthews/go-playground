@@ -16,7 +16,7 @@ func TestImportCrew(t *testing.T) {
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	count, err := importCrew(ctx, tx, openIMDB(t, reader.FileTitleCrew))
+	count, err := importCrew(ctx, tx, openIMDB(t, reader.FileTitleCrew), titleFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, counts{read: 2, written: 4}, count) // 2 input rows fan out to 4 credits
 	require.NoError(t, tx.Commit())
@@ -62,5 +62,20 @@ func TestImportCrew(t *testing.T) {
 		require.NoError(t, db.QueryRowContext(ctx,
 			"SELECT role FROM titles_credit_names WHERE title_id = 2 AND name_id = 7").Scan(&role))
 		assert.Equal(t, roleWriter, role)
+	})
+
+	t.Run("a refused title takes its whole fan-out with it", func(t *testing.T) {
+		db := openImportDB(t)
+		tx, err := db.BeginTx(ctx, nil)
+		require.NoError(t, err)
+		count, err := importCrew(ctx, tx, openIMDB(t, reader.FileTitleCrew), allowOnly(1))
+		require.NoError(t, err)
+		require.NoError(t, tx.Commit())
+		assert.Equal(t, counts{read: 2, written: 3}, count)
+
+		var credits int
+		require.NoError(t, db.QueryRowContext(ctx,
+			"SELECT count(*) FROM titles_credit_names WHERE title_id = 2").Scan(&credits))
+		assert.Zero(t, credits)
 	})
 }
