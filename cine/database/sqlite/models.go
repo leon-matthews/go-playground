@@ -67,17 +67,22 @@ type Language struct {
 }
 
 type Name struct {
-	ID                int64
-	PrimaryName       sql.NullString
-	BirthYear         sql.NullInt64
-	DeathYear         sql.NullInt64
-	PrimaryProfession int64
+	ID          int64
+	PrimaryName sql.NullString
+	BirthYear   sql.NullInt64
+	DeathYear   sql.NullInt64
 }
 
-type NameKnownFor struct {
+type NamesKnownForTitle struct {
 	NameID   int64
 	Position int64
 	TitleID  int64
+}
+
+type NamesPrimaryProfession struct {
+	NameID       int64
+	Position     int64
+	ProfessionID int64
 }
 
 type Principal struct {

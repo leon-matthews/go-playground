@@ -3,6 +3,7 @@ package importer
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,24 +24,45 @@ func TestImportNames(t *testing.T) {
 	require.NoError(t, flushLookup(ctx, tx, "professions", profession))
 	require.NoError(t, tx.Commit())
 
-	t.Run("names inserted with profession bitmask and null years", func(t *testing.T) {
+	t.Run("names inserted with null years", func(t *testing.T) {
 		var (
-			name              string
-			birth, death      sql.NullInt64
-			primaryProfession int64
+			name         string
+			birth, death sql.NullInt64
 		)
 		row := db.QueryRowContext(ctx,
-			"SELECT primary_name, birth_year, death_year, primary_profession FROM names WHERE id = 1")
-		require.NoError(t, row.Scan(&name, &birth, &death, &primaryProfession))
+			"SELECT primary_name, birth_year, death_year FROM names WHERE id = 1")
+		require.NoError(t, row.Scan(&name, &birth, &death))
 		assert.Equal(t, "Fred Astaire", name)
 		assert.Equal(t, int64(1899), birth.Int64)
 		assert.Equal(t, int64(1987), death.Int64)
-		assert.Equal(t, int64(0b11), primaryProfession) // actor|producer, bits 0 and 1
+	})
 
-		var absent int64
+	t.Run("professions keep IMDb's ranking, resolved by name", func(t *testing.T) {
+		rows, err := db.QueryContext(ctx, `
+			SELECT p.position, f.name
+			FROM names_primary_professions p
+			JOIN professions f ON f.id = p.profession_id
+			WHERE p.name_id = 1
+			ORDER BY p.position`)
+		require.NoError(t, err)
+		defer rows.Close()
+
+		var got []string
+		for rows.Next() {
+			var position int64
+			var profession string
+			require.NoError(t, rows.Scan(&position, &profession))
+			got = append(got, fmt.Sprintf("%d:%s", position, profession))
+		}
+		require.NoError(t, rows.Err())
+		assert.Equal(t, []string{"1:actor", "2:producer"}, got)
+	})
+
+	t.Run("a \\N profession list contributes no rows", func(t *testing.T) {
+		var total int
 		require.NoError(t, db.QueryRowContext(ctx,
-			"SELECT primary_profession FROM names WHERE id = 9999999").Scan(&absent))
-		assert.Equal(t, int64(0), absent)
+			"SELECT count(*) FROM names_primary_professions WHERE name_id = 9999999").Scan(&total))
+		assert.Equal(t, 0, total)
 	})
 
 	t.Run("missing primary name is stored as NULL", func(t *testing.T) {
@@ -58,7 +80,7 @@ func TestImportNames(t *testing.T) {
 
 	t.Run("knownForTitles keeps IMDb's order, not a sorted one", func(t *testing.T) {
 		rows, err := db.QueryContext(ctx,
-			"SELECT position, title_id FROM name_known_for WHERE name_id = 1 ORDER BY position")
+			"SELECT position, title_id FROM names_known_for_titles WHERE name_id = 1 ORDER BY position")
 		require.NoError(t, err)
 		defer rows.Close()
 
@@ -77,7 +99,7 @@ func TestImportNames(t *testing.T) {
 	t.Run("a \\N known-for list contributes no rows", func(t *testing.T) {
 		var total int
 		require.NoError(t, db.QueryRowContext(ctx,
-			"SELECT count(*) FROM name_known_for WHERE name_id IN (9999999, 1000000)").Scan(&total))
+			"SELECT count(*) FROM names_known_for_titles WHERE name_id IN (9999999, 1000000)").Scan(&total))
 		assert.Equal(t, 0, total)
 	})
 }

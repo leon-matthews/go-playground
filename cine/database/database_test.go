@@ -44,7 +44,8 @@ func TestDatabase(t *testing.T) {
 		want := []string{
 			"build_info", "build_sources",
 			"titles_types", "genres", "titles",
-			"professions", "names", "name_known_for", "episodes", "titles_credit_names",
+			"professions", "names", "names_primary_professions", "names_known_for_titles",
+			"episodes", "titles_credit_names",
 			"principals_categories", "principals_jobs", "principals",
 			"regions", "languages", "akas_types", "attributes", "akas", "akas_carry_attributes",
 		}
@@ -96,6 +97,7 @@ func TestDatabase(t *testing.T) {
 		// titles and names must never appear as a parent: IMDb's own files disagree.
 		want := []string{
 			"titles.title_type -> titles_types",
+			"names_primary_professions.profession_id -> professions",
 			"principals.category -> principals_categories",
 			"principals.job -> principals_jobs",
 			"akas.region -> regions",

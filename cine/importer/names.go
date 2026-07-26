@@ -9,22 +9,24 @@ import (
 )
 
 // nameColumns are the names columns in the order bindNameRow writes them.
-var nameColumns = []string{
-	"id", "primary_name", "birth_year", "death_year", "primary_profession",
-}
+var nameColumns = []string{"id", "primary_name", "birth_year", "death_year"}
 
-// importNames streams name.basics into the names table, interning the
-// primary_profession bitmask and fanning knownForTitles out into the
-// name_known_for junction. It returns the number of names written (not junction
-// rows); the caller writes the returned interner to the profession lookup once
-// the pass completes.
+// importNames streams name.basics into the names table, fanning its two ordered
+// list fields out into the names_primary_professions and names_known_for_titles
+// junctions. It returns the number of names written (not junction rows); the
+// caller writes the returned interner to the profession lookup once the pass
+// completes.
 func importNames(ctx context.Context, tx *sql.Tx, basics io.Reader) (counts, *interner, error) {
 	profession := newInterner()
 	inserter, err := newBatchInserter(ctx, tx, "names", nameColumns, bindNameRow)
 	if err != nil {
 		return counts{}, nil, err
 	}
-	knownFor, err := newBatchInserter(ctx, tx, "name_known_for", nameKnownForColumns, bindNameKnownForRow)
+	professions, err := newBatchInserter(ctx, tx, "names_primary_professions", nameProfessionColumns, bindNameProfessionRow)
+	if err != nil {
+		return counts{}, nil, err
+	}
+	knownFor, err := newBatchInserter(ctx, tx, "names_known_for_titles", nameKnownForColumns, bindNameKnownForRow)
 	if err != nil {
 		return counts{}, nil, err
 	}
@@ -34,11 +36,14 @@ func importNames(ctx context.Context, tx *sql.Tx, basics io.Reader) (counts, *in
 			return counts{}, nil, err
 		}
 		read++
-		row, err := buildNameRow(record, profession)
+		row, err := buildNameRow(record)
 		if err != nil {
 			return counts{}, nil, err
 		}
 		if err := inserter.Add(ctx, row); err != nil {
+			return counts{}, nil, err
+		}
+		if err := addProfessions(ctx, professions, row.id, record.PrimaryProfession, profession); err != nil {
 			return counts{}, nil, err
 		}
 		if err := addKnownFor(ctx, knownFor, row.id, record.KnownForTitles); err != nil {
@@ -46,6 +51,9 @@ func importNames(ctx context.Context, tx *sql.Tx, basics io.Reader) (counts, *in
 		}
 	}
 	if err := inserter.Flush(ctx); err != nil {
+		return counts{}, nil, err
+	}
+	if err := professions.Flush(ctx); err != nil {
 		return counts{}, nil, err
 	}
 	if err := knownFor.Flush(ctx); err != nil {
@@ -57,39 +65,65 @@ func importNames(ctx context.Context, tx *sql.Tx, basics io.Reader) (counts, *in
 // nameRow holds one names row's values in column order; a nil field is stored as
 // SQL NULL.
 type nameRow struct {
-	id                int64
-	primaryName       any
-	birthYear         any
-	deathYear         any
-	primaryProfession int64
+	id          int64
+	primaryName any
+	birthYear   any
+	deathYear   any
 }
 
-// buildNameRow transforms a reader record into a names row, interning its
-// professions into a bitmask.
-func buildNameRow(n reader.NameBasics, profession *interner) (nameRow, error) {
+// buildNameRow transforms a reader record into a names row.
+func buildNameRow(n reader.NameBasics) (nameRow, error) {
 	id, err := parseID(n.Nconst)
 	if err != nil {
 		return nameRow{}, err
 	}
-	var professions int64
-	for _, name := range n.PrimaryProfession {
-		professions |= profession.bit(name)
-	}
 	return nameRow{
-		id:                id,
-		primaryName:       nullableStr(n.PrimaryName),
-		birthYear:         nullableInt(n.BirthYear),
-		deathYear:         nullableInt(n.DeathYear),
-		primaryProfession: professions,
+		id:          id,
+		primaryName: nullableStr(n.PrimaryName),
+		birthYear:   nullableInt(n.BirthYear),
+		deathYear:   nullableInt(n.DeathYear),
 	}, nil
 }
 
 // bindNameRow appends a names row's values in nameColumns order.
 func bindNameRow(args []any, r nameRow) []any {
-	return append(args, r.id, r.primaryName, r.birthYear, r.deathYear, r.primaryProfession)
+	return append(args, r.id, r.primaryName, r.birthYear, r.deathYear)
 }
 
-// nameKnownForColumns are the name_known_for columns in the order
+// nameProfessionColumns are the names_primary_professions columns in the order
+// bindNameProfessionRow writes them.
+var nameProfessionColumns = []string{"name_id", "position", "profession_id"}
+
+// nameProfessionRow is one entry of a person's profession list.
+type nameProfessionRow struct {
+	nameID       int64
+	position     int64
+	professionID int64
+}
+
+// addProfessions adds one junction row per profession, numbering them from one so
+// that IMDb's ranking of the list survives, and interning each name.
+func addProfessions(ctx context.Context, inserter *batchInserter[nameProfessionRow], nameID int64, names []string, profession *interner) error {
+	for i, name := range names {
+		row := nameProfessionRow{
+			nameID:       nameID,
+			position:     int64(i + 1),
+			professionID: profession.id(name),
+		}
+		if err := inserter.Add(ctx, row); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// bindNameProfessionRow appends a names_primary_professions row's values in
+// nameProfessionColumns order.
+func bindNameProfessionRow(args []any, r nameProfessionRow) []any {
+	return append(args, r.nameID, r.position, r.professionID)
+}
+
+// nameKnownForColumns are the names_known_for_titles columns in the order
 // bindNameKnownForRow writes them.
 var nameKnownForColumns = []string{"name_id", "position", "title_id"}
 
@@ -116,7 +150,7 @@ func addKnownFor(ctx context.Context, inserter *batchInserter[nameKnownForRow], 
 	return nil
 }
 
-// bindNameKnownForRow appends a name_known_for row's values in
+// bindNameKnownForRow appends a names_known_for_titles row's values in
 // nameKnownForColumns order.
 func bindNameKnownForRow(args []any, r nameKnownForRow) []any {
 	return append(args, r.nameID, r.position, r.titleID)

@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS titles (
 -- Layer 1 - People: names, episodes, crew
 ------------------------------------------------------------------------------
 
--- One row per profession; id is the bit position used in names.primary_profession.
+-- Enumerated name.basics primaryProfession values: actor, director, ...
 CREATE TABLE IF NOT EXISTS professions (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
@@ -93,19 +93,33 @@ CREATE TABLE IF NOT EXISTS professions (
 
 -- name.basics.
 CREATE TABLE IF NOT EXISTS names (
-  id                  INTEGER PRIMARY KEY,
-  primary_name        TEXT,                        -- NULL when the source has \N
-  birth_year          INTEGER,
-  death_year          INTEGER,
-  primary_profession  INTEGER NOT NULL DEFAULT 0  -- bitmask over professions.id
+  id            INTEGER PRIMARY KEY,
+  primary_name  TEXT,     -- NULL when the source has \N
+  birth_year    INTEGER,
+  death_year    INTEGER
 );
+
+-- name.basics primaryProfession: the categories a person is credited under.
+--
+-- A junction rather than a bitmask, because IMDb ranks the list by prominence -
+-- Ingmar Bergman is "writer,director,actor" - and 54% of the multi-entry lists
+-- in the 2026-07 dump are not in alphabetical order, so the order is content
+-- rather than a sorted set. position is 1-based, so position 1 is the primary
+-- profession. Carrying the list this way also retires the 63-value ceiling that
+-- a single integer mask imposed.
+CREATE TABLE IF NOT EXISTS names_primary_professions (
+  name_id        INTEGER NOT NULL,
+  position       INTEGER NOT NULL,
+  profession_id  INTEGER NOT NULL REFERENCES professions(id),
+  PRIMARY KEY (name_id, position)
+) WITHOUT ROWID;
 
 -- name.basics knownForTitles: the titles a person is best known for.
 --
 -- position is 1-based and preserves IMDb's own order, matching akas.ordering and
 -- principals.ordering. That order carries information rather than being a sorted
 -- set: 29% of the lists in the 2026-07 dump are not in tconst order.
-CREATE TABLE IF NOT EXISTS name_known_for (
+CREATE TABLE IF NOT EXISTS names_known_for_titles (
   name_id   INTEGER NOT NULL,
   position  INTEGER NOT NULL,
   title_id  INTEGER NOT NULL,
