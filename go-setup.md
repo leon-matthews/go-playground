@@ -45,34 +45,11 @@ fi
 
 ## Go tools
 
-
-### cobra-cli
-
-Cobra Generator generates the scaffolding for new CLI application.
-
-    $ go install github.com/spf13/cobra-cli@latest
-
-
-### delve
-
-Delve debugger works better than GDB for Go programs.
-
-    $ go install github.com/go-delve/delve/cmd/dlv@latest
-
-
-### errcheck
-
-The `errcheck` linter checks for un-inspected error return values:
-
-    $ go install github.com/kisielk/errcheck@latest
-
-
 ### glow
 
 Browse and read markdown documentation under current folder:
 
 	$ go install github.com/charmbracelet/glow@latest
-
 
 ### gofupmt
 
@@ -80,13 +57,11 @@ A stricter gofmt
 
     $ go install mvdan.cc/gofumpt@latest
 
-
 ### goimports
 
 Command goimports updates your Go import lines, adding missing ones and removing unreferenced ones.
 
 	$ go install golang.org/x/tools/cmd/goimports@latest
-
 
 ### golangci-lint
 
@@ -94,6 +69,12 @@ Runs various linters in parallel. The docs suggest *not* to install from source 
 getting the latest and greatest without using their bash script. No issues so far!
 
     $ go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+
+### go-mod-upgrade
+
+Check for updates to 3rd-party packages automatically.
+
+    $ go install github.com/oligot/go-mod-upgrade@latest
 
 
 ### go-size-analyzer
@@ -127,13 +108,6 @@ Go linter
 
     $ go install github.com/mgechev/revive@latest
     $ revive ./...
-
-### staticcheck
-
-Another Go linter
-
-    $ go install honnef.co/go/tools/cmd/staticcheck@latest
-    $ staticcheck ./...
 
 
 ### testifylint
