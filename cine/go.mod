@@ -3,6 +3,7 @@ module local.dev/cine
 go 1.26.5
 
 require (
+	github.com/bits-and-blooms/bitset v1.24.6
 	github.com/charmbracelet/log v1.0.0
 	github.com/klauspost/compress v1.19.1
 	github.com/spf13/cobra v1.10.2
