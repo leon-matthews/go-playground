@@ -18,9 +18,24 @@ import (
 // Version is the cine release recorded in each build's build_info row.
 const Version = "0.1.0"
 
-// layerFull is the base layer recorded in build_info.layer. It is the only one
-// produced so far, because buildInto imports every dataset file.
-const layerFull = 2
+// BuildOptions are the choices made when building a database, one field per
+// build_info column.
+//
+// Each field is recorded in the column it drives, so a database cannot claim an
+// option that did not apply. The zero value is the smallest build: every title,
+// unfiltered, and no people.
+type BuildOptions struct {
+	Rated    bool // keep only titles IMDb has published a rating for
+	NotAdult bool // drop titles flagged isAdult
+	People   bool // import name.basics, title.crew and title.principals as well
+}
+
+// filtering reports whether any row filter is enabled, and so whether an
+// allow-list is built. People populates tables rather than selecting rows, so it
+// is not a filter and takes no part in this.
+func (o BuildOptions) filtering() bool {
+	return o.Rated || o.NotAdult
+}
 
 // Import builds a cine database at path from the IMDb dataset files in dir,
 // logging progress to logger.
@@ -28,8 +43,9 @@ const layerFull = 2
 // The database is built in a temporary file and renamed into place only once the
 // whole import succeeds, so an interrupted or failed run leaves any database
 // already at path untouched.
-func Import(ctx context.Context, path, dir string, rules FilterRules, logger *log.Logger) error {
-	logger.Info("building database", "path", path, "filter", rules)
+func Import(ctx context.Context, path, dir string, options BuildOptions, logger *log.Logger) error {
+	logger.Info("building database", "path", path,
+		"rated", options.Rated, "not-adult", options.NotAdult, "people", options.People)
 	start := time.Now()
 
 	temp := path + ".tmp"
@@ -37,7 +53,7 @@ func Import(ctx context.Context, path, dir string, rules FilterRules, logger *lo
 		return fmt.Errorf("clearing %s: %w", temp, err)
 	}
 
-	if err := buildInto(ctx, temp, dir, rules, logger); err != nil {
+	if err := buildInto(ctx, temp, dir, options, logger); err != nil {
 		os.Remove(temp) // don't leave a half-built file behind
 		return err
 	}
@@ -77,7 +93,7 @@ type sourceRow struct {
 
 // buildInto opens a fresh database at temp and imports every layer into it, each
 // file within its own transaction, logging per-file progress.
-func buildInto(ctx context.Context, temp, dir string, rules FilterRules, logger *log.Logger) error {
+func buildInto(ctx context.Context, temp, dir string, options BuildOptions, logger *log.Logger) error {
 	started := time.Now()
 	_, db, err := database.Open(ctx, temp)
 	if err != nil {
@@ -104,30 +120,36 @@ func buildInto(ctx context.Context, temp, dir string, rules FilterRules, logger 
 	// The allow-list is settled in full before any layer writes, so every pass sees
 	// the same one and none has to accumulate it for the next.
 	filterStart := time.Now()
-	filter, err := buildFilter(dir, rules, ratings)
+	filter, err := buildFilter(dir, options, ratings)
 	if err != nil {
 		return err
 	}
 	if kept, filtering := filter.size(); filtering {
 		logger.Info("filter built",
-			"rules", rules,
 			"titles", common.Commas(int64(kept)),
 			"took", time.Since(filterStart).Round(time.Millisecond))
 	}
 
-	// Each layer imports one file within its own transaction, in dependency order.
+	// Each layer imports one file within its own transaction. The titles layers come
+	// first, then the people ones if they were asked for; no layer reads a table
+	// another wrote, so the order is the schema's rather than a dependency.
 	// Every layer takes the filter; names needs it only for its known-for junction.
 	layers := []layer{
 		{reader.FileTitleBasics, func(tx *sql.Tx) (counts, error) {
 			return importTitlesLayer(ctx, tx, dir, ratings, filter)
 		}},
-		{reader.FileNameBasics, func(tx *sql.Tx) (counts, error) { return importNamesLayer(ctx, tx, dir, filter) }},
 		{reader.FileTitleEpisode, func(tx *sql.Tx) (counts, error) { return importEpisodesLayer(ctx, tx, dir, filter) }},
-		{reader.FileTitleCrew, func(tx *sql.Tx) (counts, error) { return importCrewLayer(ctx, tx, dir, filter) }},
-		{reader.FileTitlePrincipals, func(tx *sql.Tx) (counts, error) {
-			return importPrincipalsLayer(ctx, tx, dir, filter)
-		}},
 		{reader.FileTitleAkas, func(tx *sql.Tx) (counts, error) { return importAkasLayer(ctx, tx, dir, filter) }},
+	}
+	if options.People {
+		layers = append(
+			layers,
+			layer{reader.FileNameBasics, func(tx *sql.Tx) (counts, error) { return importNamesLayer(ctx, tx, dir, filter) }},
+			layer{reader.FileTitleCrew, func(tx *sql.Tx) (counts, error) { return importCrewLayer(ctx, tx, dir, filter) }},
+			layer{reader.FileTitlePrincipals, func(tx *sql.Tx) (counts, error) {
+				return importPrincipalsLayer(ctx, tx, dir, filter)
+			}},
+		)
 	}
 	for _, l := range layers {
 		start := time.Now()
@@ -154,7 +176,7 @@ func buildInto(ctx context.Context, temp, dir string, rules FilterRules, logger 
 	}
 
 	return inTx(ctx, db, func(tx *sql.Tx) error {
-		return writeBuildMetadata(ctx, tx, sources, rules, started, time.Now())
+		return writeBuildMetadata(ctx, tx, sources, options, started, time.Now())
 	})
 }
 
@@ -187,7 +209,7 @@ func bindSourceRow(args []any, s sourceRow) []any {
 
 // writeBuildMetadata records what the build consumed and when it ran. It runs
 // last, because a build that fails is discarded whole and has nothing to say.
-func writeBuildMetadata(ctx context.Context, tx *sql.Tx, sources []sourceRow, rules FilterRules, started, finished time.Time) error {
+func writeBuildMetadata(ctx context.Context, tx *sql.Tx, sources []sourceRow, options BuildOptions, started, finished time.Time) error {
 	inserter, err := newBatchInserter(ctx, tx, "build_sources", buildSourceColumns, bindSourceRow)
 	if err != nil {
 		return err
@@ -202,11 +224,11 @@ func writeBuildMetadata(ctx context.Context, tx *sql.Tx, sources []sourceRow, ru
 	}
 
 	const insert = `INSERT INTO build_info
-		(id, layer, cine_version, started_at, finished_at, filter_rated, filter_not_adult)
+		(id, cine_version, started_at, finished_at, filter_rated, filter_not_adult, has_people)
 		VALUES (1, ?, ?, ?, ?, ?, ?)`
 	if _, err := tx.ExecContext(ctx, insert,
-		layerFull, Version, timestamp(started), timestamp(finished),
-		boolToInt(rules.Rated), boolToInt(rules.NotAdult)); err != nil {
+		Version, timestamp(started), timestamp(finished),
+		boolToInt(options.Rated), boolToInt(options.NotAdult), boolToInt(options.People)); err != nil {
 		return fmt.Errorf("writing build_info: %w", err)
 	}
 	return nil

@@ -65,8 +65,8 @@ func TestDatabase(t *testing.T) {
 		ctx := context.Background()
 		_, db := open(t)
 
-		const insert = `INSERT INTO build_info (id, layer, cine_version, started_at, finished_at)
-			VALUES (?, 2, '0.1.0', '2026-07-26T00:00:00Z', '2026-07-26T00:30:00Z')`
+		const insert = `INSERT INTO build_info (id, cine_version, started_at, finished_at)
+			VALUES (?, '0.1.0', '2026-07-26T00:00:00Z', '2026-07-26T00:30:00Z')`
 		_, err := db.ExecContext(ctx, insert, 1)
 		require.NoError(t, err)
 

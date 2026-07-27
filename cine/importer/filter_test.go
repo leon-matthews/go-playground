@@ -78,50 +78,50 @@ func TestFilterBuilder(t *testing.T) {
 		900: {average: 57, votes: 30},
 	}
 
-	build := func(t *testing.T, rules FilterRules) titleFilter {
+	build := func(t *testing.T, options BuildOptions) titleFilter {
 		t.Helper()
-		builder := newFilterBuilder(rules, ratings)
+		builder := newFilterBuilder(options, ratings)
 		require.NoError(t, builder.readBasics(strings.NewReader(basics)))
 		require.NoError(t, builder.readEpisodes(strings.NewReader(episodes)))
 		return builder.filter()
 	}
 
 	t.Run("the rated rule alone ignores whether a title is adult", func(t *testing.T) {
-		filter := build(t, FilterRules{Rated: true})
+		filter := build(t, BuildOptions{Rated: true})
 		assert.True(t, filter.allows(900), "rated and clean")
 		assert.True(t, filter.allows(800), "rated but adult")
 		assert.False(t, filter.allows(700), "clean but unrated")
 	})
 
 	t.Run("the not-adult rule alone ignores whether a title is rated", func(t *testing.T) {
-		filter := build(t, FilterRules{NotAdult: true})
+		filter := build(t, BuildOptions{NotAdult: true})
 		assert.True(t, filter.allows(700), "unrated but clean")
 		assert.True(t, filter.allows(900))
 		assert.False(t, filter.allows(800), "adult")
 	})
 
 	t.Run("both rules together keep only titles that pass each", func(t *testing.T) {
-		filter := build(t, FilterRules{Rated: true, NotAdult: true})
+		filter := build(t, BuildOptions{Rated: true, NotAdult: true})
 		assert.True(t, filter.allows(900))
 		assert.False(t, filter.allows(700), "unrated")
 		assert.False(t, filter.allows(800), "adult")
 	})
 
 	t.Run("a kept series brings all of its episodes", func(t *testing.T) {
-		filter := build(t, FilterRules{Rated: true, NotAdult: true})
+		filter := build(t, BuildOptions{Rated: true, NotAdult: true})
 		assert.True(t, filter.allows(100))
 		assert.True(t, filter.allows(101))
 	})
 
 	t.Run("an unrated series is dropped whole", func(t *testing.T) {
-		filter := build(t, FilterRules{Rated: true})
+		filter := build(t, BuildOptions{Rated: true})
 		assert.False(t, filter.allows(200))
 		assert.False(t, filter.allows(201))
 		assert.False(t, filter.allows(202))
 	})
 
 	t.Run("an adult series takes its clean episodes with it", func(t *testing.T) {
-		filter := build(t, FilterRules{NotAdult: true})
+		filter := build(t, BuildOptions{NotAdult: true})
 		assert.False(t, filter.allows(300))
 		assert.False(t, filter.allows(301), "clean episode dropped with its adult series")
 	})
@@ -129,17 +129,17 @@ func TestFilterBuilder(t *testing.T) {
 	t.Run("an adult episode of a kept series survives via its parent", func(t *testing.T) {
 		// Episodes are never judged by the rules, only by their parent's fate, so
 		// a series is never stored with gaps in it.
-		filter := build(t, FilterRules{NotAdult: true})
+		filter := build(t, BuildOptions{NotAdult: true})
 		assert.True(t, filter.allows(102))
 	})
 
 	t.Run("a rated episode does not rescue its unrated series", func(t *testing.T) {
-		filter := build(t, FilterRules{Rated: true})
+		filter := build(t, BuildOptions{Rated: true})
 		assert.False(t, filter.allows(202), "rated episode cleared with its series")
 	})
 
 	t.Run("counts the titles it allows", func(t *testing.T) {
-		filter := build(t, FilterRules{Rated: true, NotAdult: true})
+		filter := build(t, BuildOptions{Rated: true, NotAdult: true})
 		count, filtering := filter.size()
 		assert.True(t, filtering)
 		assert.Equal(t, uint(4), count, "100, 101, 102 and 900")
@@ -148,23 +148,26 @@ func TestFilterBuilder(t *testing.T) {
 	t.Run("a malformed identifier fails the build", func(t *testing.T) {
 		const bad = "tconst\tparentTconst\tseasonNumber\tepisodeNumber\n" +
 			"tt0000101\ttt-5\t1\t1\n"
-		builder := newFilterBuilder(FilterRules{Rated: true}, ratings)
+		builder := newFilterBuilder(BuildOptions{Rated: true}, ratings)
 		err := builder.readEpisodes(strings.NewReader(bad))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "negative title identifier")
 	})
 }
 
-func TestFilterRulesString(t *testing.T) {
-	assert.Equal(t, "none", FilterRules{}.String())
-	assert.Equal(t, "rated", FilterRules{Rated: true}.String())
-	assert.Equal(t, "not-adult", FilterRules{NotAdult: true}.String())
-	assert.Equal(t, "rated,not-adult", FilterRules{Rated: true, NotAdult: true}.String())
+func TestBuildOptionsFiltering(t *testing.T) {
+	assert.False(t, BuildOptions{}.filtering(), "the zero value filters nothing")
+	assert.True(t, BuildOptions{Rated: true}.filtering())
+	assert.True(t, BuildOptions{NotAdult: true}.filtering())
+
+	// People populates tables rather than selecting rows, so it is not a filter and
+	// must not make a build pay for an allow-list it has no rule to fill.
+	assert.False(t, BuildOptions{People: true}.filtering())
 }
 
-func TestBuildFilterRules(t *testing.T) {
+func TestBuildFilter(t *testing.T) {
 	t.Run("no rules means no filter and no files read", func(t *testing.T) {
-		filter, err := buildFilter(t.TempDir(), FilterRules{}, nil)
+		filter, err := buildFilter(t.TempDir(), BuildOptions{}, nil)
 		require.NoError(t, err)
 		count, filtering := filter.size()
 		assert.False(t, filtering, "zero value allows every title")
@@ -172,7 +175,7 @@ func TestBuildFilterRules(t *testing.T) {
 	})
 
 	t.Run("a missing dataset file is an error", func(t *testing.T) {
-		_, err := buildFilter(t.TempDir(), FilterRules{Rated: true}, nil)
+		_, err := buildFilter(t.TempDir(), BuildOptions{Rated: true}, nil)
 		assert.Error(t, err)
 	})
 }

@@ -57,9 +57,9 @@ func TestBuildMetadata(t *testing.T) {
 		started := time.Date(2026, 7, 26, 1, 0, 0, 0, time.UTC)
 		finished := started.Add(30 * time.Minute)
 
-		rules := FilterRules{Rated: true, NotAdult: true}
+		options := BuildOptions{Rated: true, NotAdult: true, People: true}
 		require.NoError(t, inTx(ctx, db, func(tx *sql.Tx) error {
-			return writeBuildMetadata(ctx, tx, sources, rules, started, finished)
+			return writeBuildMetadata(ctx, tx, sources, options, started, finished)
 		}))
 
 		t.Run("one build_sources row per file, keeping each timestamp apart", func(t *testing.T) {
@@ -80,25 +80,25 @@ func TestBuildMetadata(t *testing.T) {
 
 		t.Run("build_info holds the single build row", func(t *testing.T) {
 			var (
-				layer                 int64
 				version               string
 				startedAt, finishedAt string
 			)
 			require.NoError(t, db.QueryRowContext(ctx,
-				"SELECT layer, cine_version, started_at, finished_at FROM build_info").
-				Scan(&layer, &version, &startedAt, &finishedAt))
-			assert.Equal(t, int64(layerFull), layer)
+				"SELECT cine_version, started_at, finished_at FROM build_info").
+				Scan(&version, &startedAt, &finishedAt))
 			assert.Equal(t, Version, version)
 			assert.Equal(t, "2026-07-26T01:00:00Z", startedAt)
 			assert.Equal(t, "2026-07-26T01:30:00Z", finishedAt)
 		})
 
-		t.Run("build_info records which rules ran", func(t *testing.T) {
-			var rated, notAdult int64
+		t.Run("build_info records every option the build was given", func(t *testing.T) {
+			var rated, notAdult, people int64
 			require.NoError(t, db.QueryRowContext(ctx,
-				"SELECT filter_rated, filter_not_adult FROM build_info").Scan(&rated, &notAdult))
+				"SELECT filter_rated, filter_not_adult, has_people FROM build_info").
+				Scan(&rated, &notAdult, &people))
 			assert.Equal(t, int64(1), rated)
 			assert.Equal(t, int64(1), notAdult)
+			assert.Equal(t, int64(1), people)
 		})
 	})
 
@@ -106,7 +106,8 @@ func TestBuildMetadata(t *testing.T) {
 		// Only tt0000001 and tt0133093 are rated, and no episode's parent is, so the
 		// rated rule leaves the two films and drops everything keyed to any other id.
 		out := filepath.Join(t.TempDir(), "cine.db")
-		require.NoError(t, Import(ctx, out, gzipFixtures(t), FilterRules{Rated: true}, log.New(io.Discard)))
+		options := BuildOptions{Rated: true, People: true}
+		require.NoError(t, Import(ctx, out, gzipFixtures(t), options, log.New(io.Discard)))
 
 		_, db, err := database.Open(ctx, out)
 		require.NoError(t, err)
@@ -146,6 +147,13 @@ func TestBuildMetadata(t *testing.T) {
 			assert.Equal(t, int64(0), notAdult)
 		})
 
+		t.Run("known-for rows point only at titles the filter kept", func(t *testing.T) {
+			var dangling int
+			require.NoError(t, db.QueryRowContext(ctx, `SELECT count(*) FROM names_known_for_titles k
+				LEFT JOIN titles t ON t.id = k.title_id WHERE t.id IS NULL`).Scan(&dangling))
+			assert.Zero(t, dangling, "the names pass takes the filter for this junction alone")
+		})
+
 		t.Run("generated lookup ids all still resolve", func(t *testing.T) {
 			rows, err := db.QueryContext(ctx, "PRAGMA foreign_key_check")
 			require.NoError(t, err)
@@ -157,28 +165,17 @@ func TestBuildMetadata(t *testing.T) {
 
 	t.Run("a full build records all seven source files", func(t *testing.T) {
 		out := filepath.Join(t.TempDir(), "cine.db")
-		require.NoError(t, Import(ctx, out, gzipFixtures(t), FilterRules{}, log.New(io.Discard)))
+		require.NoError(t, Import(ctx, out, gzipFixtures(t), BuildOptions{People: true}, log.New(io.Discard)))
 
 		_, db, err := database.Open(ctx, out)
 		require.NoError(t, err)
 		t.Cleanup(func() { db.Close() })
 
-		var files []string
-		rows, err := db.QueryContext(ctx, "SELECT file FROM build_sources ORDER BY file")
-		require.NoError(t, err)
-		defer rows.Close()
-		for rows.Next() {
-			var file string
-			require.NoError(t, rows.Scan(&file))
-			files = append(files, file)
-		}
-		require.NoError(t, rows.Err())
-
 		assert.ElementsMatch(t, []string{
 			reader.FileTitleBasics, reader.FileTitleRatings, reader.FileNameBasics,
 			reader.FileTitleEpisode, reader.FileTitleCrew, reader.FileTitlePrincipals,
 			reader.FileTitleAkas,
-		}, files)
+		}, sourceFiles(ctx, t, db))
 
 		// rows_read is the only surviving record of title.ratings, which has no
 		// table of its own once folded into titles.
@@ -187,6 +184,70 @@ func TestBuildMetadata(t *testing.T) {
 			"SELECT rows_read FROM build_sources WHERE file = ?", reader.FileTitleRatings).Scan(&ratingsRead))
 		assert.Equal(t, int64(2), ratingsRead)
 	})
+
+	t.Run("a build without people reads only the titles files", func(t *testing.T) {
+		out := filepath.Join(t.TempDir(), "cine.db")
+		require.NoError(t, Import(ctx, out, gzipFixtures(t), BuildOptions{}, log.New(io.Discard)))
+
+		_, db, err := database.Open(ctx, out)
+		require.NoError(t, err)
+		t.Cleanup(func() { db.Close() })
+
+		count := func(t *testing.T, table string) int {
+			t.Helper()
+			var n int
+			require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM "+table).Scan(&n))
+			return n
+		}
+
+		t.Run("the three people files are absent from build_sources", func(t *testing.T) {
+			// An absent row is how a table nobody imported is told apart from an empty one.
+			assert.ElementsMatch(t, []string{
+				reader.FileTitleBasics, reader.FileTitleRatings,
+				reader.FileTitleEpisode, reader.FileTitleAkas,
+			}, sourceFiles(ctx, t, db))
+		})
+
+		t.Run("the titles tables are populated as usual", func(t *testing.T) {
+			assert.Equal(t, 3, count(t, "titles"))
+			assert.Equal(t, 2, count(t, "episodes"))
+			assert.Equal(t, 3, count(t, "akas"))
+		})
+
+		t.Run("every people table is empty but still exists", func(t *testing.T) {
+			for _, table := range []string{
+				"names", "names_primary_professions", "names_known_for_titles",
+				"professions", "titles_credit_names", "principals",
+				"principals_categories", "principals_jobs",
+			} {
+				assert.Zero(t, count(t, table), table)
+			}
+		})
+
+		t.Run("build_info records that people were not imported", func(t *testing.T) {
+			var people int64
+			require.NoError(t, db.QueryRowContext(ctx,
+				"SELECT has_people FROM build_info").Scan(&people))
+			assert.Equal(t, int64(0), people)
+		})
+	})
+}
+
+// sourceFiles reads the file column of every build_sources row.
+func sourceFiles(ctx context.Context, t *testing.T, db *sql.DB) []string {
+	t.Helper()
+	rows, err := db.QueryContext(ctx, "SELECT file FROM build_sources ORDER BY file")
+	require.NoError(t, err)
+	defer rows.Close()
+
+	var files []string
+	for rows.Next() {
+		var file string
+		require.NoError(t, rows.Scan(&file))
+		files = append(files, file)
+	}
+	require.NoError(t, rows.Err())
+	return files
 }
 
 // gzipFixtures copies testdata/imdb into a temporary folder as the gzipped files

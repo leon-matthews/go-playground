@@ -4,41 +4,11 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
-	"strings"
 
 	"github.com/bits-and-blooms/bitset"
 
 	"local.dev/cine/reader"
 )
-
-// FilterRules selects which row filters a build applies.
-//
-// The same value drives the filter and is recorded in build_info, so a database
-// cannot claim a rule that did not run. The zero value filters nothing.
-type FilterRules struct {
-	Rated    bool // keep only titles IMDb has published a rating for
-	NotAdult bool // drop titles flagged isAdult
-}
-
-// any reports whether any rule is enabled, and so whether a filter is built.
-func (r FilterRules) any() bool {
-	return r.Rated || r.NotAdult
-}
-
-// String names the enabled rules for a log line, in build_info's column order.
-func (r FilterRules) String() string {
-	var names []string
-	if r.Rated {
-		names = append(names, "rated")
-	}
-	if r.NotAdult {
-		names = append(names, "not-adult")
-	}
-	if len(names) == 0 {
-		return "none"
-	}
-	return strings.Join(names, ",")
-}
 
 // titleFilter decides which title ids a build keeps.
 //
@@ -64,11 +34,11 @@ func (f titleFilter) size() (uint, bool) {
 
 // buildFilter works out the allow-list for a filtered build, reading
 // title.basics for the rules and then title.episode for the parent cascade.
-func buildFilter(dir string, rules FilterRules, ratings map[int64]rating) (titleFilter, error) {
-	if !rules.any() {
+func buildFilter(dir string, options BuildOptions, ratings map[int64]rating) (titleFilter, error) {
+	if !options.filtering() {
 		return titleFilter{}, nil
 	}
-	builder := newFilterBuilder(rules, ratings)
+	builder := newFilterBuilder(options, ratings)
 	if err := readDataset(dir, reader.FileTitleBasics, builder.readBasics); err != nil {
 		return titleFilter{}, err
 	}
@@ -90,13 +60,13 @@ func readDataset(dir, file string, read func(io.Reader) error) error {
 
 // filterBuilder accumulates the allow-list, one dataset file at a time.
 type filterBuilder struct {
-	rules   FilterRules
+	options BuildOptions
 	ratings map[int64]rating
 	allowed *bitset.BitSet
 }
 
-func newFilterBuilder(rules FilterRules, ratings map[int64]rating) *filterBuilder {
-	return &filterBuilder{rules: rules, ratings: ratings, allowed: bitset.New(0)}
+func newFilterBuilder(options BuildOptions, ratings map[int64]rating) *filterBuilder {
+	return &filterBuilder{options: options, ratings: ratings, allowed: bitset.New(0)}
 }
 
 // readBasics allows every title.basics record that all enabled rules accept.
@@ -118,10 +88,10 @@ func (b *filterBuilder) readBasics(basics io.Reader) error {
 
 // allowsTitle applies each enabled rule to one title, independently of the rest.
 func (b *filterBuilder) allowsTitle(record reader.TitleBasics, id uint) bool {
-	if b.rules.NotAdult && record.IsAdult {
+	if b.options.NotAdult && record.IsAdult {
 		return false
 	}
-	if b.rules.Rated {
+	if b.options.Rated {
 		if _, rated := b.ratings[int64(id)]; !rated {
 			return false
 		}
@@ -130,7 +100,7 @@ func (b *filterBuilder) allowsTitle(record reader.TitleBasics, id uint) bool {
 }
 
 // readEpisodes gives every episode the fate of its parent series, whatever rule
-// decided that, so no series is ever stored with gaps in it.
+// decided that, which is what stops the rules thinning out a series.
 func (b *filterBuilder) readEpisodes(episodes io.Reader) error {
 	for record, err := range reader.ReadTitleEpisode(episodes) {
 		if err != nil {
