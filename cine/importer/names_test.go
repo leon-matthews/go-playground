@@ -18,7 +18,7 @@ func TestImportNames(t *testing.T) {
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	count, profession, err := importNames(ctx, tx, openIMDB(t, reader.FileNameBasics))
+	count, profession, err := importNames(ctx, tx, openIMDB(t, reader.FileNameBasics), titleFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, counts{read: 3, written: 3}, count)
 	require.NoError(t, flushLookup(ctx, tx, "professions", profession))
@@ -101,5 +101,28 @@ func TestImportNames(t *testing.T) {
 		require.NoError(t, db.QueryRowContext(ctx,
 			"SELECT count(*) FROM names_known_for_titles WHERE name_id IN (9999999, 1000000)").Scan(&total))
 		assert.Equal(t, 0, total)
+	})
+
+	t.Run("the filter drops a known-for title it did not allow", func(t *testing.T) {
+		db := openImportDB(t)
+		tx, err := db.BeginTx(ctx, nil)
+		require.NoError(t, err)
+		count, profession, err := importNames(ctx, tx, openIMDB(t, reader.FileNameBasics), allowOnly(50419))
+		require.NoError(t, err)
+		require.NoError(t, flushLookup(ctx, tx, "professions", profession))
+		require.NoError(t, tx.Commit())
+		assert.Equal(t, counts{read: 3, written: 3}, count, "every person is kept")
+
+		var total int
+		require.NoError(t, db.QueryRowContext(ctx,
+			"SELECT count(*) FROM names_known_for_titles").Scan(&total))
+		assert.Equal(t, 1, total)
+
+		// tt0072308 was refused, so position 1 is left as a gap, not renumbered.
+		var position, titleID int64
+		require.NoError(t, db.QueryRowContext(ctx,
+			"SELECT position, title_id FROM names_known_for_titles").Scan(&position, &titleID))
+		assert.Equal(t, int64(2), position)
+		assert.Equal(t, int64(50419), titleID)
 	})
 }

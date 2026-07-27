@@ -116,12 +116,12 @@ func buildInto(ctx context.Context, temp, dir string, rules FilterRules, logger 
 	}
 
 	// Each layer imports one file within its own transaction, in dependency order.
-	// Every title-keyed layer takes the filter; names is not keyed by title.
+	// Every layer takes the filter; names needs it only for its known-for junction.
 	layers := []layer{
 		{reader.FileTitleBasics, func(tx *sql.Tx) (counts, error) {
 			return importTitlesLayer(ctx, tx, dir, ratings, filter)
 		}},
-		{reader.FileNameBasics, func(tx *sql.Tx) (counts, error) { return importNamesLayer(ctx, tx, dir) }},
+		{reader.FileNameBasics, func(tx *sql.Tx) (counts, error) { return importNamesLayer(ctx, tx, dir, filter) }},
 		{reader.FileTitleEpisode, func(tx *sql.Tx) (counts, error) { return importEpisodesLayer(ctx, tx, dir, filter) }},
 		{reader.FileTitleCrew, func(tx *sql.Tx) (counts, error) { return importCrewLayer(ctx, tx, dir, filter) }},
 		{reader.FileTitlePrincipals, func(tx *sql.Tx) (counts, error) {
@@ -273,14 +273,14 @@ func importTitlesLayer(ctx context.Context, tx *sql.Tx, dir string, ratings map[
 }
 
 // importNamesLayer runs the names pass within tx and writes its profession lookup.
-func importNamesLayer(ctx context.Context, tx *sql.Tx, dir string) (counts, error) {
+func importNamesLayer(ctx context.Context, tx *sql.Tx, dir string, filter titleFilter) (counts, error) {
 	file, err := reader.OpenGzip(filepath.Join(dir, reader.FileNameBasics))
 	if err != nil {
 		return counts{}, err
 	}
 	defer file.Close()
 
-	count, profession, err := importNames(ctx, tx, file)
+	count, profession, err := importNames(ctx, tx, file, filter)
 	if err != nil {
 		return counts{}, err
 	}

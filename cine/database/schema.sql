@@ -150,6 +150,9 @@ CREATE TABLE IF NOT EXISTS names_primary_professions (
 -- position is 1-based and preserves IMDb's own order, matching akas.ordering and
 -- principals.ordering. That order carries information rather than being a sorted
 -- set: 29% of the lists in the 2026-07 dump are not in tconst order.
+--
+-- A filtered build leaves a gap where it refused a title: unfiltered lists are
+-- always 1..n, so renumbering would assert a rank IMDb never published.
 CREATE TABLE IF NOT EXISTS names_known_for_titles (
   name_id   INTEGER NOT NULL,
   position  INTEGER NOT NULL,

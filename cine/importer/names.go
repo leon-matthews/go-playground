@@ -15,8 +15,9 @@ var nameColumns = []string{"id", "primary_name", "birth_year", "death_year"}
 // list fields out into the names_primary_professions and names_known_for_titles
 // junctions. It returns the number of names written (not junction rows); the
 // caller writes the returned interner to the profession lookup once the pass
-// completes.
-func importNames(ctx context.Context, tx *sql.Tx, basics io.Reader) (counts, *interner, error) {
+// completes. Every person is kept; only the known-for junction is title-keyed,
+// so the filter reaches that alone.
+func importNames(ctx context.Context, tx *sql.Tx, basics io.Reader, filter titleFilter) (counts, *interner, error) {
 	profession := newInterner()
 	inserter, err := newBatchInserter(ctx, tx, "names", nameColumns, bindNameRow)
 	if err != nil {
@@ -46,7 +47,7 @@ func importNames(ctx context.Context, tx *sql.Tx, basics io.Reader) (counts, *in
 		if err := addProfessions(ctx, professions, row.id, record.PrimaryProfession, profession); err != nil {
 			return counts{}, nil, err
 		}
-		if err := addKnownFor(ctx, knownFor, row.id, record.KnownForTitles); err != nil {
+		if err := addKnownFor(ctx, knownFor, row.id, record.KnownForTitles, filter); err != nil {
 			return counts{}, nil, err
 		}
 	}
@@ -134,13 +135,17 @@ type nameKnownForRow struct {
 	titleID  int64
 }
 
-// addKnownFor adds one junction row per known-for title, numbering them from one
-// so that IMDb's ordering of the list survives.
-func addKnownFor(ctx context.Context, inserter *batchInserter[nameKnownForRow], nameID int64, titles []string) error {
+// addKnownFor adds one junction row per known-for title the filter allows.
+//
+// Numbering is from one so IMDb's order survives; a refused title leaves a gap.
+func addKnownFor(ctx context.Context, inserter *batchInserter[nameKnownForRow], nameID int64, titles []string, filter titleFilter) error {
 	for i, tconst := range titles {
 		titleID, err := parseID(tconst)
 		if err != nil {
 			return err
+		}
+		if !filter.allows(titleID) {
+			continue
 		}
 		row := nameKnownForRow{nameID: nameID, position: int64(i + 1), titleID: titleID}
 		if err := inserter.Add(ctx, row); err != nil {
