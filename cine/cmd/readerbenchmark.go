@@ -10,11 +10,12 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 
+	"local.dev/cine/common"
 	"local.dev/cine/reader"
 )
 
 // summaryLine formats one row of the records/errors/throughput report.
-const summaryLine = "%-23s %10d records  %6d errors  %10s  %10.0f rec/s\n"
+const summaryLine = "%-23s %13s records  %7s errors  %10s  %13s rec/s\n"
 
 // newReaderBenchmarkCmd builds the "reader-benchmark" sub-command.
 func newReaderBenchmarkCmd() *cobra.Command {
@@ -91,13 +92,20 @@ func readFile[T any](name string, readRecords func(io.Reader) iter.Seq2[T, error
 
 // report prints one summary line with the throughput derived from elapsed.
 func report(name string, records, errors int, elapsed time.Duration) {
-	fmt.Printf(summaryLine, name, records, errors, elapsed.Round(time.Millisecond), rate(records, elapsed))
+	fmt.Printf(
+		summaryLine,
+		name,
+		common.Commas(int64(records)),
+		common.Commas(int64(errors)),
+		elapsed.Round(time.Millisecond),
+		common.Commas(rate(records, elapsed)),
+	)
 }
 
 // rate returns records per second, or zero when no time has elapsed.
-func rate(records int, elapsed time.Duration) float64 {
+func rate(records int, elapsed time.Duration) int64 {
 	if elapsed <= 0 {
 		return 0
 	}
-	return float64(records) / elapsed.Seconds()
+	return int64(float64(records) / elapsed.Seconds())
 }
