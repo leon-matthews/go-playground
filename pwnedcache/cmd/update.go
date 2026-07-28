@@ -63,7 +63,13 @@ func runUpdate(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+
+	// Leaving WAL mode is housekeeping, so a failure warns rather than fails
+	defer func() {
+		if err := database.Close(ctx, db); err != nil {
+			slog.Warn("closing database", "error", err)
+		}
+	}()
 
 	downloader := pwned.NewDownloader(db, queries)
 	downloader.Concurrency = concurrency

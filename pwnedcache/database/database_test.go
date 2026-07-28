@@ -26,6 +26,14 @@ func open(t testing.TB) (*sqlite.Queries, *sql.DB) {
 	return queries, db
 }
 
+// pragma reads one pragma's value from the given connection.
+func pragma(t *testing.T, db *sql.DB, name string) string {
+	t.Helper()
+	var got string
+	require.NoError(t, db.QueryRowContext(context.Background(), "PRAGMA "+name).Scan(&got))
+	return got
+}
+
 // fromHex decodes a hexadecimal string, failing the test on error.
 func fromHex(t *testing.T, s string) []byte {
 	t.Helper()
@@ -71,27 +79,46 @@ func TestOpenAndUpsert(t *testing.T) {
 
 func TestPragmas(t *testing.T) {
 	ctx := context.Background()
-	_, db := open(t)
 
-	// Each tuning pragma should be live on the connection Open handed back
-	cases := []struct {
-		pragma string
-		want   string
-	}{
-		{"journal_mode", "wal"},
-		{"locking_mode", "exclusive"},
-		{"synchronous", "1"}, // NORMAL
-		{"cache_size", "-65536"},
-		{"temp_store", "2"}, // MEMORY
+	// assertPragmas checks each pragma is live on the connection under test
+	assertPragmas := func(t *testing.T, db *sql.DB, cases [][2]string) {
+		for _, tc := range cases {
+			t.Run(tc[0], func(t *testing.T) {
+				assert.Equal(t, tc[1], pragma(t, db, tc[0]))
+			})
+		}
 	}
-	for _, tc := range cases {
-		t.Run(tc.pragma, func(t *testing.T) {
-			var got string
-			err := db.QueryRowContext(ctx, "PRAGMA "+tc.pragma).Scan(&got)
-			require.NoError(t, err)
-			assert.Equal(t, tc.want, got)
+
+	t.Run("bulk load", func(t *testing.T) {
+		_, db := open(t)
+		assertPragmas(t, db, [][2]string{
+			{"journal_mode", "wal"},
+			{"locking_mode", "exclusive"},
+			{"synchronous", "1"}, // NORMAL
+			{"cache_size", "-65536"},
+			{"temp_store", "2"}, // MEMORY
 		})
-	}
+	})
+
+	t.Run("read only", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "test.db")
+		_, db, err := database.Open(ctx, path)
+		require.NoError(t, err)
+		require.NoError(t, database.Close(ctx, db))
+
+		_, db, err = database.OpenReadOnly(ctx, path)
+		require.NoError(t, err)
+		defer db.Close()
+
+		assertPragmas(t, db, [][2]string{
+			{"query_only", "1"},
+			{"cache_size", "-65536"},
+			{"temp_store", "2"}, // MEMORY
+			// Opening to read leaves the journal mode Close settled on
+			{"journal_mode", "delete"},
+			{"locking_mode", "normal"},
+		})
+	})
 }
 
 func TestOpenReadOnly(t *testing.T) {
@@ -139,6 +166,54 @@ func TestOpenReadOnly(t *testing.T) {
 		require.NoError(t, err)
 		defer db.Close()
 		assert.NoError(t, db.PingContext(ctx))
+	})
+}
+
+func TestClose(t *testing.T) {
+	ctx := context.Background()
+
+	// journalMode reports the mode recorded in the database file itself
+	journalMode := func(t *testing.T, path string) string {
+		t.Helper()
+		_, db, err := database.OpenReadOnly(ctx, path)
+		require.NoError(t, err)
+		defer db.Close()
+		return pragma(t, db, "journal_mode")
+	}
+
+	t.Run("no WAL files are left behind", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "test.db")
+		queries, db, err := database.Open(ctx, path)
+		require.NoError(t, err)
+
+		hash := fromHex(t, "cafe5"+strings.Repeat("0", 35))
+		require.NoError(t, queries.InsertHash(ctx, sqlite.InsertHashParams{Hash: hash, Count: 7}))
+		require.NoError(t, database.Close(ctx, db))
+		assert.NoFileExists(t, path+"-wal")
+		assert.NoFileExists(t, path+"-shm")
+
+		// The committed row survived the checkpoint the mode switch performs
+		queries, db, err = database.OpenReadOnly(ctx, path)
+		require.NoError(t, err)
+		count, err := queries.GetHashCount(ctx, hash)
+		require.NoError(t, err)
+		assert.Equal(t, int64(7), count)
+		require.NoError(t, db.Close())
+
+		// A read-only connection to a rollback-journal database creates neither
+		assert.NoFileExists(t, path+"-wal")
+		assert.NoFileExists(t, path+"-shm")
+	})
+
+	t.Run("switches mode despite a cancelled context", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "test.db")
+		cancelled, cancel := context.WithCancel(ctx)
+		_, db, err := database.Open(cancelled, path)
+		require.NoError(t, err)
+
+		cancel()
+		require.NoError(t, database.Close(cancelled, db))
+		assert.Equal(t, "delete", journalMode(t, path))
 	})
 }
 
