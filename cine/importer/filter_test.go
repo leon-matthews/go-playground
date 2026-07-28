@@ -152,6 +152,11 @@ func TestFilterBuilder(t *testing.T) {
 		err := builder.readEpisodes(strings.NewReader(bad))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "negative title identifier")
+
+		t.Run("naming the row and the column it came from", func(t *testing.T) {
+			assert.Contains(t, err.Error(), "row 1 (tt0000101)")
+			assert.Contains(t, err.Error(), "parentTconst")
+		})
 	})
 }
 

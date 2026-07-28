@@ -3,6 +3,7 @@ package importer
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"io"
 
 	"local.dev/cine/reader"
@@ -26,7 +27,7 @@ func importEpisodes(ctx context.Context, tx *sql.Tx, episodes io.Reader, filter 
 		read++
 		id, err := parseID(record.Tconst)
 		if err != nil {
-			return counts{}, err
+			return counts{}, rowError(read, record.Tconst, fmt.Errorf("tconst: %w", err))
 		}
 		// The parent needs no check of its own: the filter allows an episode only
 		// where it kept the parent, so allowing the episode already implies it.
@@ -35,10 +36,10 @@ func importEpisodes(ctx context.Context, tx *sql.Tx, episodes io.Reader, filter 
 		}
 		row, err := buildEpisodeRow(record, id)
 		if err != nil {
-			return counts{}, err
+			return counts{}, rowError(read, record.Tconst, err)
 		}
 		if err := inserter.Add(ctx, row); err != nil {
-			return counts{}, err
+			return counts{}, rowError(read, record.Tconst, err)
 		}
 	}
 	if err := inserter.Flush(ctx); err != nil {
@@ -60,7 +61,7 @@ type episodeRow struct {
 func buildEpisodeRow(e reader.TitleEpisode, id int64) (episodeRow, error) {
 	parentID, err := parseID(e.ParentTconst)
 	if err != nil {
-		return episodeRow{}, err
+		return episodeRow{}, fmt.Errorf("parentTconst: %w", err)
 	}
 	return episodeRow{
 		id:       id,

@@ -40,22 +40,26 @@ func buildFilter(dir string, options BuildOptions, ratings map[int64]rating) (ti
 	}
 	builder := newFilterBuilder(options, ratings)
 	if err := readDataset(dir, reader.FileTitleBasics, builder.readBasics); err != nil {
-		return titleFilter{}, err
+		return titleFilter{}, fmt.Errorf("building filter: %w", err)
 	}
 	if err := readDataset(dir, reader.FileTitleEpisode, builder.readEpisodes); err != nil {
-		return titleFilter{}, err
+		return titleFilter{}, fmt.Errorf("building filter: %w", err)
 	}
 	return builder.filter(), nil
 }
 
-// readDataset opens one gzipped dataset file from dir and hands it to read.
+// readDataset opens one gzipped dataset file from dir and hands it to read,
+// naming the file in any error, since it chose which one.
 func readDataset(dir, file string, read func(io.Reader) error) error {
 	f, err := reader.OpenGzip(filepath.Join(dir, file))
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return read(f)
+	if err := read(f); err != nil {
+		return fmt.Errorf("%s: %w", file, err)
+	}
+	return nil
 }
 
 // filterBuilder accumulates the allow-list, one dataset file at a time.
@@ -71,13 +75,15 @@ func newFilterBuilder(options BuildOptions, ratings map[int64]rating) *filterBui
 
 // readBasics allows every title.basics record that all enabled rules accept.
 func (b *filterBuilder) readBasics(basics io.Reader) error {
+	var read int64
 	for record, err := range reader.ReadTitleBasics(basics) {
 		if err != nil {
 			return err
 		}
+		read++
 		id, err := titleID(record.Tconst)
 		if err != nil {
-			return err
+			return rowError(read, record.Tconst, fmt.Errorf("tconst: %w", err))
 		}
 		if b.allowsTitle(record, id) {
 			b.allowed.Set(id)
@@ -102,17 +108,19 @@ func (b *filterBuilder) allowsTitle(record reader.TitleBasics, id uint) bool {
 // readEpisodes gives every episode the fate of its parent series, whatever rule
 // decided that, which is what stops the rules thinning out a series.
 func (b *filterBuilder) readEpisodes(episodes io.Reader) error {
+	var read int64
 	for record, err := range reader.ReadTitleEpisode(episodes) {
 		if err != nil {
 			return err
 		}
+		read++
 		episode, err := titleID(record.Tconst)
 		if err != nil {
-			return err
+			return rowError(read, record.Tconst, fmt.Errorf("tconst: %w", err))
 		}
 		parent, err := titleID(record.ParentTconst)
 		if err != nil {
-			return err
+			return rowError(read, record.Tconst, fmt.Errorf("parentTconst: %w", err))
 		}
 		if b.allowed.Test(parent) {
 			b.allowed.Set(episode)

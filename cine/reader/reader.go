@@ -39,10 +39,10 @@ const maxLineBytes = 1 << 20
 //
 // The first line must be the header, whose columns are checked against want so
 // a change to the dataset layout fails loudly rather than misparsing silently.
-// Each later line is split on tabs and handed to fromFields. A row with the
-// wrong column count, or one fromFields rejects, yields an error carrying the
-// line number without ending the iteration.
-func read[T any](r io.Reader, want []string, fromFields func([]string) (T, error)) iter.Seq2[T, error] {
+// Each later line is split on tabs and handed to fromFields as a cursor over its
+// values. A row with the wrong column count, or one fromFields rejects, yields an
+// error carrying the line number without ending the iteration.
+func read[T any](r io.Reader, want []string, fromFields func(*cursor) (T, error)) iter.Seq2[T, error] {
 	return func(yield func(T, error) bool) {
 		var zero T
 		scanner := bufio.NewScanner(r)
@@ -60,8 +60,9 @@ func read[T any](r io.Reader, want []string, fromFields func([]string) (T, error
 			return
 		}
 
-		// The fields slice is reused across all rows
+		// The fields slice and the cursor are both reused across all rows
 		fields := make([]string, 0, len(want))
+		c := cursor{columns: want}
 		for line := 2; scanner.Scan(); line++ {
 			fields = splitTabs(scanner.Text(), fields)
 			if len(fields) != len(want) {
@@ -70,7 +71,8 @@ func read[T any](r io.Reader, want []string, fromFields func([]string) (T, error
 				}
 				continue
 			}
-			record, err := fromFields(fields)
+			c.fields, c.err = fields, nil
+			record, err := fromFields(&c)
 			if err != nil {
 				if !yield(zero, fmt.Errorf("line %d: %w", line, err)) {
 					return

@@ -3,6 +3,7 @@ package importer
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"io"
 
 	"local.dev/cine/reader"
@@ -39,16 +40,16 @@ func importNames(ctx context.Context, tx *sql.Tx, basics io.Reader, filter title
 		read++
 		row, err := buildNameRow(record)
 		if err != nil {
-			return counts{}, nil, err
+			return counts{}, nil, rowError(read, record.Nconst, err)
 		}
 		if err := inserter.Add(ctx, row); err != nil {
-			return counts{}, nil, err
+			return counts{}, nil, rowError(read, record.Nconst, err)
 		}
 		if err := addProfessions(ctx, professions, row.id, record.PrimaryProfession, profession); err != nil {
-			return counts{}, nil, err
+			return counts{}, nil, rowError(read, record.Nconst, err)
 		}
 		if err := addKnownFor(ctx, knownFor, row.id, record.KnownForTitles, filter); err != nil {
-			return counts{}, nil, err
+			return counts{}, nil, rowError(read, record.Nconst, err)
 		}
 	}
 	if err := inserter.Flush(ctx); err != nil {
@@ -76,7 +77,7 @@ type nameRow struct {
 func buildNameRow(n reader.NameBasics) (nameRow, error) {
 	id, err := parseID(n.Nconst)
 	if err != nil {
-		return nameRow{}, err
+		return nameRow{}, fmt.Errorf("nconst: %w", err)
 	}
 	return nameRow{
 		id:          id,
@@ -142,7 +143,7 @@ func addKnownFor(ctx context.Context, inserter *batchInserter[nameKnownForRow], 
 	for i, tconst := range titles {
 		titleID, err := parseID(tconst)
 		if err != nil {
-			return err
+			return fmt.Errorf("knownForTitles[%d]: %w", i+1, err)
 		}
 		if !filter.allows(titleID) {
 			continue

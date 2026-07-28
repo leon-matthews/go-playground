@@ -3,6 +3,7 @@ package importer
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"io"
 
 	"local.dev/cine/reader"
@@ -52,7 +53,7 @@ func importAkas(ctx context.Context, tx *sql.Tx, akas io.Reader, filter titleFil
 		read++
 		titleID, err := parseID(record.TitleID)
 		if err != nil {
-			return counts{}, nil, err
+			return counts{}, nil, rowError(read, record.TitleID, fmt.Errorf("titleId: %w", err))
 		}
 		// Refusing before the row is built keeps dropped values out of the interners.
 		if !filter.allows(titleID) {
@@ -60,10 +61,10 @@ func importAkas(ctx context.Context, tx *sql.Tx, akas io.Reader, filter titleFil
 		}
 		ordering := int64(record.Ordering)
 		if err := titles.Add(ctx, buildAkasRow(record, titleID, ordering, lookups)); err != nil {
-			return counts{}, nil, err
+			return counts{}, nil, rowError(read, record.TitleID, err)
 		}
 		if err := addAttributes(ctx, attributes, titleID, ordering, record.Attributes, lookups.attribute); err != nil {
-			return counts{}, nil, err
+			return counts{}, nil, rowError(read, record.TitleID, err)
 		}
 	}
 	if err := titles.Flush(ctx); err != nil {

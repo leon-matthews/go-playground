@@ -3,6 +3,7 @@ package importer
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"io"
 	"math"
 
@@ -35,7 +36,7 @@ func loadRatings(r io.Reader) (map[int64]rating, int64, error) {
 		read++
 		id, err := parseID(rec.Tconst)
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, rowError(read, rec.Tconst, fmt.Errorf("tconst: %w", err))
 		}
 		ratings[id] = rating{
 			average: int64(math.Round(rec.AverageRating * 10)),
@@ -69,14 +70,14 @@ func importTitles(ctx context.Context, tx *sql.Tx, basics io.Reader, ratings map
 		read++
 		id, err := parseID(basic.Tconst)
 		if err != nil {
-			return counts{}, nil, err
+			return counts{}, nil, rowError(read, basic.Tconst, fmt.Errorf("tconst: %w", err))
 		}
 		// Refusing before the row is built keeps dropped values out of the interners.
 		if !filter.allows(id) {
 			continue
 		}
 		if err := inserter.Add(ctx, buildTitleRow(basic, id, ratings, lookups)); err != nil {
-			return counts{}, nil, err
+			return counts{}, nil, rowError(read, basic.Tconst, err)
 		}
 	}
 	if err := inserter.Flush(ctx); err != nil {

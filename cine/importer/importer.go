@@ -105,7 +105,7 @@ func buildInto(ctx context.Context, temp, dir string, options BuildOptions, logg
 	ratingsStart := time.Now()
 	ratings, ratingsRead, err := readRatings(dir)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", reader.FileTitleRatings, err)
 	}
 	logger.Info("ratings loaded",
 		"file", reader.FileTitleRatings,

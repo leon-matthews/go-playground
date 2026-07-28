@@ -174,6 +174,13 @@ func TestReaderErrors(t *testing.T) {
 		assert.Contains(t, err.Error(), "line 2")
 	})
 
+	t.Run("bad integer names its column", func(t *testing.T) {
+		data := header + "nm0000001\tFred Astaire\t1899\t198x\t\\N\t\\N\n"
+		_, err := collect(ReadNameBasics(strings.NewReader(data)))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "deathYear", "the column, not just the value")
+	})
+
 	t.Run("bad row does not stop iteration", func(t *testing.T) {
 		data := header +
 			"nm0000001\tFirst\t1\t2\t\\N\t\\N\n" +

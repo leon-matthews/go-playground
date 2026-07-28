@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -23,7 +24,13 @@ func main() {
 		stopProfile()
 	}
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "error:", err)
+		// Ctrl-C surfaces as a cancelled context at the end of a long error chain,
+		// which reads like a crash rather than the deliberate stop it was.
+		if errors.Is(err, context.Canceled) {
+			fmt.Fprintln(os.Stderr, "interrupted")
+		} else {
+			fmt.Fprintln(os.Stderr, "error:", err)
+		}
 		os.Exit(1)
 	}
 }

@@ -76,6 +76,12 @@ Three packages in a straight line, plus a thin cobra layer:
 - **"Layer" means one dataset file in one transaction, and nothing else.** It used to also
   name a group of tables in `schema.sql`, which now says Titles and People instead, so the
   word is the importer's alone: `type layer`, `importTitlesLayer` and its five siblings.
+- **An error gains only the context its own level owns.** A field parser names the bad value,
+  `cursor` names the TSV column, `read` the line, a pass `rowError(read, id, err)`, and
+  `readDataset` or `buildInto` the file - so most error returns are deliberately bare, since
+  `batchInserter` already names its table and a reader error already carries line and column.
+  Messages name IMDb's column (`parentTconst`), not the schema's, because that is what you
+  will grep the TSV for.
 
 ### Build options
 

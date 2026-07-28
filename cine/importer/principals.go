@@ -38,7 +38,7 @@ func importPrincipals(ctx context.Context, tx *sql.Tx, principals io.Reader, fil
 		read++
 		titleID, err := parseID(record.Tconst)
 		if err != nil {
-			return counts{}, nil, err
+			return counts{}, nil, rowError(read, record.Tconst, fmt.Errorf("tconst: %w", err))
 		}
 		// Refusing before the row is built keeps dropped values out of the interners.
 		if !filter.allows(titleID) {
@@ -46,10 +46,10 @@ func importPrincipals(ctx context.Context, tx *sql.Tx, principals io.Reader, fil
 		}
 		row, err := buildPrincipalRow(record, titleID, lookups)
 		if err != nil {
-			return counts{}, nil, err
+			return counts{}, nil, rowError(read, record.Tconst, err)
 		}
 		if err := inserter.Add(ctx, row); err != nil {
-			return counts{}, nil, err
+			return counts{}, nil, rowError(read, record.Tconst, err)
 		}
 	}
 	if err := inserter.Flush(ctx); err != nil {
@@ -74,7 +74,7 @@ type principalRow struct {
 func buildPrincipalRow(p reader.TitlePrincipals, titleID int64, lookups *principalLookups) (principalRow, error) {
 	nameID, err := parseID(p.Nconst)
 	if err != nil {
-		return principalRow{}, err
+		return principalRow{}, fmt.Errorf("nconst: %w", err)
 	}
 	characters, err := charactersJSON(p.Characters)
 	if err != nil {

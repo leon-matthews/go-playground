@@ -3,6 +3,7 @@ package importer
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"io"
 
 	"local.dev/cine/reader"
@@ -42,16 +43,16 @@ func importCrew(ctx context.Context, tx *sql.Tx, crew io.Reader, filter titleFil
 		read++
 		titleID, err := parseID(record.Tconst)
 		if err != nil {
-			return counts{}, err
+			return counts{}, rowError(read, record.Tconst, fmt.Errorf("tconst: %w", err))
 		}
 		if !filter.allows(titleID) {
 			continue
 		}
-		if err := addCrew(ctx, inserter, titleID, record.Directors, roleDirector); err != nil {
-			return counts{}, err
+		if err := addCrew(ctx, inserter, titleID, record.Directors, roleDirector, "directors"); err != nil {
+			return counts{}, rowError(read, record.Tconst, err)
 		}
-		if err := addCrew(ctx, inserter, titleID, record.Writers, roleWriter); err != nil {
-			return counts{}, err
+		if err := addCrew(ctx, inserter, titleID, record.Writers, roleWriter, "writers"); err != nil {
+			return counts{}, rowError(read, record.Tconst, err)
 		}
 	}
 	if err := inserter.Flush(ctx); err != nil {
@@ -61,12 +62,13 @@ func importCrew(ctx context.Context, tx *sql.Tx, crew io.Reader, filter titleFil
 }
 
 // addCrew adds one crew row per person in the list, all tagged with role and
-// numbered from one so that IMDb's order within the list survives.
-func addCrew(ctx context.Context, inserter *batchInserter[crewRow], titleID int64, people []string, role int64) error {
+// numbered from one so that IMDb's order within the list survives. column is the
+// title.crew column role came from, for its errors.
+func addCrew(ctx context.Context, inserter *batchInserter[crewRow], titleID int64, people []string, role int64, column string) error {
 	for i, nconst := range people {
 		nameID, err := parseID(nconst)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s[%d]: %w", column, i+1, err)
 		}
 		row := crewRow{titleID: titleID, nameID: nameID, role: role, position: int64(i + 1)}
 		if err := inserter.Add(ctx, row); err != nil {

@@ -1,6 +1,7 @@
 package reader
 
 import (
+	"fmt"
 	"io"
 	"iter"
 )
@@ -22,8 +23,7 @@ var nameBasicsHeader = []string{
 
 // ReadNameBasics streams the rows of a name.basics TSV stream.
 func ReadNameBasics(r io.Reader) iter.Seq2[NameBasics, error] {
-	return read(r, nameBasicsHeader, func(f []string) (NameBasics, error) {
-		c := cursor{fields: f}
+	return read(r, nameBasicsHeader, func(c *cursor) (NameBasics, error) {
 		return NameBasics{
 			Nconst:            c.str(0),
 			PrimaryName:       c.optionalStr(1),
@@ -54,8 +54,7 @@ var titleAkasHeader = []string{
 
 // ReadTitleAkas streams the rows of a title.akas TSV stream.
 func ReadTitleAkas(r io.Reader) iter.Seq2[TitleAkas, error] {
-	return read(r, titleAkasHeader, func(f []string) (TitleAkas, error) {
-		c := cursor{fields: f}
+	return read(r, titleAkasHeader, func(c *cursor) (TitleAkas, error) {
 		return TitleAkas{
 			TitleID:         c.str(0),
 			Ordering:        c.requiredInt(1),
@@ -89,8 +88,7 @@ var titleBasicsHeader = []string{
 
 // ReadTitleBasics streams the rows of a title.basics TSV stream.
 func ReadTitleBasics(r io.Reader) iter.Seq2[TitleBasics, error] {
-	return read(r, titleBasicsHeader, func(f []string) (TitleBasics, error) {
-		c := cursor{fields: f}
+	return read(r, titleBasicsHeader, func(c *cursor) (TitleBasics, error) {
 		return TitleBasics{
 			Tconst:         c.str(0),
 			TitleType:      c.str(1),
@@ -116,8 +114,7 @@ var titleCrewHeader = []string{"tconst", "directors", "writers"}
 
 // ReadTitleCrew streams the rows of a title.crew TSV stream.
 func ReadTitleCrew(r io.Reader) iter.Seq2[TitleCrew, error] {
-	return read(r, titleCrewHeader, func(f []string) (TitleCrew, error) {
-		c := cursor{fields: f}
+	return read(r, titleCrewHeader, func(c *cursor) (TitleCrew, error) {
 		return TitleCrew{
 			Tconst:    c.str(0),
 			Directors: c.list(1),
@@ -138,8 +135,7 @@ var titleEpisodeHeader = []string{"tconst", "parentTconst", "seasonNumber", "epi
 
 // ReadTitleEpisode streams the rows of a title.episode TSV stream.
 func ReadTitleEpisode(r io.Reader) iter.Seq2[TitleEpisode, error] {
-	return read(r, titleEpisodeHeader, func(f []string) (TitleEpisode, error) {
-		c := cursor{fields: f}
+	return read(r, titleEpisodeHeader, func(c *cursor) (TitleEpisode, error) {
 		return TitleEpisode{
 			Tconst:        c.str(0),
 			ParentTconst:  c.str(1),
@@ -163,8 +159,7 @@ var titlePrincipalsHeader = []string{"tconst", "ordering", "nconst", "category",
 
 // ReadTitlePrincipals streams the rows of a title.principals TSV stream.
 func ReadTitlePrincipals(r io.Reader) iter.Seq2[TitlePrincipals, error] {
-	return read(r, titlePrincipalsHeader, func(f []string) (TitlePrincipals, error) {
-		c := cursor{fields: f}
+	return read(r, titlePrincipalsHeader, func(c *cursor) (TitlePrincipals, error) {
 		return TitlePrincipals{
 			Tconst:     c.str(0),
 			Ordering:   c.requiredInt(1),
@@ -187,8 +182,7 @@ var titleRatingsHeader = []string{"tconst", "averageRating", "numVotes"}
 
 // ReadTitleRatings streams the rows of a title.ratings TSV stream.
 func ReadTitleRatings(r io.Reader) iter.Seq2[TitleRatings, error] {
-	return read(r, titleRatingsHeader, func(f []string) (TitleRatings, error) {
-		c := cursor{fields: f}
+	return read(r, titleRatingsHeader, func(c *cursor) (TitleRatings, error) {
 		return TitleRatings{
 			Tconst:        c.str(0),
 			AverageRating: c.float(1),
@@ -198,10 +192,13 @@ func ReadTitleRatings(r io.Reader) iter.Seq2[TitleRatings, error] {
 }
 
 // cursor extracts typed values from one row's tab-separated fields.
-// Captures the first parse error encountered.
+//
+// Captures the first parse error encountered, named for the column it came from:
+// the field index alone leaves the caller counting columns in a file of nine.
 type cursor struct {
-	fields []string
-	err    error
+	fields  []string
+	columns []string // the file's header, so an error can name its column
+	err     error
 }
 
 func (c *cursor) str(i int) string {
@@ -225,7 +222,7 @@ func (c *cursor) optionalInt(i int) int {
 		return Missing
 	}
 	n, err := optionalInt(c.fields[i])
-	c.keep(err)
+	c.keep(i, err)
 	return n
 }
 
@@ -234,7 +231,7 @@ func (c *cursor) requiredInt(i int) int {
 		return 0
 	}
 	n, err := requiredInt(c.fields[i])
-	c.keep(err)
+	c.keep(i, err)
 	return n
 }
 
@@ -243,7 +240,7 @@ func (c *cursor) boolean(i int) bool {
 		return false
 	}
 	b, err := parseBool(c.fields[i])
-	c.keep(err)
+	c.keep(i, err)
 	return b
 }
 
@@ -252,7 +249,7 @@ func (c *cursor) float(i int) float64 {
 		return 0
 	}
 	f, err := parseFloat(c.fields[i])
-	c.keep(err)
+	c.keep(i, err)
 	return f
 }
 
@@ -261,13 +258,13 @@ func (c *cursor) characters(i int) []string {
 		return nil
 	}
 	names, err := parseCharacters(c.fields[i])
-	c.keep(err)
+	c.keep(i, err)
 	return names
 }
 
-// keep records the first error seen.
-func (c *cursor) keep(err error) {
-	if c.err == nil {
-		c.err = err
+// keep records the first error seen, naming the column it came from.
+func (c *cursor) keep(i int, err error) {
+	if err != nil && c.err == nil {
+		c.err = fmt.Errorf("%s: %w", c.columns[i], err)
 	}
 }
