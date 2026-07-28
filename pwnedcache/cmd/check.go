@@ -32,8 +32,11 @@ func newCheckCmd() *cobra.Command {
 // runCheck prints a table reporting how many times each password appears in
 // the local database.
 func runCheck(ctx context.Context, out io.Writer, passwords []string) error {
-	queries, db, err := database.Open(ctx, databasePath)
+	queries, db, err := database.OpenReadOnly(ctx, databasePath)
 	if err != nil {
+		if errors.Is(err, database.ErrNotFound) {
+			return fmt.Errorf("%w - run 'pwnedcache update' first", err)
+		}
 		return err
 	}
 	defer db.Close()

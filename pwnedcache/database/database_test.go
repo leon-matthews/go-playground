@@ -94,6 +94,54 @@ func TestPragmas(t *testing.T) {
 	}
 }
 
+func TestOpenReadOnly(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("missing database is not created", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "missing.db")
+		_, _, err := database.OpenReadOnly(ctx, path)
+		assert.ErrorIs(t, err, database.ErrNotFound)
+		assert.NoFileExists(t, path)
+	})
+
+	t.Run("existing database is queryable", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "test.db")
+		queries, db, err := database.Open(ctx, path)
+		require.NoError(t, err)
+		hash := fromHex(t, "cafe5"+strings.Repeat("0", 35))
+		require.NoError(t, queries.InsertHash(ctx, sqlite.InsertHashParams{Hash: hash, Count: 7}))
+		require.NoError(t, db.Close())
+
+		queries, db, err = database.OpenReadOnly(ctx, path)
+		require.NoError(t, err)
+		defer db.Close()
+
+		count, err := queries.GetHashCount(ctx, hash)
+		require.NoError(t, err)
+		assert.Equal(t, int64(7), count)
+
+		// Writes are refused even though the statements prepare cleanly
+		row := sqlite.InsertHashParams{Hash: fromHex(t, strings.Repeat("a", 40)), Count: 1}
+		assert.Error(t, queries.InsertHash(ctx, row))
+	})
+
+	// Each of these would be read as URI syntax if the path were not escaped
+	t.Run("path needing escaping", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "a b?c#d.db")
+		_, db, err := database.Open(ctx, path)
+		require.NoError(t, err)
+		require.NoError(t, db.Close())
+
+		// Open wrote to the exact path asked for, not a truncated one
+		assert.FileExists(t, path)
+
+		_, db, err = database.OpenReadOnly(ctx, path)
+		require.NoError(t, err)
+		defer db.Close()
+		assert.NoError(t, db.PingContext(ctx))
+	})
+}
+
 func TestHashQueries(t *testing.T) {
 	ctx := context.Background()
 	queries, _ := open(t)
