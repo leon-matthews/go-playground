@@ -3,9 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-	"time"
 
-	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 )
 
@@ -46,14 +44,6 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newBuildDatabaseCmd())
 	cmd.AddCommand(newReaderBenchmarkCmd())
 	return cmd
-}
-
-// newLogger builds the console logger the commands report progress to.
-func newLogger() *log.Logger {
-	return log.NewWithOptions(os.Stderr, log.Options{
-		ReportTimestamp: true,
-		TimeFormat:      time.TimeOnly,
-	})
 }
 
 // requireFolder checks that path is an existing directory, as every command

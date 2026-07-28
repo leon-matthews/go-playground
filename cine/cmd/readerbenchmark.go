@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 
 	"local.dev/cine/common"
+	"local.dev/cine/logging"
 	"local.dev/cine/reader"
 )
 
@@ -30,13 +30,23 @@ total summary of records, errors and throughput is printed. Pass --profile to
 write a CPU profile of the run.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
-			return benchmarkReaders(args[0], newLogger())
+			logs, err := logging.Setup()
+			if err != nil {
+				return err
+			}
+			defer logs.LogFile.Close()
+			// Recorded here, not in main: by then the log file has been closed
+			if err := benchmarkReaders(args[0], logs); err != nil {
+				logs.File.Error("benchmark failed", "err", err)
+				return err
+			}
+			return nil
 		},
 	}
 }
 
 // benchmarkReaders reads every dataset file in folder, printing a summary of each.
-func benchmarkReaders(folder string, logger *log.Logger) error {
+func benchmarkReaders(folder string, logs logging.Logging) error {
 	if err := requireFolder(folder); err != nil {
 		return err
 	}
@@ -54,7 +64,7 @@ func benchmarkReaders(folder string, logger *log.Logger) error {
 	start := time.Now()
 	var totalRecords, totalErrors int
 	for _, read := range files {
-		records, errors := read(folder, logger)
+		records, errors := read(folder, logs)
 		totalRecords += records
 		totalErrors += errors
 	}
@@ -64,14 +74,15 @@ func benchmarkReaders(folder string, logger *log.Logger) error {
 
 // fileReader reads every record of one dataset file, printing a summary line
 // and returning the record and error counts.
-type fileReader func(folder string, logger *log.Logger) (records, errors int)
+type fileReader func(folder string, logs logging.Logging) (records, errors int)
 
 // readFile builds a fileReader for the named file and its typed reader.
 func readFile[T any](name string, readRecords func(io.Reader) iter.Seq2[T, error]) fileReader {
-	return func(folder string, logger *log.Logger) (records, errors int) {
+	return func(folder string, logs logging.Logging) (records, errors int) {
 		file, err := reader.OpenGzip(filepath.Join(folder, name))
 		if err != nil {
-			logger.Error("could not open file", "file", name, "err", err)
+			// A missing or unreadable file is the run's problem, not one row's
+			logs.All.Error("could not open file", "file", name, "err", err)
 			return 0, 1
 		}
 		defer file.Close()
@@ -79,7 +90,8 @@ func readFile[T any](name string, readRecords func(io.Reader) iter.Seq2[T, error
 		start := time.Now()
 		for _, err := range readRecords(file) {
 			if err != nil {
-				logger.Error("could not read record", "file", name, "err", err)
+				// Bad rows go to the log file alone; the summary line counts them
+				logs.File.Error("could not read record", "file", name, "err", err)
 				errors++
 				continue
 			}

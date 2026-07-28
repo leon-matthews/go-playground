@@ -5,18 +5,17 @@ import (
 	"compress/gzip"
 	"context"
 	"database/sql"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/charmbracelet/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"local.dev/cine/database"
+	"local.dev/cine/logging"
 	"local.dev/cine/reader"
 )
 
@@ -107,7 +106,7 @@ func TestBuildMetadata(t *testing.T) {
 		// rated rule leaves the two films and drops everything keyed to any other id.
 		out := filepath.Join(t.TempDir(), "cine.db")
 		options := BuildOptions{Rated: true, People: true}
-		require.NoError(t, Import(ctx, out, gzipFixtures(t), options, log.New(io.Discard)))
+		require.NoError(t, Import(ctx, out, gzipFixtures(t), options, logging.Discard()))
 
 		_, db, err := database.Open(ctx, out, true)
 		require.NoError(t, err)
@@ -165,7 +164,7 @@ func TestBuildMetadata(t *testing.T) {
 
 	t.Run("a full build records all seven source files", func(t *testing.T) {
 		out := filepath.Join(t.TempDir(), "cine.db")
-		require.NoError(t, Import(ctx, out, gzipFixtures(t), BuildOptions{People: true}, log.New(io.Discard)))
+		require.NoError(t, Import(ctx, out, gzipFixtures(t), BuildOptions{People: true}, logging.Discard()))
 
 		_, db, err := database.Open(ctx, out, true)
 		require.NoError(t, err)
@@ -187,7 +186,7 @@ func TestBuildMetadata(t *testing.T) {
 
 	t.Run("a build without people reads only the titles files", func(t *testing.T) {
 		out := filepath.Join(t.TempDir(), "cine.db")
-		require.NoError(t, Import(ctx, out, gzipFixtures(t), BuildOptions{}, log.New(io.Discard)))
+		require.NoError(t, Import(ctx, out, gzipFixtures(t), BuildOptions{}, logging.Discard()))
 
 		_, db, err := database.Open(ctx, out, false)
 		require.NoError(t, err)

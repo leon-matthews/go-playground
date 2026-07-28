@@ -8,10 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/charmbracelet/log"
-
-	"local.dev/cine/common"
 	"local.dev/cine/database"
+	"local.dev/cine/logging"
 	"local.dev/cine/reader"
 )
 
@@ -38,13 +36,13 @@ func (o BuildOptions) filtering() bool {
 }
 
 // Import builds a cine database at path from the IMDb dataset files in dir,
-// logging progress to logger.
+// reporting progress through logs.
 //
 // The database is built in a temporary file and renamed into place only once the
 // whole import succeeds, so an interrupted or failed run leaves any database
 // already at path untouched.
-func Import(ctx context.Context, path, dir string, options BuildOptions, logger *log.Logger) error {
-	logger.Info("building database", "path", path,
+func Import(ctx context.Context, path, dir string, options BuildOptions, logs logging.Logging) error {
+	logs.All.Info("building database", "path", path,
 		"rated", options.Rated, "not-adult", options.NotAdult, "people", options.People)
 	start := time.Now()
 
@@ -53,7 +51,7 @@ func Import(ctx context.Context, path, dir string, options BuildOptions, logger 
 		return fmt.Errorf("clearing %s: %w", temp, err)
 	}
 
-	if err := buildInto(ctx, temp, dir, options, logger); err != nil {
+	if err := buildInto(ctx, temp, dir, options, logs); err != nil {
 		os.Remove(temp) // don't leave a half-built file behind
 		return err
 	}
@@ -64,9 +62,9 @@ func Import(ctx context.Context, path, dir string, options BuildOptions, logger 
 
 	fields := []any{"path", path, "took", time.Since(start).Round(time.Millisecond)}
 	if info, err := os.Stat(path); err == nil {
-		fields = append(fields, "size", common.Bytes(info.Size()))
+		fields = append(fields, "bytes", info.Size())
 	}
-	logger.Info("database built", fields...)
+	logs.All.Info("database built", fields...)
 	return nil
 }
 
@@ -93,7 +91,7 @@ type sourceRow struct {
 
 // buildInto opens a fresh database at temp and imports every layer into it, each
 // file within its own transaction, logging per-file progress.
-func buildInto(ctx context.Context, temp, dir string, options BuildOptions, logger *log.Logger) error {
+func buildInto(ctx context.Context, temp, dir string, options BuildOptions, logs logging.Logging) error {
 	started := time.Now()
 	// The people tables are created on the same condition that appends their layers.
 	_, db, err := database.Open(ctx, temp, options.People)
@@ -107,9 +105,9 @@ func buildInto(ctx context.Context, temp, dir string, options BuildOptions, logg
 	if err != nil {
 		return fmt.Errorf("%s: %w", reader.FileTitleRatings, err)
 	}
-	logger.Info("ratings loaded",
+	logs.All.Info("ratings loaded",
 		"file", reader.FileTitleRatings,
-		"count", common.Commas(int64(len(ratings))),
+		"count", len(ratings),
 		"took", time.Since(ratingsStart).Round(time.Millisecond))
 
 	// title.ratings has no table of its own, so record it before the layers.
@@ -126,8 +124,8 @@ func buildInto(ctx context.Context, temp, dir string, options BuildOptions, logg
 		return err
 	}
 	if kept, filtering := filter.size(); filtering {
-		logger.Info("filter built",
-			"titles", common.Commas(int64(kept)),
+		logs.All.Info("filter built",
+			"titles", int64(kept),
 			"took", time.Since(filterStart).Round(time.Millisecond))
 	}
 
@@ -168,12 +166,12 @@ func buildInto(ctx context.Context, temp, dir string, options BuildOptions, logg
 		}
 		elapsed := time.Since(start)
 		// Both counts are logged: they part company wherever a pass filters or fans out.
-		logger.Info("imported",
+		logs.All.Info("imported",
 			"file", l.file,
-			"read", common.Commas(count.read),
-			"rows", common.Commas(count.written),
+			"read", count.read,
+			"rows", count.written,
 			"took", elapsed.Round(time.Millisecond),
-			"rate", ratePerSecond(count.written, elapsed))
+			"rows_per_second", rowsPerSecond(count.written, elapsed))
 	}
 
 	return inTx(ctx, db, func(tx *sql.Tx) error {
@@ -254,13 +252,16 @@ func inTx(ctx context.Context, db *sql.DB, fn func(*sql.Tx) error) error {
 	return tx.Commit()
 }
 
-// ratePerSecond formats an import throughput as comma-grouped rows per second.
-func ratePerSecond(count int64, d time.Duration) string {
+// rowsPerSecond reports an import throughput, or zero when no time has elapsed.
+//
+// Every value logged is a bare number: the run log is meant to be queried, and a
+// grouped or unit-suffixed string is not.
+func rowsPerSecond(count int64, d time.Duration) int64 {
 	secs := d.Seconds()
 	if secs <= 0 {
-		return common.Commas(count) + "/s"
+		return 0
 	}
-	return common.Commas(int64(float64(count)/secs)) + "/s"
+	return int64(float64(count) / secs)
 }
 
 // readRatings loads title.ratings from dir into a lookup map, reporting how many

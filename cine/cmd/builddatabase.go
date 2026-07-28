@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"local.dev/cine/importer"
+	"local.dev/cine/logging"
 )
 
 // newBuildDatabaseCmd builds the "build-database" sub-command.
@@ -43,7 +44,17 @@ query can tell what a database was never given.`,
 				NotAdult: !allowAdult,
 				People:   people,
 			}
-			return importer.Import(cmd.Context(), out, folder, options, newLogger())
+			logs, err := logging.Setup()
+			if err != nil {
+				return err
+			}
+			defer logs.LogFile.Close()
+			// Recorded here, not in main: by then the log file has been closed
+			if err := importer.Import(cmd.Context(), out, folder, options, logs); err != nil {
+				logs.File.Error("build failed", "err", err)
+				return err
+			}
+			return nil
 		},
 	}
 
