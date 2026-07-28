@@ -1,3 +1,4 @@
 cine
 *.db
+*.log
 *.pprof
