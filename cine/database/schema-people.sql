@@ -10,7 +10,7 @@
 ------------------------------------------------------------------------------
 
 -- Enumerated name.basics primaryProfession values: actor, director, ...
-CREATE TABLE IF NOT EXISTS professions (
+CREATE TABLE IF NOT EXISTS names_profession (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
 );
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS names (
 CREATE TABLE IF NOT EXISTS names_primary_professions (
   name_id        INTEGER NOT NULL,
   position       INTEGER NOT NULL,
-  profession_id  INTEGER NOT NULL REFERENCES professions(id),
+  profession_id  INTEGER NOT NULL REFERENCES names_profession(id),
   PRIMARY KEY (name_id, position)
 ) WITHOUT ROWID;
 
@@ -74,13 +74,13 @@ CREATE TABLE IF NOT EXISTS titles_credit_names (
 ) WITHOUT ROWID;
 
 -- Enumerated principals.category: actor, director, self, ...
-CREATE TABLE IF NOT EXISTS principals_categories (
+CREATE TABLE IF NOT EXISTS principals_category (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
 );
 
 -- Interned free-text principals.job values.
-CREATE TABLE IF NOT EXISTS principals_jobs (
+CREATE TABLE IF NOT EXISTS principals_job (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
 );
@@ -90,8 +90,8 @@ CREATE TABLE IF NOT EXISTS principals (
   title_id    INTEGER NOT NULL,
   ordering    INTEGER NOT NULL,
   name_id     INTEGER NOT NULL,
-  category    INTEGER NOT NULL REFERENCES principals_categories(id),
-  job         INTEGER REFERENCES principals_jobs(id),
+  category    INTEGER NOT NULL REFERENCES principals_category(id),
+  job         INTEGER REFERENCES principals_job(id),
   characters  TEXT,                               -- JSON array of names; NULL when absent
   PRIMARY KEY (title_id, ordering),
   CHECK (characters IS NULL OR json_valid(characters))

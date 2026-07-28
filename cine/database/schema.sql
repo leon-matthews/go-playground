@@ -17,6 +17,14 @@
 -- once the "tt"/"nm" prefix is dropped; IMDb's \N becomes SQL NULL; ratings are
 -- stored in tenths (57 means 5.7).
 --
+-- A singular table name means a lookup: one row per distinct value, always
+-- (id, name). Everything else is plural, build_info excepted because a CHECK
+-- holds it to one row. Each lookup is prefixed with the table it serves, which
+-- leaves it named for the column that references it - akas.region resolves
+-- through akas_region, principals.job through principals_job. The two masks
+-- break that only by being plural, titles.genres and akas.types holding a set of
+-- titles_genre and akas_type ids rather than one.
+--
 -- Two kinds of reference appear below. Lookup ids that the importer generates
 -- itself are declared as foreign keys and always resolve, so a finished build
 -- must return nothing from PRAGMA foreign_key_check.
@@ -40,7 +48,7 @@
 ------------------------------------------------------------------------------
 
 -- Schema version, readable before any table is trusted to exist.
-PRAGMA user_version = 4;
+PRAGMA user_version = 5;
 
 -- One row, written once the build has succeeded.
 --
@@ -81,7 +89,7 @@ CREATE TABLE IF NOT EXISTS build_sources (
 ------------------------------------------------------------------------------
 
 -- Enumerated titleType values: movie, short, tvEpisode, ...
-CREATE TABLE IF NOT EXISTS titles_types (
+CREATE TABLE IF NOT EXISTS titles_type (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
 );
@@ -101,7 +109,7 @@ CREATE TABLE IF NOT EXISTS titles_types (
 -- indexed year or rating, and a partial index (... WHERE genres & 512) can cover
 -- a hot genre. Should that stop being enough, the junction is derivable at any
 -- time by exploding the set bits, because the mask is lossless here.
-CREATE TABLE IF NOT EXISTS genres (
+CREATE TABLE IF NOT EXISTS titles_genre (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
 );
@@ -109,14 +117,14 @@ CREATE TABLE IF NOT EXISTS genres (
 -- title.basics joined with title.ratings.
 CREATE TABLE IF NOT EXISTS titles (
   id               INTEGER PRIMARY KEY,
-  title_type       INTEGER NOT NULL REFERENCES titles_types(id),
+  title_type       INTEGER NOT NULL REFERENCES titles_type(id),
   primary_title    TEXT    NOT NULL,
   original_title   TEXT,                          -- NULL when equal to primary_title
   is_adult         INTEGER NOT NULL DEFAULT 0,
   start_year       INTEGER,
   end_year         INTEGER,
   runtime_minutes  INTEGER,
-  genres           INTEGER NOT NULL DEFAULT 0,    -- bitmask over genres.id
+  genres           INTEGER NOT NULL DEFAULT 0,    -- bitmask over titles_genre.id
   average_rating   INTEGER,                       -- rating in tenths; NULL if unrated
   num_votes        INTEGER                        -- NULL if unrated
 );
@@ -130,13 +138,13 @@ CREATE TABLE IF NOT EXISTS episodes (
 );
 
 -- Enumerated akas.region: US, GB, ...
-CREATE TABLE IF NOT EXISTS regions (
+CREATE TABLE IF NOT EXISTS akas_region (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
 );
 
 -- Enumerated akas.language: en, fr, ...
-CREATE TABLE IF NOT EXISTS languages (
+CREATE TABLE IF NOT EXISTS akas_language (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
 );
@@ -148,13 +156,13 @@ CREATE TABLE IF NOT EXISTS languages (
 -- and 288 of those are non-alphabetical. So the order is information, but for
 -- 0.002% of rows and with no evident meaning - not worth a junction over a
 -- 19M-row column. Only 8 distinct values, so the 63-bit ceiling is remote.
-CREATE TABLE IF NOT EXISTS akas_types (
+CREATE TABLE IF NOT EXISTS akas_type (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
 );
 
 -- Interned akas.attributes values.
-CREATE TABLE IF NOT EXISTS attributes (
+CREATE TABLE IF NOT EXISTS akas_attribute (
   id    INTEGER PRIMARY KEY,
   name  TEXT    NOT NULL UNIQUE
 );
@@ -164,9 +172,9 @@ CREATE TABLE IF NOT EXISTS akas (
   title_id           INTEGER NOT NULL,
   ordering           INTEGER NOT NULL,
   title              TEXT    NOT NULL,
-  region             INTEGER REFERENCES regions(id),
-  language           INTEGER REFERENCES languages(id),
-  types              INTEGER NOT NULL DEFAULT 0,  -- bitmask over akas_types.id
+  region             INTEGER REFERENCES akas_region(id),
+  language           INTEGER REFERENCES akas_language(id),
+  types              INTEGER NOT NULL DEFAULT 0,  -- bitmask over akas_type.id
   is_original_title  INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (title_id, ordering)
 ) WITHOUT ROWID;
@@ -181,7 +189,7 @@ CREATE TABLE IF NOT EXISTS akas (
 CREATE TABLE IF NOT EXISTS akas_carry_attributes (
   title_id      INTEGER NOT NULL,
   ordering      INTEGER NOT NULL,
-  attribute_id  INTEGER NOT NULL REFERENCES attributes(id),
+  attribute_id  INTEGER NOT NULL REFERENCES akas_attribute(id),
   PRIMARY KEY (title_id, ordering, attribute_id),
   FOREIGN KEY (title_id, ordering) REFERENCES akas(title_id, ordering)
 ) WITHOUT ROWID;

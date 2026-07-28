@@ -13,7 +13,7 @@ var akasColumns = []string{
 	"title_id", "ordering", "title", "region", "language", "types", "is_original_title",
 }
 
-// akaAttributeColumns are the aka_attribute columns in bindAkaAttributeRow order.
+// akaAttributeColumns are the akas_carry_attributes columns in bindAkaAttributeRow order.
 var akaAttributeColumns = []string{"title_id", "ordering", "attribute_id"}
 
 // akasLookups holds the interners populated while reading title.akas.
@@ -118,7 +118,7 @@ type akaAttributeRow struct {
 	attributeID int64
 }
 
-// addAttributes adds one aka_attribute row per attribute on the akas row.
+// addAttributes adds one akas_carry_attributes row per attribute on the akas row.
 func addAttributes(ctx context.Context, inserter *batchInserter[akaAttributeRow], titleID, ordering int64, attrs []string, attribute *interner) error {
 	for _, name := range attrs {
 		row := akaAttributeRow{titleID: titleID, ordering: ordering, attributeID: attribute.id(name)}
@@ -129,7 +129,7 @@ func addAttributes(ctx context.Context, inserter *batchInserter[akaAttributeRow]
 	return nil
 }
 
-// bindAkaAttributeRow appends an aka_attribute row's values in column order.
+// bindAkaAttributeRow appends an akas_carry_attributes row's values in column order.
 func bindAkaAttributeRow(args []any, r akaAttributeRow) []any {
 	return append(args, r.titleID, r.ordering, r.attributeID)
 }

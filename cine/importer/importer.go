@@ -286,10 +286,10 @@ func importTitlesLayer(ctx context.Context, tx *sql.Tx, dir string, ratings map[
 	if err != nil {
 		return counts{}, err
 	}
-	if err := flushLookup(ctx, tx, "titles_types", lookups.titleType); err != nil {
+	if err := flushLookup(ctx, tx, "titles_type", lookups.titleType); err != nil {
 		return counts{}, err
 	}
-	if err := flushLookup(ctx, tx, "genres", lookups.genre); err != nil {
+	if err := flushLookup(ctx, tx, "titles_genre", lookups.genre); err != nil {
 		return counts{}, err
 	}
 	return count, nil
@@ -307,7 +307,7 @@ func importNamesLayer(ctx context.Context, tx *sql.Tx, dir string, filter titleF
 	if err != nil {
 		return counts{}, err
 	}
-	if err := flushLookup(ctx, tx, "professions", profession); err != nil {
+	if err := flushLookup(ctx, tx, "names_profession", profession); err != nil {
 		return counts{}, err
 	}
 	return count, nil
@@ -346,17 +346,17 @@ func importPrincipalsLayer(ctx context.Context, tx *sql.Tx, dir string, filter t
 	if err != nil {
 		return counts{}, err
 	}
-	if err := flushLookup(ctx, tx, "principals_categories", lookups.category); err != nil {
+	if err := flushLookup(ctx, tx, "principals_category", lookups.category); err != nil {
 		return counts{}, err
 	}
-	if err := flushLookup(ctx, tx, "principals_jobs", lookups.job); err != nil {
+	if err := flushLookup(ctx, tx, "principals_job", lookups.job); err != nil {
 		return counts{}, err
 	}
 	return count, nil
 }
 
 // importAkasLayer runs the akas pass within tx and writes its region, language,
-// aka_type and attribute lookups.
+// akas_type and akas_attribute lookups.
 func importAkasLayer(ctx context.Context, tx *sql.Tx, dir string, filter titleFilter) (counts, error) {
 	file, err := reader.OpenGzip(filepath.Join(dir, reader.FileTitleAkas))
 	if err != nil {
@@ -368,16 +368,16 @@ func importAkasLayer(ctx context.Context, tx *sql.Tx, dir string, filter titleFi
 	if err != nil {
 		return counts{}, err
 	}
-	if err := flushLookup(ctx, tx, "regions", lookups.region); err != nil {
+	if err := flushLookup(ctx, tx, "akas_region", lookups.region); err != nil {
 		return counts{}, err
 	}
-	if err := flushLookup(ctx, tx, "languages", lookups.language); err != nil {
+	if err := flushLookup(ctx, tx, "akas_language", lookups.language); err != nil {
 		return counts{}, err
 	}
-	if err := flushLookup(ctx, tx, "akas_types", lookups.akaType); err != nil {
+	if err := flushLookup(ctx, tx, "akas_type", lookups.akaType); err != nil {
 		return counts{}, err
 	}
-	if err := flushLookup(ctx, tx, "attributes", lookups.attribute); err != nil {
+	if err := flushLookup(ctx, tx, "akas_attribute", lookups.attribute); err != nil {
 		return counts{}, err
 	}
 	return count, nil

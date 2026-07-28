@@ -217,8 +217,8 @@ func TestBuildMetadata(t *testing.T) {
 		t.Run("no people table was created at all", func(t *testing.T) {
 			for _, table := range []string{
 				"names", "names_primary_professions", "names_known_for_titles",
-				"professions", "titles_credit_names", "principals",
-				"principals_categories", "principals_jobs",
+				"names_profession", "titles_credit_names", "principals",
+				"principals_category", "principals_job",
 			} {
 				var name string
 				err := db.QueryRowContext(ctx,

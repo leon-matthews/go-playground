@@ -21,7 +21,7 @@ func TestImportNames(t *testing.T) {
 	count, profession, err := importNames(ctx, tx, openIMDB(t, reader.FileNameBasics), titleFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, counts{read: 3, written: 3}, count)
-	require.NoError(t, flushLookup(ctx, tx, "professions", profession))
+	require.NoError(t, flushLookup(ctx, tx, "names_profession", profession))
 	require.NoError(t, tx.Commit())
 
 	t.Run("names inserted with null years", func(t *testing.T) {
@@ -41,7 +41,7 @@ func TestImportNames(t *testing.T) {
 		rows, err := db.QueryContext(ctx, `
 			SELECT p.position, f.name
 			FROM names_primary_professions p
-			JOIN professions f ON f.id = p.profession_id
+			JOIN names_profession f ON f.id = p.profession_id
 			WHERE p.name_id = 1
 			ORDER BY p.position`)
 		require.NoError(t, err)
@@ -74,7 +74,7 @@ func TestImportNames(t *testing.T) {
 
 	t.Run("profession lookup populated", func(t *testing.T) {
 		var professions int
-		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM professions").Scan(&professions))
+		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM names_profession").Scan(&professions))
 		assert.Equal(t, 2, professions) // actor, producer
 	})
 
@@ -109,7 +109,7 @@ func TestImportNames(t *testing.T) {
 		require.NoError(t, err)
 		count, profession, err := importNames(ctx, tx, openIMDB(t, reader.FileNameBasics), allowOnly(50419))
 		require.NoError(t, err)
-		require.NoError(t, flushLookup(ctx, tx, "professions", profession))
+		require.NoError(t, flushLookup(ctx, tx, "names_profession", profession))
 		require.NoError(t, tx.Commit())
 		assert.Equal(t, counts{read: 3, written: 3}, count, "every person is kept")
 

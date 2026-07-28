@@ -20,10 +20,10 @@ func TestImportAkas(t *testing.T) {
 	count, lookups, err := importAkas(ctx, tx, openIMDB(t, reader.FileTitleAkas), titleFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, counts{read: 3, written: 3}, count)
-	require.NoError(t, flushLookup(ctx, tx, "regions", lookups.region))
-	require.NoError(t, flushLookup(ctx, tx, "languages", lookups.language))
-	require.NoError(t, flushLookup(ctx, tx, "akas_types", lookups.akaType))
-	require.NoError(t, flushLookup(ctx, tx, "attributes", lookups.attribute))
+	require.NoError(t, flushLookup(ctx, tx, "akas_region", lookups.region))
+	require.NoError(t, flushLookup(ctx, tx, "akas_language", lookups.language))
+	require.NoError(t, flushLookup(ctx, tx, "akas_type", lookups.akaType))
+	require.NoError(t, flushLookup(ctx, tx, "akas_attribute", lookups.attribute))
 	require.NoError(t, tx.Commit())
 
 	t.Run("region is interned, an absent language is null", func(t *testing.T) {
@@ -41,7 +41,7 @@ func TestImportAkas(t *testing.T) {
 
 		var regionName string
 		require.NoError(t, db.QueryRowContext(ctx,
-			"SELECT name FROM regions WHERE id = ?", region.Int64).Scan(&regionName))
+			"SELECT name FROM akas_region WHERE id = ?", region.Int64).Scan(&regionName))
 		assert.Equal(t, "US", regionName)
 	})
 
@@ -59,15 +59,15 @@ func TestImportAkas(t *testing.T) {
 		assert.Equal(t, int64(0), types) // \N types default to 0
 	})
 
-	t.Run("types fold into a bitmask resolvable through aka_type", func(t *testing.T) {
+	t.Run("types fold into a bitmask resolvable through akas_type", func(t *testing.T) {
 		var typeCount int
 		require.NoError(t, db.QueryRowContext(ctx, `
-			SELECT count(*) FROM akas a, akas_types t
+			SELECT count(*) FROM akas a, akas_type t
 			WHERE a.title_id = 2 AND a.ordering = 1 AND (a.types & (1 << t.id)) != 0`).Scan(&typeCount))
 		assert.Equal(t, 2, typeCount) // imdbDisplay, dvd
 	})
 
-	t.Run("attributes fan out to the aka_attribute junction", func(t *testing.T) {
+	t.Run("attributes fan out to the akas_carry_attributes junction", func(t *testing.T) {
 		var attrCount int
 		require.NoError(t, db.QueryRowContext(ctx,
 			"SELECT count(*) FROM akas_carry_attributes WHERE title_id = 2 AND ordering = 1").Scan(&attrCount))
@@ -75,22 +75,22 @@ func TestImportAkas(t *testing.T) {
 
 		var attrName string
 		require.NoError(t, db.QueryRowContext(ctx, `
-			SELECT a.name FROM akas_carry_attributes j JOIN attributes a ON a.id = j.attribute_id
+			SELECT a.name FROM akas_carry_attributes j JOIN akas_attribute a ON a.id = j.attribute_id
 			WHERE j.title_id = 2 AND j.ordering = 1 ORDER BY a.name LIMIT 1`).Scan(&attrName))
 		assert.Equal(t, "2014 restoration", attrName)
 	})
 
 	t.Run("lookups populated", func(t *testing.T) {
 		counts := map[string]int{}
-		for _, table := range []string{"regions", "languages", "akas_types", "attributes"} {
+		for _, table := range []string{"akas_region", "akas_language", "akas_type", "akas_attribute"} {
 			var n int
 			require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM "+table).Scan(&n))
 			counts[table] = n
 		}
-		assert.Equal(t, 2, counts["regions"])    // US, FR
-		assert.Equal(t, 1, counts["languages"])  // fr
-		assert.Equal(t, 2, counts["akas_types"]) // imdbDisplay, dvd
-		assert.Equal(t, 2, counts["attributes"]) // literal title, 2014 restoration
+		assert.Equal(t, 2, counts["akas_region"])    // US, FR
+		assert.Equal(t, 1, counts["akas_language"])  // fr
+		assert.Equal(t, 2, counts["akas_type"])      // imdbDisplay, dvd
+		assert.Equal(t, 2, counts["akas_attribute"]) // literal title, 2014 restoration
 	})
 
 	t.Run("a refused title takes its attributes and lookup values with it", func(t *testing.T) {
@@ -100,8 +100,8 @@ func TestImportAkas(t *testing.T) {
 		count, lookups, err := importAkas(ctx, tx, openIMDB(t, reader.FileTitleAkas), allowOnly(1))
 		require.NoError(t, err)
 		for table, in := range map[string]*interner{
-			"regions": lookups.region, "languages": lookups.language,
-			"akas_types": lookups.akaType, "attributes": lookups.attribute,
+			"akas_region": lookups.region, "akas_language": lookups.language,
+			"akas_type": lookups.akaType, "akas_attribute": lookups.attribute,
 		} {
 			require.NoError(t, flushLookup(ctx, tx, table, in))
 		}
@@ -113,14 +113,14 @@ func TestImportAkas(t *testing.T) {
 		assert.Zero(t, attributes, "only title 2 had any")
 
 		got := map[string]int{}
-		for _, table := range []string{"regions", "languages", "akas_types", "attributes"} {
+		for _, table := range []string{"akas_region", "akas_language", "akas_type", "akas_attribute"} {
 			var n int
 			require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM "+table).Scan(&n))
 			got[table] = n
 		}
-		assert.Equal(t, 1, got["regions"])    // US only, no FR
-		assert.Zero(t, got["languages"])      // fr was title 2's
-		assert.Equal(t, 1, got["akas_types"]) // imdbDisplay only, no dvd
-		assert.Zero(t, got["attributes"])
+		assert.Equal(t, 1, got["akas_region"]) // US only, no FR
+		assert.Zero(t, got["akas_language"])   // fr was title 2's
+		assert.Equal(t, 1, got["akas_type"])   // imdbDisplay only, no dvd
+		assert.Zero(t, got["akas_attribute"])
 	})
 }

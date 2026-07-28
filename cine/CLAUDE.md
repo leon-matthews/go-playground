@@ -60,6 +60,11 @@ Three packages in a straight line, plus a thin cobra layer:
   bitmask when its order carries nothing (genres, akas types) and a junction with a 1-based
   `position` when IMDb's order is content (primary professions, known-for titles, crew).
   The `interner` serves both: `id()` for lookup foreign keys, `bit()` for bitmask positions.
+- **A singular table name means a lookup**, prefixed with the table it serves, so it ends up
+  named for the column that references it - `akas.region` resolves through `akas_region`.
+  Everything else is plural. That is what tells `akas_attribute` (lookup) from
+  `akas_carry_attributes` (junction), and it is stated in `schema.sql`'s header; a new
+  lookup that breaks the rule quietly costs the reader that distinction.
 - **Bulk inserts are hand-written, not sqlc**, because sqlc cannot emit multi-row SQLite
   inserts. `batchInserter` chunks rows to `bindParamBudget`, a figure measured by
   `BenchmarkInsertChunkSizes` against the modernc driver - read its comment in `batch.go`

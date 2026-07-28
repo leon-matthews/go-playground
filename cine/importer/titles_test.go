@@ -30,8 +30,8 @@ func TestImportTitles(t *testing.T) {
 	count, lookups, err := importTitles(ctx, tx, openIMDB(t, reader.FileTitleBasics), ratings, titleFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, counts{read: 3, written: 3}, count)
-	require.NoError(t, flushLookup(ctx, tx, "titles_types", lookups.titleType))
-	require.NoError(t, flushLookup(ctx, tx, "genres", lookups.genre))
+	require.NoError(t, flushLookup(ctx, tx, "titles_type", lookups.titleType))
+	require.NoError(t, flushLookup(ctx, tx, "titles_genre", lookups.genre))
 	require.NoError(t, tx.Commit())
 
 	t.Run("every row inserted", func(t *testing.T) {
@@ -73,13 +73,13 @@ func TestImportTitles(t *testing.T) {
 
 	t.Run("lookups populated and genre bit resolves by name", func(t *testing.T) {
 		var titleTypes int
-		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM titles_types").Scan(&titleTypes))
+		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM titles_type").Scan(&titleTypes))
 		assert.Equal(t, 2, titleTypes) // short, movie
 
 		// The Matrix's bitmask must contain the Action and Sci-Fi genre bits
 		var matches int
 		require.NoError(t, db.QueryRowContext(ctx, `
-			SELECT count(*) FROM genres g, titles t
+			SELECT count(*) FROM titles_genre g, titles t
 			WHERE t.id = 133093 AND t.genres & (1 << g.id) AND g.name IN ('Action', 'Sci-Fi')`).Scan(&matches))
 		assert.Equal(t, 2, matches)
 	})
@@ -96,8 +96,8 @@ func TestImportTitlesFiltered(t *testing.T) {
 	require.NoError(t, err)
 	count, lookups, err := importTitles(ctx, tx, openIMDB(t, reader.FileTitleBasics), ratings, allowOnly(1))
 	require.NoError(t, err)
-	require.NoError(t, flushLookup(ctx, tx, "titles_types", lookups.titleType))
-	require.NoError(t, flushLookup(ctx, tx, "genres", lookups.genre))
+	require.NoError(t, flushLookup(ctx, tx, "titles_type", lookups.titleType))
+	require.NoError(t, flushLookup(ctx, tx, "titles_genre", lookups.genre))
 	require.NoError(t, tx.Commit())
 
 	t.Run("every source row is read, only the allowed ones written", func(t *testing.T) {
@@ -120,7 +120,7 @@ func TestImportTitlesFiltered(t *testing.T) {
 
 	t.Run("interners never see a refused row's values", func(t *testing.T) {
 		var names []string
-		rows, err := db.QueryContext(ctx, "SELECT name FROM genres ORDER BY name")
+		rows, err := db.QueryContext(ctx, "SELECT name FROM titles_genre ORDER BY name")
 		require.NoError(t, err)
 		defer rows.Close()
 		for rows.Next() {
@@ -132,7 +132,7 @@ func TestImportTitlesFiltered(t *testing.T) {
 		assert.Equal(t, []string{"Documentary", "Short"}, names, "no Action or Sci-Fi from The Matrix")
 
 		var titleTypes int
-		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM titles_types").Scan(&titleTypes))
+		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM titles_type").Scan(&titleTypes))
 		assert.Equal(t, 1, titleTypes, "short only, no movie")
 	})
 }

@@ -18,18 +18,28 @@ type Aka struct {
 	IsOriginalTitle int64
 }
 
+type AkasAttribute struct {
+	ID   int64
+	Name string
+}
+
 type AkasCarryAttribute struct {
 	TitleID     int64
 	Ordering    int64
 	AttributeID int64
 }
 
-type AkasType struct {
+type AkasLanguage struct {
 	ID   int64
 	Name string
 }
 
-type Attribute struct {
+type AkasRegion struct {
+	ID   int64
+	Name string
+}
+
+type AkasType struct {
 	ID   int64
 	Name string
 }
@@ -58,16 +68,6 @@ type Episode struct {
 	EpisodeNumber sql.NullInt64
 }
 
-type Genre struct {
-	ID   int64
-	Name string
-}
-
-type Language struct {
-	ID   int64
-	Name string
-}
-
 type Name struct {
 	ID          int64
 	PrimaryName sql.NullString
@@ -87,6 +87,11 @@ type NamesPrimaryProfession struct {
 	ProfessionID int64
 }
 
+type NamesProfession struct {
+	ID   int64
+	Name string
+}
+
 type Principal struct {
 	TitleID    int64
 	Ordering   int64
@@ -102,16 +107,6 @@ type PrincipalsCategory struct {
 }
 
 type PrincipalsJob struct {
-	ID   int64
-	Name string
-}
-
-type Profession struct {
-	ID   int64
-	Name string
-}
-
-type Region struct {
 	ID   int64
 	Name string
 }
@@ -135,6 +130,11 @@ type TitlesCreditName struct {
 	NameID   int64
 	Role     int64
 	Position int64
+}
+
+type TitlesGenre struct {
+	ID   int64
+	Name string
 }
 
 type TitlesType struct {

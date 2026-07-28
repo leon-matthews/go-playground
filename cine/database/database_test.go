@@ -46,14 +46,14 @@ func tableNames(ctx context.Context, t *testing.T, db *sql.DB) []string {
 // titlesTables are the tables every build creates, whatever it was asked for.
 var titlesTables = []string{
 	"build_info", "build_sources",
-	"titles_types", "genres", "titles", "episodes",
-	"regions", "languages", "akas_types", "attributes", "akas", "akas_carry_attributes",
+	"titles_type", "titles_genre", "titles", "episodes",
+	"akas_region", "akas_language", "akas_type", "akas_attribute", "akas", "akas_carry_attributes",
 }
 
 // peopleTables are the ones schema-people.sql adds.
 var peopleTables = []string{
-	"professions", "names", "names_primary_professions", "names_known_for_titles",
-	"titles_credit_names", "principals_categories", "principals_jobs", "principals",
+	"names_profession", "names", "names_primary_professions", "names_known_for_titles",
+	"titles_credit_names", "principals_category", "principals_job", "principals",
 }
 
 func TestDatabase(t *testing.T) {
@@ -115,13 +115,13 @@ func TestDatabase(t *testing.T) {
 
 		// titles and names must never appear as a parent: IMDb's own files disagree.
 		want := []string{
-			"titles.title_type -> titles_types",
-			"names_primary_professions.profession_id -> professions",
-			"principals.category -> principals_categories",
-			"principals.job -> principals_jobs",
-			"akas.region -> regions",
-			"akas.language -> languages",
-			"akas_carry_attributes.attribute_id -> attributes",
+			"titles.title_type -> titles_type",
+			"names_primary_professions.profession_id -> names_profession",
+			"principals.category -> principals_category",
+			"principals.job -> principals_job",
+			"akas.region -> akas_region",
+			"akas.language -> akas_language",
+			"akas_carry_attributes.attribute_id -> akas_attribute",
 			"akas_carry_attributes.title_id -> akas", // composite key, one row per column
 			"akas_carry_attributes.ordering -> akas",
 		}

@@ -109,7 +109,7 @@ func (q *Queries) ListPrincipalsForTitle(ctx context.Context, titleID int64) ([]
 }
 
 const upsertGenre = `-- name: UpsertGenre :one
-INSERT INTO genres (id, name) VALUES (?, ?)
+INSERT INTO titles_genre (id, name) VALUES (?, ?)
 ON CONFLICT(id) DO UPDATE SET name = excluded.name
 RETURNING id
 `

@@ -20,8 +20,8 @@ func TestImportPrincipals(t *testing.T) {
 	count, lookups, err := importPrincipals(ctx, tx, openIMDB(t, reader.FileTitlePrincipals), titleFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, counts{read: 3, written: 3}, count)
-	require.NoError(t, flushLookup(ctx, tx, "principals_categories", lookups.category))
-	require.NoError(t, flushLookup(ctx, tx, "principals_jobs", lookups.job))
+	require.NoError(t, flushLookup(ctx, tx, "principals_category", lookups.category))
+	require.NoError(t, flushLookup(ctx, tx, "principals_job", lookups.job))
 	require.NoError(t, tx.Commit())
 
 	t.Run("credit keeps category and characters, null job", func(t *testing.T) {
@@ -38,7 +38,7 @@ func TestImportPrincipals(t *testing.T) {
 
 		var categoryName string
 		require.NoError(t, db.QueryRowContext(ctx,
-			"SELECT name FROM principals_categories WHERE id = ?", category).Scan(&categoryName))
+			"SELECT name FROM principals_category WHERE id = ?", category).Scan(&categoryName))
 		assert.Equal(t, "self", categoryName)
 	})
 
@@ -52,7 +52,7 @@ func TestImportPrincipals(t *testing.T) {
 	t.Run("job interned and characters queryable via json_each", func(t *testing.T) {
 		var jobName string
 		require.NoError(t, db.QueryRowContext(ctx, `
-			SELECT j.name FROM principals p JOIN principals_jobs j ON j.id = p.job
+			SELECT j.name FROM principals p JOIN principals_job j ON j.id = p.job
 			WHERE p.title_id = 2 AND p.ordering = 1`).Scan(&jobName))
 		assert.Equal(t, "voice", jobName)
 
@@ -65,8 +65,8 @@ func TestImportPrincipals(t *testing.T) {
 
 	t.Run("lookups populated", func(t *testing.T) {
 		var categories, jobs int
-		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM principals_categories").Scan(&categories))
-		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM principals_jobs").Scan(&jobs))
+		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM principals_category").Scan(&categories))
+		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM principals_job").Scan(&jobs))
 		assert.Equal(t, 3, categories) // self, director, actor
 		assert.Equal(t, 1, jobs)       // voice
 	})
@@ -77,8 +77,8 @@ func TestImportPrincipals(t *testing.T) {
 		require.NoError(t, err)
 		count, lookups, err := importPrincipals(ctx, tx, openIMDB(t, reader.FileTitlePrincipals), allowOnly(1))
 		require.NoError(t, err)
-		require.NoError(t, flushLookup(ctx, tx, "principals_categories", lookups.category))
-		require.NoError(t, flushLookup(ctx, tx, "principals_jobs", lookups.job))
+		require.NoError(t, flushLookup(ctx, tx, "principals_category", lookups.category))
+		require.NoError(t, flushLookup(ctx, tx, "principals_job", lookups.job))
 		require.NoError(t, tx.Commit())
 		assert.Equal(t, counts{read: 3, written: 2}, count)
 
@@ -88,8 +88,8 @@ func TestImportPrincipals(t *testing.T) {
 		assert.Zero(t, credits)
 
 		var categories, jobs int
-		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM principals_categories").Scan(&categories))
-		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM principals_jobs").Scan(&jobs))
+		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM principals_category").Scan(&categories))
+		require.NoError(t, db.QueryRowContext(ctx, "SELECT count(*) FROM principals_job").Scan(&jobs))
 		assert.Equal(t, 2, categories, "self and director, no actor from title 2")
 		assert.Zero(t, jobs, "voice was title 2's only job")
 	})
