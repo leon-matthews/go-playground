@@ -95,7 +95,8 @@ type sourceRow struct {
 // file within its own transaction, logging per-file progress.
 func buildInto(ctx context.Context, temp, dir string, options BuildOptions, logger *log.Logger) error {
 	started := time.Now()
-	_, db, err := database.Open(ctx, temp)
+	// The people tables are created on the same condition that appends their layers.
+	_, db, err := database.Open(ctx, temp, options.People)
 	if err != nil {
 		return err
 	}

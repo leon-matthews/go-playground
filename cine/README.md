@@ -32,10 +32,15 @@ table belongs to Titles if it can be populated without knowing that any person e
 which sorts every table without argument and follows the seven source files exactly, so
 no import pass straddles it:
 
-| Layer  | Source files                                                    |
+| Group  | Source files                                                    |
 |--------|-----------------------------------------------------------------|
 | Titles | `title.basics`, `title.ratings`, `title.episode`, `title.akas`  |
 | People | `name.basics`, `title.crew`, `title.principals`                 |
+
+A build creates only the tables it is going to fill, so without `--people` the people
+tables are absent rather than empty and a query reaching for them fails outright. That
+is deliberate: an empty result would answer "this person has no credits" when the truth
+is "this database has no credits".
 
 People is much the larger of the two, `principals` alone outweighing every Titles table
 put together. Ask `dbstat` for the breakdown of a database you have actually built.

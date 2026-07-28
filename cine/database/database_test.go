@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,48 +14,66 @@ import (
 	"local.dev/cine/database/sqlite"
 )
 
-// open builds a fresh database in a per-test temporary folder.
-func open(t testing.TB) (*sqlite.Queries, *sql.DB) {
+// open builds a fresh database in a per-test temporary folder, with the people
+// tables only if asked for.
+func open(t testing.TB, people bool) (*sqlite.Queries, *sql.DB) {
 	t.Helper()
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "test.db")
-	queries, db, err := database.Open(ctx, path)
+	queries, db, err := database.Open(ctx, path, people)
 	require.NoError(t, err)
 	t.Cleanup(func() { db.Close() })
 	return queries, db
 }
 
+// tableNames lists every table in db.
+func tableNames(ctx context.Context, t *testing.T, db *sql.DB) []string {
+	t.Helper()
+	rows, err := db.QueryContext(ctx, "SELECT name FROM sqlite_master WHERE type = 'table'")
+	require.NoError(t, err)
+	defer rows.Close()
+
+	var got []string
+	for rows.Next() {
+		var name string
+		require.NoError(t, rows.Scan(&name))
+		got = append(got, name)
+	}
+	require.NoError(t, rows.Err())
+	return got
+}
+
+// titlesTables are the tables every build creates, whatever it was asked for.
+var titlesTables = []string{
+	"build_info", "build_sources",
+	"titles_types", "genres", "titles", "episodes",
+	"regions", "languages", "akas_types", "attributes", "akas", "akas_carry_attributes",
+}
+
+// peopleTables are the ones schema-people.sql adds.
+var peopleTables = []string{
+	"professions", "names", "names_primary_professions", "names_known_for_titles",
+	"titles_credit_names", "principals_categories", "principals_jobs", "principals",
+}
+
 func TestDatabase(t *testing.T) {
-	t.Run("schema creates every table", func(t *testing.T) {
+	t.Run("both schema files together create every table", func(t *testing.T) {
 		ctx := context.Background()
-		_, db := open(t)
+		_, db := open(t, true)
 
-		rows, err := db.QueryContext(ctx, "SELECT name FROM sqlite_master WHERE type = 'table'")
-		require.NoError(t, err)
-		defer rows.Close()
+		assert.ElementsMatch(t, slices.Concat(titlesTables, peopleTables), tableNames(ctx, t, db))
+	})
 
-		var got []string
-		for rows.Next() {
-			var name string
-			require.NoError(t, rows.Scan(&name))
-			got = append(got, name)
-		}
-		require.NoError(t, rows.Err())
+	t.Run("without people the people tables are never created", func(t *testing.T) {
+		ctx := context.Background()
+		_, db := open(t, false)
 
-		want := []string{
-			"build_info", "build_sources",
-			"titles_types", "genres", "titles",
-			"professions", "names", "names_primary_professions", "names_known_for_titles",
-			"episodes", "titles_credit_names",
-			"principals_categories", "principals_jobs", "principals",
-			"regions", "languages", "akas_types", "attributes", "akas", "akas_carry_attributes",
-		}
-		assert.ElementsMatch(t, want, got)
+		assert.ElementsMatch(t, titlesTables, tableNames(ctx, t, db))
 	})
 
 	t.Run("schema.sql sets the user_version SchemaVersion promises", func(t *testing.T) {
 		ctx := context.Background()
-		_, db := open(t)
+		_, db := open(t, true)
 
 		var version int
 		require.NoError(t, db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version))
@@ -63,7 +82,7 @@ func TestDatabase(t *testing.T) {
 
 	t.Run("build_info holds at most one row", func(t *testing.T) {
 		ctx := context.Background()
-		_, db := open(t)
+		_, db := open(t, true)
 
 		const insert = `INSERT INTO build_info (id, cine_version, started_at, finished_at)
 			VALUES (?, '0.1.0', '2026-07-26T00:00:00Z', '2026-07-26T00:30:00Z')`
@@ -76,7 +95,7 @@ func TestDatabase(t *testing.T) {
 
 	t.Run("only importer-generated references are declared", func(t *testing.T) {
 		ctx := context.Background()
-		_, db := open(t)
+		_, db := open(t, true)
 
 		rows, err := db.QueryContext(ctx, `
 			SELECT m.name || '.' || f."from" || ' -> ' || f."table"
@@ -111,7 +130,7 @@ func TestDatabase(t *testing.T) {
 
 	t.Run("pragmas are live on the connection", func(t *testing.T) {
 		ctx := context.Background()
-		_, db := open(t)
+		_, db := open(t, true)
 
 		cases := []struct {
 			pragma string
@@ -134,7 +153,7 @@ func TestDatabase(t *testing.T) {
 
 	t.Run("title round-trips through the generated queries", func(t *testing.T) {
 		ctx := context.Background()
-		queries, _ := open(t)
+		queries, _ := open(t, true)
 
 		id, err := queries.UpsertGenre(ctx, sqlite.UpsertGenreParams{ID: 8, Name: "Drama"})
 		require.NoError(t, err)

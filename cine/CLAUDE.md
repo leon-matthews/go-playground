@@ -43,7 +43,8 @@ Three packages in a straight line, plus a thin cobra layer:
   first, then the people ones if `--people` asked for them. `title.ratings` has no table: it
   is loaded into a map first and joined onto titles during their pass, and its only record is
   its `build_sources` row.
-- **`database`** embeds `schema.sql`, applies it on `Open`, and tunes the connection for
+- **`database`** embeds both schema files and applies them on `Open` - `schema.sql` always,
+  `schema-people.sql` only when its `people` argument says so - and tunes the connection for
   bulk loading (no journal, no fsync, exclusive lock, one connection). `Open` is
   write-focused; a read path should open the finished file separately with gentler pragmas.
 - **`cmd`** is cobra wiring only - argument checking, the logger, the `--profile` flag.
@@ -51,9 +52,10 @@ Three packages in a straight line, plus a thin cobra layer:
 ### Conventions worth knowing before editing
 
 - **`schema.sql` is the design document.** Every non-obvious column choice is justified in a
-  comment there with measured counts from a real dump, including why IMDb identifier columns
-  carry no foreign key and what a filtered build does to the orphans that causes. Read it
-  before changing a table, and read these columns with `LEFT JOIN`.
+  comment there or in `schema-people.sql` with measured counts from a real dump, including
+  why IMDb identifier columns carry no foreign key and what a filtered build does to the
+  orphans that causes. Read it before changing a table, and read these columns with
+  `LEFT JOIN`. `schema.sql` carries the header both files answer to.
 - **Bitmask vs junction is a measured decision, not a preference.** A list field becomes a
   bitmask when its order carries nothing (genres, akas types) and a junction with a 1-based
   `position` when IMDb's order is content (primary professions, known-for titles, crew).
@@ -75,7 +77,7 @@ Three packages in a straight line, plus a thin cobra layer:
 `BuildOptions` in `importer/importer.go` holds the three choices a build makes, one field per
 `build_info` column, so a database cannot claim an option that did not apply. Two axes hide in
 those three fields: the filters choose which *rows* are kept, `People` chooses which *tables*
-are populated. `cmd` inverts the two filter flags once each, because `--allow-adult` and
+exist at all. `cmd` inverts the two filter flags once each, because `--allow-adult` and
 `--allow-unrated` name what to keep while the fields name what to restrict; `--people` names
 what to add and so inverts nowhere.
 
@@ -85,6 +87,14 @@ A table belongs to Titles if it can be populated without knowing that any person
 That sorts every table without argument, and - the part that makes it cheap - it partitions
 the seven source files with nothing straddling the boundary, so `buildInto` gates whole
 layers and no pass ever runs partially or needs to know a layer exists.
+
+The split runs through the schema too: the People tables live in `schema-people.sql`, applied
+only when they will be filled, so a build creates nothing it leaves empty. That works because
+no Titles table references a People one and the People tables' only foreign key parents are
+their own lookups - the `title_id` columns that cross the line carry no foreign key by design.
+The cost is that `sqlite.Prepare` cannot be used, since preparing `ListPrincipalsForTitle`
+resolves a table a titles-only database has not got; `Open` returns `sqlite.New(db)` instead,
+which the import path does not mind because it never uses the generated queries.
 
 Ordering the layers titles-first is presentational, not a dependency: no pass reads a table
 another wrote, no two passes share an interner, and both shared inputs - the ratings map and

@@ -17,10 +17,13 @@ import (
 //go:embed schema.sql
 var schema string
 
+//go:embed schema-people.sql
+var peopleSchema string
+
 // SchemaVersion is the layout that schema.sql builds, mirroring the
 // user_version it sets. A reader compares it before trusting any table to
 // exist, since the pragma is readable from a database of any age.
-const SchemaVersion = 3
+const SchemaVersion = 4
 
 // bulkLoadPragmas tune SQLite for the single-writer bulk rebuild. The importer
 // builds a throwaway file that is renamed into place only once it succeeds, so
@@ -45,12 +48,15 @@ func pragmaQuery(pragmas ...string) string {
 
 // Open connects to the SQLite database at path, creating it if needed.
 //
+// people adds the tables in schema-people.sql, so a database holds only the ones
+// its build will populate.
+//
 // Open is write-focused: it applies the schema and tunes the connection for the
 // single-writer bulk rebuild - no journal, no fsync, an exclusive lock - so point
 // it at a throwaway file that is renamed into place once the import succeeds. A
 // read path that only queries a finished database should open it separately, with
 // gentler pragmas and without reapplying the schema.
-func Open(ctx context.Context, path string) (*sqlite.Queries, *sql.DB, error) {
+func Open(ctx context.Context, path string, people bool) (*sqlite.Queries, *sql.DB, error) {
 	db, err := sql.Open("sqlite", path+pragmaQuery(bulkLoadPragmas...))
 	if err != nil {
 		return nil, nil, fmt.Errorf("opening database %q: %w", path, err)
@@ -63,12 +69,14 @@ func Open(ctx context.Context, path string) (*sqlite.Queries, *sql.DB, error) {
 		db.Close()
 		return nil, nil, fmt.Errorf("applying schema: %w", err)
 	}
-
-	// Prepare every query once; closing db later also closes the statements
-	queries, err := sqlite.Prepare(ctx, db)
-	if err != nil {
-		db.Close()
-		return nil, nil, fmt.Errorf("preparing queries: %w", err)
+	if people {
+		if _, err := db.ExecContext(ctx, peopleSchema); err != nil {
+			db.Close()
+			return nil, nil, fmt.Errorf("applying people schema: %w", err)
+		}
 	}
-	return queries, db, nil
+
+	// Queries stay unprepared: preparing resolves table names, which a titles-only
+	// database has no principals for. The import path uses its own batched inserts.
+	return sqlite.New(db), db, nil
 }

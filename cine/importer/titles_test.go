@@ -142,7 +142,7 @@ func openImportDB(t *testing.T) *sql.DB {
 	t.Helper()
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "import.db")
-	_, db, err := database.Open(ctx, path)
+	_, db, err := database.Open(ctx, path, true)
 	require.NoError(t, err)
 	t.Cleanup(func() { db.Close() })
 	return db

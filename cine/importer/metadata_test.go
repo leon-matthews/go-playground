@@ -109,7 +109,7 @@ func TestBuildMetadata(t *testing.T) {
 		options := BuildOptions{Rated: true, People: true}
 		require.NoError(t, Import(ctx, out, gzipFixtures(t), options, log.New(io.Discard)))
 
-		_, db, err := database.Open(ctx, out)
+		_, db, err := database.Open(ctx, out, true)
 		require.NoError(t, err)
 		t.Cleanup(func() { db.Close() })
 
@@ -167,7 +167,7 @@ func TestBuildMetadata(t *testing.T) {
 		out := filepath.Join(t.TempDir(), "cine.db")
 		require.NoError(t, Import(ctx, out, gzipFixtures(t), BuildOptions{People: true}, log.New(io.Discard)))
 
-		_, db, err := database.Open(ctx, out)
+		_, db, err := database.Open(ctx, out, true)
 		require.NoError(t, err)
 		t.Cleanup(func() { db.Close() })
 
@@ -189,7 +189,7 @@ func TestBuildMetadata(t *testing.T) {
 		out := filepath.Join(t.TempDir(), "cine.db")
 		require.NoError(t, Import(ctx, out, gzipFixtures(t), BuildOptions{}, log.New(io.Discard)))
 
-		_, db, err := database.Open(ctx, out)
+		_, db, err := database.Open(ctx, out, false)
 		require.NoError(t, err)
 		t.Cleanup(func() { db.Close() })
 
@@ -214,13 +214,16 @@ func TestBuildMetadata(t *testing.T) {
 			assert.Equal(t, 3, count(t, "akas"))
 		})
 
-		t.Run("every people table is empty but still exists", func(t *testing.T) {
+		t.Run("no people table was created at all", func(t *testing.T) {
 			for _, table := range []string{
 				"names", "names_primary_professions", "names_known_for_titles",
 				"professions", "titles_credit_names", "principals",
 				"principals_categories", "principals_jobs",
 			} {
-				assert.Zero(t, count(t, table), table)
+				var name string
+				err := db.QueryRowContext(ctx,
+					"SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?", table).Scan(&name)
+				assert.ErrorIs(t, err, sql.ErrNoRows, table)
 			}
 		})
 
