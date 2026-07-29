@@ -22,7 +22,6 @@ func newCheckCmd() *cobra.Command {
 		Short: "Check one or more passwords against the local database",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			defer logs.logFile.Close()
 			return runCheck(cmd.Context(), cmd.OutOrStdout(), args)
 		},
 	}

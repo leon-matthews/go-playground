@@ -33,7 +33,6 @@ func newUpdateCmd() *cobra.Command {
 		Use:   "update",
 		Short: "Download or refresh the local password hash database",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			defer logs.logFile.Close()
 			return runUpdate(cmd.Context())
 		},
 	}
@@ -48,6 +47,12 @@ func newUpdateCmd() *cobra.Command {
 
 // runUpdate downloads hash lists until finished, limited, or interrupted.
 func runUpdate(ctx context.Context) error {
+	logs, err := setupLogging(verbose)
+	if err != nil {
+		return fmt.Errorf("logging setup: %w", err)
+	}
+	defer logs.logFile.Close()
+
 	logs.file.Info(
 		"starting run",
 		"concurrency", concurrency,

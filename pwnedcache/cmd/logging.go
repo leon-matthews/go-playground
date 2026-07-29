@@ -11,7 +11,7 @@ import (
 	charminglog "github.com/charmbracelet/log"
 )
 
-// Structured NDJSON run log, truncated on each run
+// Structured NDJSON run log, truncated on each update run
 const logPath = "pwnedcache.log"
 
 // logging holds the loggers built by setupLogging.
@@ -23,10 +23,11 @@ type logging struct {
 
 // setupLogging installs a fan-out slog default that writes every log to both a
 // colourised console handler on stderr and an NDJSON file handler on
-// pwnedcache.log, truncated each run.
+// pwnedcache.log, truncated each time it is called.
 // Progress reporting uses the returned loggers to send friendly text to the
 // console and the matching structured record to the file. The -v flag raises
-// the level to debug.
+// the level to debug. Only long-running commands set up logging; interactive
+// ones leave the log file alone.
 func setupLogging(verbose bool) (logging, error) {
 	consoleLevel, fileLevel := charminglog.InfoLevel, slog.LevelInfo
 	if verbose {

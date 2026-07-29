@@ -1,18 +1,12 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
 var (
 	databasePath string
 	verbose      bool
-
-	// logs is set by the root command's PersistentPreRunE, before any
-	// sub-command's RunE sees it
-	logs logging
 )
 
 // newRootCmd builds the pwnedcache command tree.
@@ -23,14 +17,6 @@ func newRootCmd() *cobra.Command {
 		SilenceUsage:      true,
 		SilenceErrors:     true,
 		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
-		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
-			var err error
-			logs, err = setupLogging(verbose)
-			if err != nil {
-				return fmt.Errorf("logging setup: %w", err)
-			}
-			return nil
-		},
 	}
 
 	cmd.PersistentFlags().StringVarP(&databasePath, "database", "d", "pwnedcache.db", "path to the SQLite database")
