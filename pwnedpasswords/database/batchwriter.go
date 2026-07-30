@@ -62,7 +62,9 @@ func (b *BatchWriter) Upsert(ctx context.Context, password string, count int64) 
 	}
 
 	if b.tx == nil {
-		tx, err := b.db.BeginTx(ctx, nil)
+		// Use a background context so an interrupt cannot trigger the database/sql
+		// auto-rollback that would discard the whole open batch before Close commits.
+		tx, err := b.db.BeginTx(context.Background(), nil)
 		if err != nil {
 			return 0, b.recordErr(err)
 		}
