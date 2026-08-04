@@ -1,0 +1,14 @@
+tconst	titleType	primaryTitle	originalTitle	isAdult	startYear	endYear	runtimeMinutes	genres
+tt0000100	tvSeries	Clean Series	Clean Series	0	2001	\N	\N	Drama
+tt0000101	tvEpisode	Episode One	Episode One	0	2001	\N	42	Drama
+tt0000102	tvEpisode	Episode Two	Episode Two	1	2001	\N	42	Drama
+tt0000200	tvSeries	Unrated Series	Unrated Series	0	2002	\N	\N	Drama
+tt0000201	tvEpisode	Episode One	Episode One	0	2002	\N	42	Drama
+tt0000202	tvEpisode	Episode Two	Episode Two	0	2002	\N	42	Drama
+tt0000300	tvSeries	Adult Series	Adult Series	1	2003	\N	\N	Adult
+tt0000301	tvEpisode	Episode One	Episode One	0	2003	\N	42	Adult
+tt0000400	tvEpisode	Orphan Rated	Orphan Rated	0	2004	\N	42	Drama
+tt0000401	tvEpisode	Orphan Unrated	Orphan Unrated	0	2004	\N	42	Drama
+tt0000700	movie	Unrated Film	Unrated Film	0	2007	\N	90	Drama
+tt0000800	movie	Adult Film	Adult Film	1	2008	\N	90	Adult
+tt0000900	movie	Clean Film	Clean Film	0	2009	\N	90	Drama

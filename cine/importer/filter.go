@@ -114,6 +114,10 @@ func (b *filterBuilder) readEpisodes(episodes io.Reader) error {
 			return err
 		}
 		read++
+		// With no parent to inherit from, the title.basics verdict stands.
+		if !record.HasParent() {
+			continue
+		}
 		episode, err := titleID(record.Tconst)
 		if err != nil {
 			return rowError(read, record.Tconst, fmt.Errorf("tconst: %w", err))

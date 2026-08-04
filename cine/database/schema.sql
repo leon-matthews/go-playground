@@ -130,6 +130,7 @@ CREATE TABLE IF NOT EXISTS titles (
 );
 
 -- title.episode: an episode's place in its parent series.
+-- An episode missing its parent tconst is not recorded here.
 CREATE TABLE IF NOT EXISTS episodes (
   id              INTEGER PRIMARY KEY,
   parent_id       INTEGER NOT NULL,

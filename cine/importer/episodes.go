@@ -25,6 +25,10 @@ func importEpisodes(ctx context.Context, tx *sql.Tx, episodes io.Reader, filter 
 			return counts{}, err
 		}
 		read++
+		// With no parent there is no place in a series to record.
+		if !record.HasParent() {
+			continue
+		}
 		id, err := parseID(record.Tconst)
 		if err != nil {
 			return counts{}, rowError(read, record.Tconst, fmt.Errorf("tconst: %w", err))

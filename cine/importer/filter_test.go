@@ -1,7 +1,9 @@
 package importer
 
 import (
-	"strings"
+	"io"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/bits-and-blooms/bitset"
@@ -46,34 +48,26 @@ func allowOnly(ids ...int64) titleFilter {
 	return titleFilter{allowed: allowed}
 }
 
+// openFilterFixture opens one of the hand-written datasets the filter tests
+// build from, which are small enough to reason about a rule against.
+func openFilterFixture(t *testing.T, name string) io.Reader {
+	t.Helper()
+	f, err := os.Open(filepath.Join("testdata", "filter", name))
+	require.NoError(t, err)
+	t.Cleanup(func() { f.Close() })
+	return f
+}
+
 func TestFilterBuilder(t *testing.T) {
-	// Series 100 is rated and clean, and episode 102 of it is flagged adult.
-	// Series 200 is unrated, series 300 is rated but adult. Film 900 is rated and
-	// clean, 800 is rated and adult, 700 is clean and unrated.
-	const basics = "tconst\ttitleType\tprimaryTitle\toriginalTitle\tisAdult\tstartYear\tendYear\truntimeMinutes\tgenres\n" +
-		"tt0000100\ttvSeries\tClean Series\tClean Series\t0\t2001\t\\N\t\\N\tDrama\n" +
-		"tt0000101\ttvEpisode\tEpisode One\tEpisode One\t0\t2001\t\\N\t42\tDrama\n" +
-		"tt0000102\ttvEpisode\tEpisode Two\tEpisode Two\t1\t2001\t\\N\t42\tDrama\n" +
-		"tt0000200\ttvSeries\tUnrated Series\tUnrated Series\t0\t2002\t\\N\t\\N\tDrama\n" +
-		"tt0000201\ttvEpisode\tEpisode One\tEpisode One\t0\t2002\t\\N\t42\tDrama\n" +
-		"tt0000202\ttvEpisode\tEpisode Two\tEpisode Two\t0\t2002\t\\N\t42\tDrama\n" +
-		"tt0000300\ttvSeries\tAdult Series\tAdult Series\t1\t2003\t\\N\t\\N\tAdult\n" +
-		"tt0000301\ttvEpisode\tEpisode One\tEpisode One\t0\t2003\t\\N\t42\tAdult\n" +
-		"tt0000700\tmovie\tUnrated Film\tUnrated Film\t0\t2007\t\\N\t90\tDrama\n" +
-		"tt0000800\tmovie\tAdult Film\tAdult Film\t1\t2008\t\\N\t90\tAdult\n" +
-		"tt0000900\tmovie\tClean Film\tClean Film\t0\t2009\t\\N\t90\tDrama\n"
-
-	const episodes = "tconst\tparentTconst\tseasonNumber\tepisodeNumber\n" +
-		"tt0000101\ttt0000100\t1\t1\n" +
-		"tt0000102\ttt0000100\t1\t2\n" +
-		"tt0000201\ttt0000200\t1\t1\n" +
-		"tt0000202\ttt0000200\t1\t2\n" +
-		"tt0000301\ttt0000300\t1\t1\n"
-
+	// In testdata/filter: series 100 is rated and clean, and episode 102 of it is
+	// flagged adult. Series 200 is unrated, series 300 is rated but adult. Film 900
+	// is rated and clean, 800 is rated and adult, 700 is clean and unrated.
+	// Episodes 400 and 401 name no parent, 400 rated and clean, 401 unrated.
 	ratings := map[int64]rating{
 		100: {average: 87, votes: 2000},
 		202: {average: 91, votes: 12}, // a rated episode of an unrated series
 		300: {average: 62, votes: 400},
+		400: {average: 73, votes: 55},
 		800: {average: 41, votes: 90},
 		900: {average: 57, votes: 30},
 	}
@@ -81,8 +75,8 @@ func TestFilterBuilder(t *testing.T) {
 	build := func(t *testing.T, options BuildOptions) titleFilter {
 		t.Helper()
 		builder := newFilterBuilder(options, ratings)
-		require.NoError(t, builder.readBasics(strings.NewReader(basics)))
-		require.NoError(t, builder.readEpisodes(strings.NewReader(episodes)))
+		require.NoError(t, builder.readBasics(openFilterFixture(t, "title.basics.tsv")))
+		require.NoError(t, builder.readEpisodes(openFilterFixture(t, "title.episode.tsv")))
 		return builder.filter()
 	}
 
@@ -138,18 +132,35 @@ func TestFilterBuilder(t *testing.T) {
 		assert.False(t, filter.allows(202), "rated episode cleared with its series")
 	})
 
+	t.Run("an episode with no parent keeps its own verdict", func(t *testing.T) {
+		// There is no parent to inherit a fate from, so the rules that judged the
+		// episode directly are the only ones that had anything to say about it.
+		t.Run("kept where the rules allowed it", func(t *testing.T) {
+			filter := build(t, BuildOptions{Rated: true, NotAdult: true})
+			assert.True(t, filter.allows(400), "rated and clean")
+		})
+
+		t.Run("refused where they did not", func(t *testing.T) {
+			filter := build(t, BuildOptions{Rated: true})
+			assert.False(t, filter.allows(401), "unrated")
+		})
+
+		t.Run("and is not cleared by the absence itself", func(t *testing.T) {
+			filter := build(t, BuildOptions{NotAdult: true})
+			assert.True(t, filter.allows(401), "clean, and no parent refused it")
+		})
+	})
+
 	t.Run("counts the titles it allows", func(t *testing.T) {
 		filter := build(t, BuildOptions{Rated: true, NotAdult: true})
 		count, filtering := filter.size()
 		assert.True(t, filtering)
-		assert.Equal(t, uint(4), count, "100, 101, 102 and 900")
+		assert.Equal(t, uint(5), count, "100, 101, 102, 400 and 900")
 	})
 
 	t.Run("a malformed identifier fails the build", func(t *testing.T) {
-		const bad = "tconst\tparentTconst\tseasonNumber\tepisodeNumber\n" +
-			"tt0000101\ttt-5\t1\t1\n"
 		builder := newFilterBuilder(BuildOptions{Rated: true}, ratings)
-		err := builder.readEpisodes(strings.NewReader(bad))
+		err := builder.readEpisodes(openFilterFixture(t, "title.episode.malformed.tsv"))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "negative title identifier")
 

@@ -131,6 +131,14 @@ type TitleEpisode struct {
 	EpisodeNumber int    // Missing (-1) for \N; map to SQL NULL
 }
 
+// HasParent reports whether IMDb named a parent series for this episode.
+//
+// The dataset documents parentTconst as required, so it is read as a plain
+// string, but some exports have had a rare \N instead of a tconst.
+func (e TitleEpisode) HasParent() bool {
+	return e.ParentTconst != nullMarker
+}
+
 var titleEpisodeHeader = []string{"tconst", "parentTconst", "seasonNumber", "episodeNumber"}
 
 // ReadTitleEpisode streams the rows of a title.episode TSV stream.

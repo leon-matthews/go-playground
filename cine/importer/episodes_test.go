@@ -19,7 +19,7 @@ func TestImportEpisodes(t *testing.T) {
 	require.NoError(t, err)
 	count, err := importEpisodes(ctx, tx, openIMDB(t, reader.FileTitleEpisode), titleFilter{})
 	require.NoError(t, err)
-	assert.Equal(t, counts{read: 2, written: 2}, count)
+	assert.Equal(t, counts{read: 3, written: 2}, count)
 	require.NoError(t, tx.Commit())
 
 	t.Run("episode keeps parent, season and number", func(t *testing.T) {
@@ -44,6 +44,13 @@ func TestImportEpisodes(t *testing.T) {
 		assert.False(t, episode.Valid)
 	})
 
+	t.Run("an episode with no parent is read but not written", func(t *testing.T) {
+		var found int
+		require.NoError(t, db.QueryRowContext(ctx,
+			"SELECT count(*) FROM episodes WHERE id = 7777777").Scan(&found))
+		assert.Zero(t, found)
+	})
+
 	t.Run("the filter drops an episode it did not allow", func(t *testing.T) {
 		// Only the episode is checked: the filter allows one only where it kept the
 		// parent, so 41038 being allowed already means 40021 was.
@@ -53,7 +60,7 @@ func TestImportEpisodes(t *testing.T) {
 		count, err := importEpisodes(ctx, tx, openIMDB(t, reader.FileTitleEpisode), allowOnly(41038))
 		require.NoError(t, err)
 		require.NoError(t, tx.Commit())
-		assert.Equal(t, counts{read: 2, written: 1}, count)
+		assert.Equal(t, counts{read: 3, written: 1}, count)
 
 		var remaining int64
 		require.NoError(t, db.QueryRowContext(ctx, "SELECT id FROM episodes").Scan(&remaining))

@@ -108,15 +108,21 @@ func TestReaders(t *testing.T) {
 	t.Run("TitleEpisode", func(t *testing.T) {
 		got, err := collect(ReadTitleEpisode(openIMDB(t, FileTitleEpisode)))
 		require.NoError(t, err)
-		require.Len(t, got, 2)
+		require.Len(t, got, 3)
 
 		assert.Equal(t, "tt0041038", got[0].ParentTconst)
 		assert.Equal(t, 1, got[0].SeasonNumber)
 		assert.Equal(t, 9, got[0].EpisodeNumber)
+		assert.True(t, got[0].HasParent())
 
 		assert.Equal(t, "tt32857063", got[1].ParentTconst) // 8-digit id kept as string
 		assert.Equal(t, Missing, got[1].SeasonNumber)
 		assert.Equal(t, Missing, got[1].EpisodeNumber)
+
+		t.Run("an absent parentTconst is read verbatim, not as an error", func(t *testing.T) {
+			assert.Equal(t, `\N`, got[2].ParentTconst, "a required column, so no conversion")
+			assert.False(t, got[2].HasParent())
+		})
 	})
 
 	t.Run("TitlePrincipals", func(t *testing.T) {
