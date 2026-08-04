@@ -17,7 +17,7 @@ func TestImportEpisodes(t *testing.T) {
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	count, err := importEpisodes(ctx, tx, openIMDB(t, reader.FileTitleEpisode), titleFilter{})
+	count, err := importEpisodes(ctx, tx, openFixture(t, "imdb", reader.FileTitleEpisode), titleFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, counts{read: 3, written: 2}, count)
 	require.NoError(t, tx.Commit())
@@ -57,7 +57,7 @@ func TestImportEpisodes(t *testing.T) {
 		db := openImportDB(t)
 		tx, err := db.BeginTx(ctx, nil)
 		require.NoError(t, err)
-		count, err := importEpisodes(ctx, tx, openIMDB(t, reader.FileTitleEpisode), allowOnly(41038))
+		count, err := importEpisodes(ctx, tx, openFixture(t, "imdb", reader.FileTitleEpisode), allowOnly(41038))
 		require.NoError(t, err)
 		require.NoError(t, tx.Commit())
 		assert.Equal(t, counts{read: 3, written: 1}, count)

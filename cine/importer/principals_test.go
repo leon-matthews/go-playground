@@ -17,7 +17,7 @@ func TestImportPrincipals(t *testing.T) {
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	count, lookups, err := importPrincipals(ctx, tx, openIMDB(t, reader.FileTitlePrincipals), titleFilter{})
+	count, lookups, err := importPrincipals(ctx, tx, openFixture(t, "imdb", reader.FileTitlePrincipals), titleFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, counts{read: 3, written: 3}, count)
 	require.NoError(t, flushLookup(ctx, tx, "principals_category", lookups.category))
@@ -75,7 +75,7 @@ func TestImportPrincipals(t *testing.T) {
 		db := openImportDB(t)
 		tx, err := db.BeginTx(ctx, nil)
 		require.NoError(t, err)
-		count, lookups, err := importPrincipals(ctx, tx, openIMDB(t, reader.FileTitlePrincipals), allowOnly(1))
+		count, lookups, err := importPrincipals(ctx, tx, openFixture(t, "imdb", reader.FileTitlePrincipals), allowOnly(1))
 		require.NoError(t, err)
 		require.NoError(t, flushLookup(ctx, tx, "principals_category", lookups.category))
 		require.NoError(t, flushLookup(ctx, tx, "principals_job", lookups.job))

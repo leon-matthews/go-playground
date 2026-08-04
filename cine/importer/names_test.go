@@ -18,7 +18,7 @@ func TestImportNames(t *testing.T) {
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	count, profession, err := importNames(ctx, tx, openIMDB(t, reader.FileNameBasics), titleFilter{})
+	count, profession, err := importNames(ctx, tx, openFixture(t, "imdb", reader.FileNameBasics), titleFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, counts{read: 3, written: 3}, count)
 	require.NoError(t, flushLookup(ctx, tx, "names_profession", profession))
@@ -107,7 +107,7 @@ func TestImportNames(t *testing.T) {
 		db := openImportDB(t)
 		tx, err := db.BeginTx(ctx, nil)
 		require.NoError(t, err)
-		count, profession, err := importNames(ctx, tx, openIMDB(t, reader.FileNameBasics), allowOnly(50419))
+		count, profession, err := importNames(ctx, tx, openFixture(t, "imdb", reader.FileNameBasics), allowOnly(50419))
 		require.NoError(t, err)
 		require.NoError(t, flushLookup(ctx, tx, "names_profession", profession))
 		require.NoError(t, tx.Commit())

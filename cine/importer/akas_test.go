@@ -17,7 +17,7 @@ func TestImportAkas(t *testing.T) {
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	count, lookups, err := importAkas(ctx, tx, openIMDB(t, reader.FileTitleAkas), titleFilter{})
+	count, lookups, err := importAkas(ctx, tx, openFixture(t, "imdb", reader.FileTitleAkas), titleFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, counts{read: 3, written: 3}, count)
 	require.NoError(t, flushLookup(ctx, tx, "akas_region", lookups.region))
@@ -97,7 +97,7 @@ func TestImportAkas(t *testing.T) {
 		db := openImportDB(t)
 		tx, err := db.BeginTx(ctx, nil)
 		require.NoError(t, err)
-		count, lookups, err := importAkas(ctx, tx, openIMDB(t, reader.FileTitleAkas), allowOnly(1))
+		count, lookups, err := importAkas(ctx, tx, openFixture(t, "imdb", reader.FileTitleAkas), allowOnly(1))
 		require.NoError(t, err)
 		for table, in := range map[string]*interner{
 			"akas_region": lookups.region, "akas_language": lookups.language,

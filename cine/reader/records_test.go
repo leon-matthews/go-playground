@@ -1,6 +1,7 @@
 package reader
 
 import (
+	"bytes"
 	"io"
 	"iter"
 	"os"
@@ -24,14 +25,13 @@ func collect[T any](seq iter.Seq2[T, error]) ([]T, error) {
 	return out, nil
 }
 
-// openIMDB opens a sample dataset file from testdata/imdb, keyed off the
+// openIMDB reads a sample dataset file from testdata/imdb, keyed off the
 // canonical gzip file name with its .gz suffix dropped.
 func openIMDB(t *testing.T, gzName string) io.Reader {
 	t.Helper()
-	f, err := os.Open(filepath.Join("testdata", "imdb", strings.TrimSuffix(gzName, ".gz")))
+	data, err := os.ReadFile(filepath.Join("testdata", "imdb", strings.TrimSuffix(gzName, ".gz")))
 	require.NoError(t, err)
-	t.Cleanup(func() { f.Close() })
-	return f
+	return bytes.NewReader(data)
 }
 
 func TestReaders(t *testing.T) {

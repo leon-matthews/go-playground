@@ -1,6 +1,7 @@
 package importer
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"io"
@@ -20,14 +21,14 @@ func TestImportTitles(t *testing.T) {
 	ctx := context.Background()
 	db := openImportDB(t)
 
-	ratings, ratingsRead, err := loadRatings(openIMDB(t, reader.FileTitleRatings))
+	ratings, ratingsRead, err := loadRatings(openFixture(t, "imdb", reader.FileTitleRatings))
 	require.NoError(t, err)
 	require.Len(t, ratings, 2)
 	assert.Equal(t, int64(2), ratingsRead)
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	count, lookups, err := importTitles(ctx, tx, openIMDB(t, reader.FileTitleBasics), ratings, titleFilter{})
+	count, lookups, err := importTitles(ctx, tx, openFixture(t, "imdb", reader.FileTitleBasics), ratings, titleFilter{})
 	require.NoError(t, err)
 	assert.Equal(t, counts{read: 3, written: 3}, count)
 	require.NoError(t, flushLookup(ctx, tx, "titles_type", lookups.titleType))
@@ -89,12 +90,12 @@ func TestImportTitlesFiltered(t *testing.T) {
 	ctx := context.Background()
 	db := openImportDB(t)
 
-	ratings, _, err := loadRatings(openIMDB(t, reader.FileTitleRatings))
+	ratings, _, err := loadRatings(openFixture(t, "imdb", reader.FileTitleRatings))
 	require.NoError(t, err)
 
 	tx, err := db.BeginTx(ctx, nil)
 	require.NoError(t, err)
-	count, lookups, err := importTitles(ctx, tx, openIMDB(t, reader.FileTitleBasics), ratings, allowOnly(1))
+	count, lookups, err := importTitles(ctx, tx, openFixture(t, "imdb", reader.FileTitleBasics), ratings, allowOnly(1))
 	require.NoError(t, err)
 	require.NoError(t, flushLookup(ctx, tx, "titles_type", lookups.titleType))
 	require.NoError(t, flushLookup(ctx, tx, "titles_genre", lookups.genre))
@@ -148,13 +149,13 @@ func openImportDB(t *testing.T) *sql.DB {
 	return db
 }
 
-// openIMDB opens a sample dataset file from testdata/imdb, keyed off the
-// canonical gzip file name with its .gz suffix dropped, mirroring the reader
-// package's fixtures.
-func openIMDB(t *testing.T, gzName string) io.Reader {
+// openFixture reads a fixture from the named subfolder of testdata.
+//
+// A trailing .gz is dropped, so the reader package's file name constants can be
+// passed straight through.
+func openFixture(t *testing.T, dir, name string) io.Reader {
 	t.Helper()
-	f, err := os.Open(filepath.Join("testdata", "imdb", strings.TrimSuffix(gzName, ".gz")))
+	data, err := os.ReadFile(filepath.Join("testdata", dir, strings.TrimSuffix(name, ".gz")))
 	require.NoError(t, err)
-	t.Cleanup(func() { f.Close() })
-	return f
+	return bytes.NewReader(data)
 }

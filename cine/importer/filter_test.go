@@ -1,9 +1,6 @@
 package importer
 
 import (
-	"io"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/bits-and-blooms/bitset"
@@ -48,16 +45,6 @@ func allowOnly(ids ...int64) titleFilter {
 	return titleFilter{allowed: allowed}
 }
 
-// openFilterFixture opens one of the hand-written datasets the filter tests
-// build from, which are small enough to reason about a rule against.
-func openFilterFixture(t *testing.T, name string) io.Reader {
-	t.Helper()
-	f, err := os.Open(filepath.Join("testdata", "filter", name))
-	require.NoError(t, err)
-	t.Cleanup(func() { f.Close() })
-	return f
-}
-
 func TestFilterBuilder(t *testing.T) {
 	// In testdata/filter: series 100 is rated and clean, and episode 102 of it is
 	// flagged adult. Series 200 is unrated, series 300 is rated but adult. Film 900
@@ -75,8 +62,8 @@ func TestFilterBuilder(t *testing.T) {
 	build := func(t *testing.T, options BuildOptions) titleFilter {
 		t.Helper()
 		builder := newFilterBuilder(options, ratings)
-		require.NoError(t, builder.readBasics(openFilterFixture(t, "title.basics.tsv")))
-		require.NoError(t, builder.readEpisodes(openFilterFixture(t, "title.episode.tsv")))
+		require.NoError(t, builder.readBasics(openFixture(t, "filter", "title.basics.tsv")))
+		require.NoError(t, builder.readEpisodes(openFixture(t, "filter", "title.episode.tsv")))
 		return builder.filter()
 	}
 
@@ -160,7 +147,7 @@ func TestFilterBuilder(t *testing.T) {
 
 	t.Run("a malformed identifier fails the build", func(t *testing.T) {
 		builder := newFilterBuilder(BuildOptions{Rated: true}, ratings)
-		err := builder.readEpisodes(openFilterFixture(t, "title.episode.malformed.tsv"))
+		err := builder.readEpisodes(openFixture(t, "filter", "title.episode.malformed.tsv"))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "negative title identifier")
 
