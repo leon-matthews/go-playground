@@ -4,6 +4,10 @@ Package `humanise` formats values for human consumption. It loosely tracks Pytho
 [humanize](https://github.com/python-humanize/humanize) library, grouping its functions into
 numbers, sizes and units, time and dates, and text.
 
+A space separates a number from its unit, following ISO 80000-1, so a file size reads
+`4.2 kB` and a voltage `1.5 kV`. The deliberately compact forms are the exception:
+`WordsCompact` abbreviates to `1.2M`.
+
 ## Numbers
 
 | Function       | Example call               | Result        |
@@ -17,11 +21,11 @@ numbers, sizes and units, time and dates, and text.
 
 ## Sizes & units
 
-| Function      | Example call        | Result   |
-| ------------- | ------------------- | -------- |
-| `FileSize`    | `FileSize(4200)`    | `4.2kB`  |
-| `FileSizeIEC` | `FileSizeIEC(4200)` | `4.1KiB` |
-| `Metric`      | `Metric(1500, "V")` | `1.5 kV` |
+| Function      | Example call        | Result    |
+| ------------- | ------------------- | --------- |
+| `FileSize`    | `FileSize(4200)`    | `4.2 kB`  |
+| `FileSizeIEC` | `FileSizeIEC(4200)` | `4.1 KiB` |
+| `Metric`      | `Metric(1500, "V")` | `1.5 kV`  |
 
 ## Time & dates
 

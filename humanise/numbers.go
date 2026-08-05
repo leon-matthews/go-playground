@@ -113,8 +113,8 @@ func Words(n int64) string {
 
 // WordsCompact abbreviates an integer's scale word, eg. 1200000 becomes "1.2M".
 //
-// Suffixes run K, M, B and T, where B is billion rather than bytes; a value beyond a
-// thousand trillion keeps the T suffix and groups its mantissa with commas ("1,000T").
+// Suffixes run K, M, B and T, where B is billion rather than bytes; from a thousand
+// trillion up the T suffix holds and the mantissa is grouped with commas ("1,000T").
 // Values below a thousand are returned as plain digits.
 func WordsCompact(n int64) string {
 	if -1000 < n && n < 1000 {
