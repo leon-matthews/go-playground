@@ -8,13 +8,6 @@ import (
 	"local.dev/htmx/assets"
 )
 
-// The application struct holds the dependencies needed for our handlers,
-// including a htmlRenderer type.
-type application struct {
-	logger *slog.Logger
-	html   *htmlRenderer
-}
-
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
@@ -37,9 +30,11 @@ func main() {
 
 	// Register the application routes.
 	mux := http.NewServeMux()
-    mux.Handle("GET /static/", http.StripPrefix("/static", fileserver))
-    mux.HandleFunc("GET /{$}", app.home)
-    mux.HandleFunc("GET /gopher", app.gopher)
+	mux.Handle("GET /static/", http.StripPrefix("/static", fileserver))
+	mux.HandleFunc("GET /{$}", app.home)
+	mux.HandleFunc("GET /gopher", app.gopher)
+	mux.HandleFunc("GET /users", app.listUsers)
+	mux.HandleFunc("GET /users/search", app.searchUsers)
 
 	// Start the HTTP server.
 	logger.Info("starting server", "port", 5051)

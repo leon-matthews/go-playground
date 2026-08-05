@@ -1,0 +1,39 @@
+{{define "page:title"}}Users{{end}}
+
+{{define "page:content"}}
+<input type="search" name="query" 
+       placeholder="Begin Typing To Search Users..."
+       hx-get="/users/search"
+       hx-trigger="input changed delay:500ms, keyup[key=='Enter']"
+       hx-target="#search-results"
+       hx-push-url="true">
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>&nbsp;</th>
+        </tr>
+    </thead>
+    <tbody id="search-results">
+        {{template "users:rows" .}}
+    </tbody>
+</table>
+{{end}}
+
+<!-- Fragments for the users page -->
+
+{{define "users:rows"}}
+    {{range .}}
+    <tr>
+        <td>{{ .Name }}</td>
+        <td>{{ .Email }}</td>
+        <td>
+            {{if .IsGopher}}
+                {{template "partial:image:gopher" 24}}
+            {{end}}
+        </td>
+    </tr>
+    {{end}}
+{{end}}

@@ -57,6 +57,10 @@ func (h *htmlRenderer) render(w http.ResponseWriter, status int, data any, templ
 		return err
 	}
 
+	// Sometimes we render requests from HTMX differently
+	w.Header().Add("Vary", "HX-Request")
+
+	// Status and body
 	w.WriteHeader(status)
 	buf.WriteTo(w)
 
