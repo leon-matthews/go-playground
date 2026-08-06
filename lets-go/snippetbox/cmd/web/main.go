@@ -8,9 +8,17 @@ import (
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
+
+	"local.dev/snippetbox/internal/models"
 )
 
 const defaultDSN = "web:web@/snippetbox?parseTime=true"
+
+// application holds dependencies for the web app.
+type application struct {
+	logger   *slog.Logger
+	snippets *models.SnippetModel
+}
 
 func main() {
 	// Flags
@@ -33,7 +41,8 @@ func main() {
 
 	// Global state
 	app := application{
-		logger: logger,
+		logger:   logger,
+		snippets: &models.SnippetModel{DB: db},
 	}
 
 	// Let's go

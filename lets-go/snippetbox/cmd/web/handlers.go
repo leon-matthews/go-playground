@@ -3,15 +3,9 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"log/slog"
 	"net/http"
 	"strconv"
 )
-
-// application holds dependencies for the web app.
-type application struct {
-	logger *slog.Logger
-}
 
 func (app *application) index(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Server", "Go")
