@@ -1,31 +1,62 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 
-	assets "local.dev/snippetbox/www"
+	_ "github.com/go-sql-driver/mysql"
 )
+
+const defaultDSN = "web:web@/snippetbox?parseTime=true"
 
 func main() {
 	// Flags
 	addr := flag.String("addr", ":8000", "HTTP server address")
+	dsn := flag.String("dsn", defaultDSN, "MariaDB data source name")
 	flag.Parse()
 
-	// Multiplex!
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /{$}", index)
-	mux.HandleFunc("GET /snippet/view/{id}", snippetView)
-	mux.HandleFunc("GET /snippet/create", snippetCreate)
-	mux.HandleFunc("POST /snippet/create", snippetCreatePost)
+	// Logging
+	options := slog.HandlerOptions{Level: slog.LevelDebug}
+	handler := slog.NewTextHandler(os.Stdout, &options)
+	logger := slog.New(handler)
 
-	// Static files
-	fileserver := http.FileServerFS(assets.StaticFiles)
-	mux.Handle("GET /static/", http.StripPrefix("/static", fileserver))
+	// Database
+	db, err := openDB(*dsn)
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	// Global state
+	app := application{
+		logger: logger,
+	}
 
 	// Let's go
-	log.Printf("starting server on %s", *addr)
-	err := http.ListenAndServe(*addr, mux)
-	log.Fatal(err)
+	logger.Info("starting server", slog.String("addr", *addr))
+	err = http.ListenAndServe(*addr, app.routes())
+	logger.Error(err.Error())
+	os.Exit(1)
+}
+
+// openDB wraps sql.Open() and returns an sql.DB connection poll
+func openDB(dsn string) (*sql.DB, error) {
+	// Create pool
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	// Actually make connection
+	err = db.Ping()
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+
+	return db, nil
 }

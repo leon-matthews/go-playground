@@ -17,3 +17,11 @@ utility [Reflex](https://github.com/cespare/reflex), as so:
 ```bash
 $ reflex -s -- sh -c 'go run ./cmd/web/ --addr=localhost:8000'
 ```
+
+## Database 
+
+Connect to database:
+
+```bash
+$ mariadb -D snippetbox -u web -p
+```
