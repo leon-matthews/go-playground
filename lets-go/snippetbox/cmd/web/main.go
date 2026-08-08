@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"flag"
 	"log/slog"
 	"net/http"
@@ -27,12 +26,14 @@ func main() {
 	flag.Parse()
 
 	// Logging
-	options := slog.HandlerOptions{Level: slog.LevelDebug}
+	options := slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}
 	handler := slog.NewTextHandler(os.Stdout, &options)
 	logger := slog.New(handler)
 
 	// Database
-	db, err := openDB(*dsn)
+	db, err := models.OpenDB(*dsn)
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
@@ -50,22 +51,4 @@ func main() {
 	err = http.ListenAndServe(*addr, app.routes())
 	logger.Error(err.Error())
 	os.Exit(1)
-}
-
-// openDB wraps sql.Open() and returns an sql.DB connection poll
-func openDB(dsn string) (*sql.DB, error) {
-	// Create pool
-	db, err := sql.Open("mysql", dsn)
-	if err != nil {
-		return nil, err
-	}
-
-	// Actually make connection
-	err = db.Ping()
-	if err != nil {
-		db.Close()
-		return nil, err
-	}
-
-	return db, nil
 }
