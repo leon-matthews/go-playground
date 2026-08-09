@@ -5,19 +5,26 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 )
 
-// serverError logs an error, then sends generic 500 response to user
-func (app *application) serverError(w http.ResponseWriter, r *http.Request, err error) {
-	app.logger.Error(err.Error(), slog.String("method", r.Method), slog.String("uri", r.URL.RequestURI()))
-	msg := http.StatusText(http.StatusInternalServerError)
-	http.Error(w, msg, http.StatusInternalServerError)
+func (app *application) newTemplateData(r *http.Request) templateData {
+	return templateData{
+		CurrentYear: time.Now().Year(),
+	}
 }
 
 // clientError sends given status code and generic message
 func (app *application) clientError(w http.ResponseWriter, status int) {
 	msg := http.StatusText(status)
 	http.Error(w, msg, status)
+}
+
+// serverError logs an error, then sends generic 500 response to user
+func (app *application) serverError(w http.ResponseWriter, r *http.Request, err error) {
+	app.logger.Error(err.Error(), slog.String("method", r.Method), slog.String("uri", r.URL.RequestURI()))
+	msg := http.StatusText(http.StatusInternalServerError)
+	http.Error(w, msg, http.StatusInternalServerError)
 }
 
 func (app *application) render(w http.ResponseWriter, r *http.Request, status int, page string, data templateData) {

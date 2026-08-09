@@ -9,8 +9,9 @@ import (
 
 // templateData is a holding structure for any dynamic data we pass to HTML templates.
 type templateData struct {
-	Snippet  models.Snippet
-	Snippets []models.Snippet
+	CurrentYear int
+	Snippet     models.Snippet
+	Snippets    []models.Snippet
 }
 
 type templateCache map[string]*template.Template

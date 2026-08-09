@@ -19,9 +19,9 @@ func (app *application) index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Use the new render helper.
-	app.render(w, r, http.StatusOK, "index.html", templateData{
-		Snippets: snippets,
-	})
+	data := app.newTemplateData(r)
+	data.Snippets = snippets
+	app.render(w, r, http.StatusOK, "index.html", data)
 }
 
 // snippetView fetches from DB then displays the details of one snippet from the given ID
@@ -42,9 +42,9 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	app.render(w, r, http.StatusOK, "view.html", templateData{
-		Snippet: snippet,
-	})
+	data := app.newTemplateData(r)
+	data.Snippet = snippet
+	app.render(w, r, http.StatusOK, "view.html", data)
 }
 
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
