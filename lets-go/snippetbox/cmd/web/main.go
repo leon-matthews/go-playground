@@ -15,8 +15,9 @@ const defaultDSN = "web:web@/snippetbox?parseTime=true"
 
 // application holds dependencies for the web app.
 type application struct {
-	logger   *slog.Logger
-	snippets *models.SnippetModel
+	logger    *slog.Logger
+	snippets  *models.SnippetModel
+	templates templateCache
 }
 
 func main() {
@@ -40,10 +41,18 @@ func main() {
 	}
 	defer db.Close()
 
+	// Initialize a new template cache...
+	templates, err := newTemplateCache()
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
+
 	// Global state
 	app := application{
-		logger:   logger,
-		snippets: &models.SnippetModel{DB: db},
+		logger:    logger,
+		snippets:  &models.SnippetModel{DB: db},
+		templates: templates,
 	}
 
 	// Let's go

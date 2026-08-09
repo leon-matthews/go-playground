@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"strconv"
 
@@ -19,24 +18,10 @@ func (app *application) index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse the template files...
-	files := []string{
-		"./www/html/base.html",
-		"./www/html/snippets/nav.html",
-		"./www/html/pages/index.html",
-	}
-	ts, err := template.ParseFiles(files...)
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	// ...then execute them
-	data := &templateData{Snippets: snippets}
-	err = ts.ExecuteTemplate(w, "base", data)
-	if err != nil {
-		app.serverError(w, r, err)
-	}
+	// Use the new render helper.
+	app.render(w, r, http.StatusOK, "index.html", templateData{
+		Snippets: snippets,
+	})
 }
 
 // snippetView fetches from DB then displays the details of one snippet from the given ID
@@ -57,24 +42,9 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse the template files...
-	files := []string{
-		"./www/html/base.html",
-		"./www/html/snippets/nav.html",
-		"./www/html/pages/view.html",
-	}
-	ts, err := template.ParseFiles(files...)
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	// ...then execute them, passing in snippet struct
-	data := templateData{Snippet: snippet}
-	err = ts.ExecuteTemplate(w, "base", data)
-	if err != nil {
-		app.serverError(w, r, err)
-	}
+	app.render(w, r, http.StatusOK, "view.html", templateData{
+		Snippet: snippet,
+	})
 }
 
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
