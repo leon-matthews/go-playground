@@ -19,28 +19,24 @@ func (app *application) index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, snippet := range snippets {
-		fmt.Fprintf(w, "%+v\n", snippet)
+	// Parse the template files...
+	files := []string{
+		"./www/html/base.html",
+		"./www/html/snippets/nav.html",
+		"./www/html/pages/index.html",
+	}
+	ts, err := template.ParseFiles(files...)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
 	}
 
-	// Create template set.
-	// files := []string{
-	// 	"./www/html/base.html",
-	// 	"./www/html/snippets/nav.html",
-	// 	"./www/html/pages/index.html",
-	// }
-	// ts, err := template.ParseFiles(files...)
-	// if err != nil {
-	// 	app.serverError(w, r, err)
-	// 	return
-	// }
-	//
-	// // Write template content as response body, with no data for now
-	// err = ts.ExecuteTemplate(w, "base", nil)
-	// if err != nil {
-	// 	app.serverError(w, r, err)
-	// 	return
-	// }
+	// ...then execute them
+	data := &templateData{Snippets: snippets}
+	err = ts.ExecuteTemplate(w, "base", data)
+	if err != nil {
+		app.serverError(w, r, err)
+	}
 }
 
 // snippetView fetches from DB then displays the details of one snippet from the given ID
