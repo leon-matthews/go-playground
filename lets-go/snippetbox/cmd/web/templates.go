@@ -26,23 +26,28 @@ func newTemplateCache() (map[string]*template.Template, error) {
 
 	// Loop through the page path
 	for _, page := range pages {
-		// Collect all paths needed for this page
-		files := []string{
-			"./www/html/base.html",
-			"./www/html/snippets/nav.html",
-			page,
-		}
+		name := filepath.Base(page)
 
-		// Parse the files into a template set.
-		ts, err := template.ParseFiles(files...)
+		// Parse the base template file into a template set.
+		ts, err := template.ParseFiles("./www/html/base.html")
 		if err != nil {
 			return nil, err
 		}
 
-		// Save the template set using base name as key, eg. "index.html"
-		name := filepath.Base(page)
+		// Add HTML snippets by calling method on the new template set
+		ts, err = ts.ParseGlob("./www/html/snippets/*.html")
+		if err != nil {
+			return nil, err
+		}
+
+		// Add page template
+		ts, err = ts.ParseFiles(page)
+		if err != nil {
+			return nil, err
+		}
+
+		// Add the template set to the map as normal...
 		cache[name] = ts
 	}
-
 	return cache, nil
 }
