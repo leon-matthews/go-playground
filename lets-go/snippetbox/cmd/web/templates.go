@@ -3,6 +3,7 @@ package main
 import (
 	"html/template"
 	"path/filepath"
+	"time"
 
 	"local.dev/snippetbox/internal/models"
 )
@@ -12,6 +13,15 @@ type templateData struct {
 	CurrentYear int
 	Snippet     models.Snippet
 	Snippets    []models.Snippet
+}
+
+// humanDate creates nicely formatted date string
+func humanDate(t time.Time) string {
+	return t.Format("02 Jan 2006 at 15:04")
+}
+
+var functions = template.FuncMap{
+	"humanDate": humanDate,
 }
 
 type templateCache map[string]*template.Template
@@ -27,10 +37,12 @@ func newTemplateCache() (map[string]*template.Template, error) {
 
 	// Loop through the page path
 	for _, page := range pages {
+		// Create empty template with our custom functions
 		name := filepath.Base(page)
+		ts := template.New(name).Funcs(functions)
 
 		// Parse the base template file into a template set.
-		ts, err := template.ParseFiles("./www/html/base.html")
+		ts.ParseFiles("./www/html/base.html")
 		if err != nil {
 			return nil, err
 		}
