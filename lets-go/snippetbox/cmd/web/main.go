@@ -27,11 +27,11 @@ func main() {
 	flag.Parse()
 
 	// Logging
-	options := slog.HandlerOptions{
+	logOptions := slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}
-	handler := slog.NewTextHandler(os.Stdout, &options)
-	logger := slog.New(handler)
+	logHandler := slog.NewTextHandler(os.Stdout, &logOptions)
+	logger := slog.New(logHandler)
 
 	// Database
 	db, err := models.OpenDB(*dsn)
@@ -57,7 +57,9 @@ func main() {
 
 	// Let's go
 	logger.Info("starting server", slog.String("addr", *addr))
-	err = http.ListenAndServe(*addr, commonHeaders(app.routes()))
+	var handler http.Handler = app.routes()
+	handler = commonHeaders(handler)
+	err = http.ListenAndServe(*addr, handler)
 	logger.Error(err.Error())
 	os.Exit(1)
 }

@@ -6,7 +6,7 @@ import (
 	assets "local.dev/snippetbox/www"
 )
 
-func (app *application) routes() *http.ServeMux {
+func (app *application) routes() http.Handler {
 	// Index
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", app.index)
@@ -20,5 +20,6 @@ func (app *application) routes() *http.ServeMux {
 	fileserver := http.FileServerFS(assets.StaticFiles)
 	mux.Handle("GET /static/", http.StripPrefix("/static", fileserver))
 
-	return mux
+	// Wrap mux in our logging middleware
+	return app.logRequest(mux)
 }

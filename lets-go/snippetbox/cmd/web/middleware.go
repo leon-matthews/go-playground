@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log/slog"
 	"net/http"
 	"runtime"
 )
@@ -28,6 +29,18 @@ func commonHeaders(next http.Handler) http.Handler {
 		// Disable browser's built-in XSS filtering, as we are using CSP headers
 		h.Set("X-XSS-Protection", "0")
 
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (app *application) logRequest(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		app.logger.Debug("received request",
+			slog.String("ip", r.RemoteAddr),
+			slog.String("proto", r.Proto),
+			slog.String("method", r.Method),
+			slog.String("uri", r.URL.RequestURI()),
+		)
 		next.ServeHTTP(w, r)
 	})
 }
