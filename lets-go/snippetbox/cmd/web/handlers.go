@@ -51,6 +51,9 @@ func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
+	// Enforce 4KiB limit
+	r.Body = http.MaxBytesReader(w, r.Body, 4096)
+
 	// Populate r.Form and r.PostForm
 	err := r.ParseForm()
 	if err != nil {
