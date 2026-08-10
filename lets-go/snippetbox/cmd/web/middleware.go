@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"runtime"
@@ -41,6 +42,25 @@ func (app *application) logRequest(next http.Handler) http.Handler {
 			slog.String("method", r.Method),
 			slog.String("uri", r.URL.RequestURI()),
 		)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (app *application) recoverPanic(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			// Use the built-in recover() function to check if a panic occurred.
+			pv := recover()
+
+			// If a panic did happen...
+			if pv != nil {
+				// ...set a "Connection: close" header on the response, then send 500 error
+				w.Header().Set("Connection", "close")
+				err := fmt.Errorf("Panic in handler: %v", pv)
+				app.serverError(w, r, err)
+			}
+		}()
+
 		next.ServeHTTP(w, r)
 	})
 }
