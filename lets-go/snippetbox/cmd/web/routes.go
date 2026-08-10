@@ -3,6 +3,8 @@ package main
 import (
 	"net/http"
 
+	"github.com/justinas/alice"
+
 	assets "local.dev/snippetbox/www"
 )
 
@@ -20,6 +22,7 @@ func (app *application) routes() http.Handler {
 	fileserver := http.FileServerFS(assets.StaticFiles)
 	mux.Handle("GET /static/", http.StripPrefix("/static", fileserver))
 
-	// Wrap mux in our logging & panic recovery middleware
-	return app.recoverPanic(app.logRequest(mux))
+	// Wrap mux in our middleware
+	standard := alice.New(app.recoverPanic, app.logRequest, commonHeaders)
+	return standard.Then(mux)
 }

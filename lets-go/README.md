@@ -4,4 +4,4 @@ by Alex Edwards.
 
 ## TODO
 
-Continue from Chapter 2.8 "HTML templating and inheritance"
+Continue from Chapter 7: "Processing Forms"

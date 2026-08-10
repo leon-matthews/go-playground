@@ -57,9 +57,7 @@ func main() {
 
 	// Let's go
 	logger.Info("starting server", slog.String("addr", *addr))
-	var handler http.Handler = app.routes()
-	handler = commonHeaders(handler)
-	err = http.ListenAndServe(*addr, handler)
+	err = http.ListenAndServe(*addr, app.routes())
 	logger.Error(err.Error())
 	os.Exit(1)
 }
