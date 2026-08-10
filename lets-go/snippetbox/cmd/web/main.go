@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/go-playground/form/v4"
 	_ "github.com/go-sql-driver/mysql"
 
 	"local.dev/snippetbox/internal/models"
@@ -15,9 +16,10 @@ const defaultDSN = "web:web@/snippetbox?parseTime=true"
 
 // application holds dependencies for the web app.
 type application struct {
-	logger    *slog.Logger
-	snippets  *models.SnippetModel
-	templates templateCache
+	logger      *slog.Logger
+	snippets    *models.SnippetModel
+	templates   templateCache
+	formDecoder *form.Decoder
 }
 
 func main() {
@@ -50,9 +52,10 @@ func main() {
 
 	// Global state
 	app := application{
-		logger:    logger,
-		snippets:  &models.SnippetModel{DB: db},
-		templates: templates,
+		logger:      logger,
+		snippets:    &models.SnippetModel{DB: db},
+		templates:   templates,
+		formDecoder: form.NewDecoder(),
 	}
 
 	// Let's go

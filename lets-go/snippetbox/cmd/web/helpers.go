@@ -2,11 +2,32 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/go-playground/form/v4"
 )
+
+// decodePostForm populates destination with values from posted form.
+func (app *application) decodePostForm(r *http.Request, destination any) error {
+	err := r.ParseForm()
+	if err != nil {
+		return err
+	}
+
+	err = app.formDecoder.Decode(destination, r.PostForm)
+	if err != nil {
+		// Panic, as we've passed in the wrong type. Programmer error!
+		if _, ok := errors.AsType[*form.InvalidDecoderError](err); ok {
+			panic(err)
+		}
+		return err
+	}
+	return nil
+}
 
 func (app *application) newTemplateData(r *http.Request) templateData {
 	return templateData{

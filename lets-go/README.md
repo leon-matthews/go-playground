@@ -4,4 +4,4 @@ by Alex Edwards.
 
 ## TODO
 
-Continue from Chapter 7: "Processing Forms"
+Continue from Chapter 8: "Stateful HTTP"
