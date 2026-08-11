@@ -11,5 +11,5 @@ sudo mariadb-dump --single-transaction --routines --events --databases snippetbo
 ## Restore
 
 ```bash
-sudo mariadb snippetbox < backup.sql
+sudo mariadb snippetbox < database.sql
 ```

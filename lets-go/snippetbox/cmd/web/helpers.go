@@ -34,6 +34,11 @@ func (app *application) clientError(w http.ResponseWriter, status int) {
 	http.Error(w, msg, status)
 }
 
+// Return true if the current request is from an authenticated user
+func (app *application) isAuthenticated(r *http.Request) bool {
+	return app.sessionManager.Exists(r.Context(), "authenticatedUserID")
+}
+
 // serverError logs an error, then sends generic 500 response to user
 func (app *application) serverError(w http.ResponseWriter, r *http.Request, err error) {
 	app.logger.Error(err.Error(), slog.String("method", r.Method), slog.String("uri", r.URL.RequestURI()))

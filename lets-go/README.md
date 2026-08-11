@@ -16,4 +16,4 @@ follow along with the text for now. For reference:
 
 ## TODO
 
-Continue from Chapter 10.6: "User authorisation"
+Continue from Chapter 10.7: "CSRF protection"
