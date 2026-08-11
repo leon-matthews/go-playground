@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 	"runtime"
+
+	"github.com/justinas/nosurf"
 )
 
 var goVersionString = "Go " + runtime.Version()[2:]
@@ -32,6 +34,17 @@ func commonHeaders(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// preventCSRF uses a CSRF token check
+func preventCSRF(next http.Handler) http.Handler {
+	csrfHandler := nosurf.New(next)
+	csrfHandler.SetBaseCookie(http.Cookie{
+		HttpOnly: true,
+		Path:     "/",
+		Secure:   true,
+	})
+	return csrfHandler
 }
 
 func (app *application) logRequest(next http.Handler) http.Handler {
