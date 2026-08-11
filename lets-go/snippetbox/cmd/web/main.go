@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"log/slog"
 	"net/http"
@@ -68,12 +69,29 @@ func main() {
 		sessionManager: sessionManager,
 	}
 
+	// TLS Setup
+	// Recommended configurations from:
+	// https://docs.tlsref.org/server-side-tls.html
+	tlsConfig := &tls.Config{
+		// Avoid slow elliptic curve implementations. Despite the name this
+		// value is just set of supported key-exchange mechanisms
+		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
+
+		// Note that when TLS 1.3 is in use, `tls.Config.CipherSuites` is ignored.
+		MinVersion: tls.VersionTLS13,
+	}
+
 	// Server
 	srv := &http.Server{
 		Addr:    *addr,
 		Handler: app.routes(),
 		// Requires a *log.Logger which can create using our existing slog handler
-		ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError),
+		ErrorLog:  slog.NewLogLogger(logger.Handler(), slog.LevelError),
+		TLSConfig: tlsConfig,
+		// Timeouts
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	}
 
 	// Let's go
