@@ -22,6 +22,7 @@ const defaultDSN = "web:web@/snippetbox?parseTime=true"
 type application struct {
 	logger         *slog.Logger
 	snippets       *models.SnippetModel
+	users          *models.UserModel
 	templates      templateCache
 	formDecoder    *form.Decoder
 	sessionManager *scs.SessionManager
@@ -64,6 +65,7 @@ func main() {
 	app := application{
 		logger:         logger,
 		snippets:       &models.SnippetModel{DB: db},
+		users:          &models.UserModel{DB: db},
 		templates:      templates,
 		formDecoder:    form.NewDecoder(),
 		sessionManager: sessionManager,
