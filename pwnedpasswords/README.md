@@ -18,6 +18,10 @@ current directory; override with `--pwnedcache`.
 For `bruteforce`, first build a membership filter (see below). Without it every candidate
 hits the database, which is far too slow for brute-force search.
 
+## Wordlists
+
+https://github.com/danielmiessler/SecLists/tree/master/Passwords
+
 ## Usage
 
 Read candidates from one or more word lists, recording the passwords found in the breach corpus:
