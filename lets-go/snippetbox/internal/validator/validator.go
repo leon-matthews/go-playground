@@ -14,12 +14,13 @@ var EmailRX = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](
 
 // Validator holds map of error messages for each field
 type Validator struct {
-	FieldErrors map[string]string
+	FieldErrors    map[string]string
+	NonFieldErrors []string
 }
 
 // Valid returns true if there are no errors
 func (v *Validator) Valid() bool {
-	return len(v.FieldErrors) == 0
+	return len(v.FieldErrors) == 0 && len(v.NonFieldErrors) == 0
 }
 
 // AddFieldError adds an error message for key, only if no existing error exists
@@ -31,6 +32,11 @@ func (v *Validator) AddFieldError(key, message string) {
 	if _, exists := v.FieldErrors[key]; !exists {
 		v.FieldErrors[key] = message
 	}
+}
+
+// AddFieldError adds an error not tied to a form field
+func (v *Validator) AddNonFieldError(message string) {
+	v.NonFieldErrors = append(v.NonFieldErrors, message)
 }
 
 // CheckField adds error message only if validation check is not 'ok'
