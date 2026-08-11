@@ -35,8 +35,13 @@ func (app *application) clientError(w http.ResponseWriter, status int) {
 }
 
 // Return true if the current request is from an authenticated user
+// Uses value in context put there by the authenticate middleware
 func (app *application) isAuthenticated(r *http.Request) bool {
-	return app.sessionManager.Exists(r.Context(), "authenticatedUserID")
+	isAuthenticated, ok := r.Context().Value(isAuthenticatedContextKey).(bool)
+	if !ok {
+		return false
+	}
+	return isAuthenticated
 }
 
 // serverError logs an error, then sends generic 500 response to user

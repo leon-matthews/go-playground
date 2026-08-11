@@ -16,4 +16,4 @@ follow along with the text for now. For reference:
 
 ## TODO
 
-Continue from Chapter 10.7: "CSRF protection"
+Continue from Chapter 12: "File embedding"

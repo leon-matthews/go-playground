@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -36,7 +37,8 @@ func commonHeaders(next http.Handler) http.Handler {
 	})
 }
 
-// preventCSRF uses a CSRF token check
+// preventCSRF installs and configures the middleware from [nosurf].
+// Its token must be added as a hidden field on each form.
 func preventCSRF(next http.Handler) http.Handler {
 	csrfHandler := nosurf.New(next)
 	csrfHandler.SetBaseCookie(http.Cookie{
@@ -47,9 +49,40 @@ func preventCSRF(next http.Handler) http.Handler {
 	return csrfHandler
 }
 
+// authenticate double-checks user's ID in session against database record
+// Only if they exist do we add a boolean to the context under `isAuthenticatedContextKey`.
+func (app *application) authenticate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Atttempt to fetch user's ID from session.
+		id := app.sessionManager.GetInt(r.Context(), userIDSessionKey)
+		if id == 0 {
+			// Nothing stored? Move along...
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Check database
+		exists, err := app.users.Exists(id)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+
+		// Add is authenticated boolean value to context
+		if exists {
+			ctx := context.WithValue(r.Context(), isAuthenticatedContextKey, true)
+			r = r.WithContext(ctx)
+		}
+
+		// Call next handler in chain
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (app *application) logRequest(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		app.logger.Debug("received request",
+		app.logger.Debug(
+			"received request",
 			slog.String("ip", r.RemoteAddr),
 			slog.String("proto", r.Proto),
 			slog.String("method", r.Method),

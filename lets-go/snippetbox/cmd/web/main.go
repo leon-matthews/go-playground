@@ -16,7 +16,10 @@ import (
 	"local.dev/snippetbox/internal/models"
 )
 
-const defaultDSN = "web:web@/snippetbox?parseTime=true"
+const (
+	defaultDSN       = "web:web@/snippetbox?parseTime=true"
+	userIDSessionKey = "authenticatedUserId"
+)
 
 // application holds dependencies for the web app.
 type application struct {
