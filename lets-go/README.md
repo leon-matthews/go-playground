@@ -16,4 +16,4 @@ follow along with the text for now. For reference:
 
 ## TODO
 
-Continue from Chapter 13: "Testing"
+Continue from Chapter 13.3: "Testing HTTP handlers and middleware"
