@@ -16,4 +16,4 @@ follow along with the text for now. For reference:
 
 ## TODO
 
-Continue from Chapter 12: "File embedding"
+Continue from Chapter 13: "Testing"

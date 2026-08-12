@@ -2,12 +2,15 @@ package main
 
 import (
 	"html/template"
+	"io/fs"
 	"net/http"
 	"path/filepath"
 	"time"
 
 	"github.com/justinas/nosurf"
+
 	"local.dev/snippetbox/internal/models"
+	assets "local.dev/snippetbox/www"
 )
 
 // templateData is a holding structure for any dynamic data we pass to HTML templates.
@@ -42,39 +45,27 @@ var functions = template.FuncMap{
 type templateCache map[string]*template.Template
 
 func newTemplateCache() (map[string]*template.Template, error) {
-	cache := templateCache{}
-
 	// Find paths to page templates
-	pages, err := filepath.Glob("./www/html/pages/*.html")
+	pages, err := fs.Glob(assets.HTMLFiles, "pages/*.html")
 	if err != nil {
 		return nil, err
 	}
 
 	// Loop through the page path
+	cache := templateCache{}
 	for _, page := range pages {
 		// Create empty template with our custom functions
 		name := filepath.Base(page)
-		ts := template.New(name).Funcs(functions)
-
-		// Parse the base template file into a template set.
-		ts.ParseFiles("./www/html/base.html")
+		patterns := []string{
+			"base.html",
+			"snippets/*.html",
+			page,
+		}
+		ts, err := template.New(name).Funcs(functions).ParseFS(assets.HTMLFiles, patterns...)
 		if err != nil {
 			return nil, err
 		}
 
-		// Add HTML snippets by calling method on the new template set
-		ts, err = ts.ParseGlob("./www/html/snippets/*.html")
-		if err != nil {
-			return nil, err
-		}
-
-		// Add page template
-		ts, err = ts.ParseFiles(page)
-		if err != nil {
-			return nil, err
-		}
-
-		// Add the template set to the map as normal...
 		cache[name] = ts
 	}
 	return cache, nil
