@@ -30,6 +30,11 @@ type userSignupForm struct {
 	validator.Validator `form:"-"`
 }
 
+// ping is minimal handler to test our testing environment
+func ping(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("pong"))
+}
+
 func (app *application) index(w http.ResponseWriter, r *http.Request) {
 	snippets, err := app.snippets.Latest()
 	if err != nil {
