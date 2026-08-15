@@ -1,3 +1,4 @@
+// Package main implements the entire web application
 package main
 
 import (

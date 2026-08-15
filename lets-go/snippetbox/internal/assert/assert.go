@@ -1,3 +1,4 @@
+// Package assert contains helpers for unit tests
 package assert
 
 import (
@@ -5,6 +6,7 @@ import (
 	"testing"
 )
 
+// Equal asserts that the generic types are equal
 func Equal[A any](t *testing.T, got, want A) {
 	t.Helper()
 	if !isEqual(got, want) {
@@ -12,6 +14,7 @@ func Equal[A any](t *testing.T, got, want A) {
 	}
 }
 
+// True asserts the bool is true
 func True(t *testing.T, got bool) {
 	t.Helper()
 	if !got {
@@ -19,6 +22,7 @@ func True(t *testing.T, got bool) {
 	}
 }
 
+// Nil asserts that got is nil, or a nil interface
 func Nil(t *testing.T, got any) {
 	t.Helper()
 	if !isNil(got) {
@@ -26,6 +30,7 @@ func Nil(t *testing.T, got any) {
 	}
 }
 
+// isEqual uses reflect.DeepEqual to implement generic equality test
 func isEqual[A any](got, want A) bool {
 	if isNil(got) && isNil(want) {
 		return true
@@ -33,6 +38,7 @@ func isEqual[A any](got, want A) bool {
 	return reflect.DeepEqual(got, want)
 }
 
+// isNil also returns true if an interface's underlying type is nil
 func isNil(v any) bool {
 	if v == nil {
 		return true

@@ -11,6 +11,7 @@ import (
 func (app *application) routes() http.Handler {
 	// Static files
 	mux := http.NewServeMux()
+	mux.HandleFunc("/ping", ping)
 	fileserver := http.FileServerFS(assets.StaticFiles)
 	mux.Handle("GET /static/", http.StripPrefix("/static", fileserver))
 

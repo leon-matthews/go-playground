@@ -55,9 +55,8 @@ func (m *SnippetModel) Get(id int) (Snippet, error) {
 		// If the query returns no rows, then err is sql.ErrNoRows error.
 		if errors.Is(err, sql.ErrNoRows) {
 			return Snippet{}, ErrNoRecord
-		} else {
-			return Snippet{}, err
 		}
+		return Snippet{}, err
 	}
 
 	// Return filled-in Snippet struct

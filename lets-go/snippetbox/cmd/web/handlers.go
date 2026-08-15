@@ -31,7 +31,7 @@ type userSignupForm struct {
 }
 
 // ping is minimal handler to test our testing environment
-func ping(w http.ResponseWriter, r *http.Request) {
+func ping(w http.ResponseWriter, _ *http.Request) {
 	w.Write([]byte("pong"))
 }
 

@@ -11,6 +11,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// User holds data for a row in the users table
 type User struct {
 	ID             int
 	Name           string
@@ -19,6 +20,7 @@ type User struct {
 	Created        time.Time
 }
 
+// UserModel wraps a database pool, and queries database
 type UserModel struct {
 	DB *sql.DB
 }
@@ -59,9 +61,8 @@ func (m *UserModel) Authenticate(email, password string) (int, error) {
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, ErrInvalidCredentials
-		} else {
-			return 0, fmt.Errorf("fetching password hash: %v", err)
 		}
+		return 0, fmt.Errorf("fetching password hash: %v", err)
 	}
 
 	// Check password
@@ -69,9 +70,8 @@ func (m *UserModel) Authenticate(email, password string) (int, error) {
 	if err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 			return 0, ErrInvalidCredentials
-		} else {
-			return 0, fmt.Errorf("checking password: %v", err)
 		}
+		return 0, fmt.Errorf("checking password: %v", err)
 	}
 
 	// Success!

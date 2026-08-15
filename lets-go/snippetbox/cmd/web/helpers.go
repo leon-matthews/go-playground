@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"runtime/debug"
 
 	"github.com/go-playground/form/v4"
 )
@@ -46,7 +47,12 @@ func (app *application) isAuthenticated(r *http.Request) bool {
 
 // serverError logs an error, then sends generic 500 response to user
 func (app *application) serverError(w http.ResponseWriter, r *http.Request, err error) {
-	app.logger.Error(err.Error(), slog.String("method", r.Method), slog.String("uri", r.URL.RequestURI()))
+	app.logger.Error(
+		err.Error(),
+		slog.String("method", r.Method),
+		slog.String("uri", r.URL.RequestURI()),
+		slog.String("stack", string(debug.Stack())),
+	)
 	msg := http.StatusText(http.StatusInternalServerError)
 	http.Error(w, msg, http.StatusInternalServerError)
 }

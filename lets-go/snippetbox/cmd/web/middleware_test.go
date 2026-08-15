@@ -19,7 +19,7 @@ func TestCommonHeaders(t *testing.T) {
 	}
 
 	// Create mock HTTP Handler
-	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte("OK"))
 	})
 

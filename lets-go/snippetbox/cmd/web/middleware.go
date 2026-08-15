@@ -102,7 +102,7 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 			if pv != nil {
 				// ...set a "Connection: close" header on the response, then send 500 error
 				w.Header().Set("Connection", "close")
-				err := fmt.Errorf("Panic in handler: %v", pv)
+				err := fmt.Errorf("panic in handler: %v", pv)
 				app.serverError(w, r, err)
 			}
 		}()
