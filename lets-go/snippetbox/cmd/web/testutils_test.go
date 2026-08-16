@@ -8,12 +8,35 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"testing"
+	"time"
+
+	"github.com/alexedwards/scs/v2"
+	"github.com/go-playground/form/v4"
+	"local.dev/snippetbox/internal/models/mocks"
 )
 
 // newApplicationMock creates instance of our app with mocked dependencies
 func newApplicationMock(t *testing.T) *application {
+	// Template cache
+	templateCache, err := newTemplateCache()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Session manager
+	// No store specified, so SCS defaults to in-memory.
+	sessionManager := scs.New()
+	sessionManager.Lifetime = 12 * time.Hour
+	sessionManager.Cookie.Secure = true
+
+	// Mock application, with mock models.
 	return &application{
-		logger: slog.New(slog.DiscardHandler),
+		formDecoder:    form.NewDecoder(),
+		logger:         slog.New(slog.DiscardHandler),
+		sessionManager: sessionManager,
+		snippets:       &mocks.SnippetModel{},
+		templates:      templateCache,
+		users:          &mocks.UserModel{},
 	}
 }
 

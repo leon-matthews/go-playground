@@ -25,8 +25,8 @@ const (
 // application holds dependencies for the web app.
 type application struct {
 	logger         *slog.Logger
-	snippets       *models.SnippetModel
-	users          *models.UserModel
+	snippets       models.SnippetModelInterface
+	users          models.UserModelInterface
 	templates      templateCache
 	formDecoder    *form.Decoder
 	sessionManager *scs.SessionManager

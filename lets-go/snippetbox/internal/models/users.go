@@ -11,6 +11,13 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// A UserModelInterface creates, authenticates and looks up user accounts.
+type UserModelInterface interface {
+	Authenticate(email, password string) (int, error)
+	Exists(id int) (bool, error)
+	Insert(name, email, password string) error
+}
+
 // User holds data for a row in the users table
 type User struct {
 	ID             int

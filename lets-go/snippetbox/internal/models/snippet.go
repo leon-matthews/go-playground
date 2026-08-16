@@ -6,6 +6,13 @@ import (
 	"time"
 )
 
+// A SnippetModelInterface provides access to a store of snippets.
+type SnippetModelInterface interface {
+	Insert(title, content string, expires int) (int, error)
+	Get(id int) (Snippet, error)
+	Latest() ([]Snippet, error)
+}
+
 // Snippet holds data for an individual snippet
 type Snippet struct {
 	ID      int
