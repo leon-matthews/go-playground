@@ -2,16 +2,19 @@ package main
 
 import (
 	"bytes"
+	"html"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"regexp"
 	"testing"
 	"time"
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-playground/form/v4"
+
 	"local.dev/snippetbox/internal/models/mocks"
 )
 
@@ -105,4 +108,15 @@ func (ts *testServer) clearCookies(t *testing.T) {
 		t.Fatal(err)
 	}
 	ts.Client().Jar = jar
+}
+
+func extractCSRFToken(t *testing.T, body string) string {
+	// Regex which captures the CSRF token value from an HTML form
+	csrfTokenRX := regexp.MustCompile(`<input type="hidden" name="csrf_token" value="(.+)">`)
+	matches := csrfTokenRX.FindStringSubmatch(body)
+	if len(matches) < 2 {
+		t.Fatal("no csrf token found in body")
+	}
+	// Unescape match in case taken contains a plus: '&#43;' unescaped to '+'
+	return html.UnescapeString(matches[1])
 }

@@ -14,9 +14,22 @@ func TestPing(t *testing.T) {
 	server := newTestServer(t, app.routes())
 	defer server.Close()
 
-	res := server.get(t, "/ping")
-	assert.Equal(t, res.status, http.StatusOK)
-	assert.Equal(t, res.body, "pong")
+	response := server.get(t, "/ping")
+	assert.Equal(t, response.status, http.StatusOK)
+	assert.Equal(t, response.body, "pong")
+}
+
+func TestUserSignup(t *testing.T) {
+	app := newApplicationMock(t)
+	server := newTestServer(t, app.routes())
+	defer server.Close()
+
+	// Fetch form to get CSRF token
+	response := server.get(t, "/user/signup")
+	assert.Equal(t, response.status, http.StatusOK)
+	token := extractCSRFToken(t, response.body)
+	t.Logf("CSRF token: %s", token)
+	t.Logf("Cookies: %s", response.cookies)
 }
 
 func TestSnippetView(t *testing.T) {
