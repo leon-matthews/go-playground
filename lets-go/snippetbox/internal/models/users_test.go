@@ -29,10 +29,11 @@ func TestUserModelExists(t *testing.T) {
 		},
 	}
 
+	db := newTestDB(t)
+	userModel := UserModel{DB: db}
+
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			db := newTestDB(t)
-			userModel := UserModel{DB: db}
 			exists, err := userModel.Exists(tt.userID)
 			assert.Equal(t, tt.want, exists)
 			assert.Nil(t, err)
