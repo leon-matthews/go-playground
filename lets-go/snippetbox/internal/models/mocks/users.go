@@ -2,6 +2,7 @@ package mocks
 
 import "local.dev/snippetbox/internal/models"
 
+// UserModel mocks database access to users table
 type UserModel struct{}
 
 // Insert mock implemenation.
