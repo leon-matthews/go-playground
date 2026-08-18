@@ -120,7 +120,12 @@ func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
 	app.render(w, r, http.StatusOK, "signup.html", data)
 }
 
-// userSignupPost handles filled-in signup form
+// userSignupPost handles filled-in signup form.
+//
+// A valid signup results in a "303 See Other response".
+// A form submission without a valid CSRF token results in a "400 Bad Request" response.
+// An invalid form submission results in a "422 Unprocessable Entity" response
+// and the signup form is redisplayed.
 func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 	// Populate signup form
 	var form userSignupForm

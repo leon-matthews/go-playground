@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"net/url"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -77,11 +79,29 @@ func newTestServer(t *testing.T, h http.Handler) *testServer {
 
 // get makes a GET request using the test server client
 func (ts *testServer) get(t *testing.T, urlPath string) testResponse {
+	// Request
 	request, err := http.NewRequest(http.MethodGet, ts.URL+urlPath, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+	return ts.clientDo(t, request)
+}
 
+// postForm sends a default 'application/x-www-form-urlencode' form to given urlPath
+func (ts *testServer) postForm(t *testing.T, urlPath string, form url.Values) testResponse {
+	// Request
+	request, err := http.NewRequest(http.MethodPost, ts.URL+urlPath, strings.NewReader(form.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.Header.Set("Sec-Fetch-Site", "same-origin")
+	return ts.clientDo(t, request)
+}
+
+// clientDo has the test server handle the request and builds a response
+func (ts *testServer) clientDo(t *testing.T, request *http.Request) testResponse {
+	// Response
 	response, err := ts.Client().Do(request)
 	if err != nil {
 		t.Fatal(err)
@@ -110,6 +130,7 @@ func (ts *testServer) clearCookies(t *testing.T) {
 	ts.Client().Jar = jar
 }
 
+// extractCSRFToken extracts the value from the hidden CSRF form field from given HTML
 func extractCSRFToken(t *testing.T, body string) string {
 	// Regex which captures the CSRF token value from an HTML form
 	csrfTokenRX := regexp.MustCompile(`<input type="hidden" name="csrf_token" value="(.+)">`)
