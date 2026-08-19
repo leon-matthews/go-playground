@@ -12,7 +12,7 @@ func newTestDB(t *testing.T) *sql.DB {
 	// we need to use the "multiStatements=true" parameter in our DSN so that
 	// our MySQL database driver will support executing multiple SQL statements
 	// in one db.Exec() call.
-	db, err := sql.Open("mysql", "test_web:pass@/test_snippetbox?parseTime=true&multiStatements=true")
+	db, err := sql.Open("mysql", "test_web:pass@tcp(127.0.0.1:3307)/test_snippetbox?parseTime=true&multiStatements=true")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func newTestDB(t *testing.T) *sql.DB {
 	}
 
 	// Run teardown SQL script when test has finished
-	t.Cleanup(func()  {
+	t.Cleanup(func() {
 		defer db.Close()
 
 		script, err := os.ReadFile("./testdata/teardown.sql")
