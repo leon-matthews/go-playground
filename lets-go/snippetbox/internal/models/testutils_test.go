@@ -21,7 +21,11 @@ const (
 	containerPort           = 3307
 )
 
-// newTestDBContainer wraps newTestDB, starting container if required.
+// newTestDBContainer wraps newTestDB, starting container if not already running.
+//
+// Note that the container is deliberately left running so that subsequent test
+// runs avoid the 3-6s startup time. Isolation is instead managed by the wrapped
+// newTestDB function.
 func newTestDBContainer(t *testing.T) *sql.DB {
 	// Is everything okay? Let's go home early!
 	db, err := newTestDB(t, 1*time.Second)
@@ -52,8 +56,12 @@ func newTestDBContainer(t *testing.T) *sql.DB {
 }
 
 // newTestDB connects to a test-only database, returning a connection pool.
-// Setup and teardown SQL scripts are used to create and drop tables
+//
 // Returns only database connection errors, calls t.Fatal() for anything else.
+//
+// Setup and teardown SQL scripts are used to create tables and load fixtures
+// before test runs. A `t.Cleanup` function runs another SQL script to drop tables
+// after the test finishes to ensure isolation.
 func newTestDB(t *testing.T, timeout time.Duration) (*sql.DB, error) {
 	testDSN := fmt.Sprintf(
 		"%s:%s@tcp(127.0.0.1:%d)/%s?parseTime=true&multiStatements=true",
@@ -129,7 +137,7 @@ func containerExists(t *testing.T, name string) bool {
 	return false
 }
 
-// startDBContainer executes podman run for our MariaDB container
+// startDBContainer executes 'podman run' for our MariaDB container
 func startDBContainer(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
