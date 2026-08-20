@@ -29,7 +29,7 @@ func TestUserModelExists(t *testing.T) {
 		},
 	}
 
-	db := newTestDB(t)
+	db := newTestDBContainer(t)
 	userModel := UserModel{DB: db}
 
 	for name, tt := range tests {

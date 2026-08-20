@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"log/slog"
@@ -46,7 +47,10 @@ func main() {
 	logger := slog.New(logHandler)
 
 	// Database
-	db, err := models.OpenDB(*dsn)
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	db, err := models.OpenDB(ctx, *dsn)
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
