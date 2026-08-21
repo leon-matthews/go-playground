@@ -45,6 +45,18 @@ fi
 
 ## Go tools
 
+### bbolt
+
+CLI for bbolt embedded key/value database
+
+    $ go install go.etcd.io/bbolt/cmd/bbolt@latest
+
+### benchstat
+
+Benchstat computes statistical summaries and A/B comparisons of Go benchmarks. 
+
+    $ go install golang.org/x/perf/cmd/benchstat@latest
+
 ### glow
 
 Browse and read markdown documentation under current folder:
@@ -65,10 +77,10 @@ Command goimports updates your Go import lines, adding missing ones and removing
 
 ### golangci-lint
 
-Runs various linters in parallel. The docs suggest *not* to install from source like this, but I prefer
-getting the latest and greatest without using their bash script. No issues so far!
+Runs various linters in parallel, collecting their results.
+To ensure that all denpendencies are at the version they've testing do not use the `latest` tag.
 
-    $ go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+    $ go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.1
 
 ### go-mod-upgrade
 
@@ -81,7 +93,7 @@ Check for updates to 3rd-party packages automatically.
 
 Explore which dependencies are making your binary large.
 
-    $ go install github.com/Zxilly/go-size-analyzer/cmd/gsa@latest
+    $ go install github.com/zxilly/go-size-analyzer/cmd/gsa@latest
     $ gsa hello-world
 
 
@@ -101,6 +113,17 @@ with `gotestsum`:
     $ gotestsum -f dots-v2
     $ gotestsum -f dots-v2 -- -run JustOneTest
 
+### NATS
+
+CLI to interact with NATS
+
+    $ go install github.com/nats-io/natscli/nats@latest
+
+### NilAway
+
+Satic analysis tool that attempts to find potential nil panics.
+
+	$ go install go.uber.org/nilaway/cmd/nilaway@latest
 
 ### revive
 
