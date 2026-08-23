@@ -126,6 +126,12 @@ with `gotestsum`:
     $ gotestsum -f dots-v2
     $ gotestsum -f dots-v2 -- -run JustOneTest
 
+### go-wrk
+
+HTTP benchmarking tool capable of generating significant load.
+
+	$ go install github.com/tsliwowicz/go-wrk@latest
+
 ### NATS
 
 CLI to interact with NATS

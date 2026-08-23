@@ -16,6 +16,7 @@ PACKAGES=(
     golang.org/x/vuln/cmd/govulncheck@latest
     github.com/Zxilly/go-size-analyzer/cmd/gsa@latest
     gotest.tools/gotestsum@latest
+    github.com/tsliwowicz/go-wrk@latest
     github.com/nats-io/natscli/nats@latest
     go.uber.org/nilaway/cmd/nilaway@latest
     github.com/mgechev/revive@latest
