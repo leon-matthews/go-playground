@@ -88,12 +88,25 @@ Check for updates to 3rd-party packages automatically.
 
     $ go install github.com/oligot/go-mod-upgrade@latest
 
+### gopls
+
+The official language server for Go, provides IDE features to any 
+LSP-compatible editor.
+
+    $ go install golang.org/x/tools/gopls@latest
+
+### govulncheck
+
+Find security issues by scanning your project's dependencies for known 
+vulnerabilities and then identifying any direct or indirect calls to same.
+
+    $ go install golang.org/x/vuln/cmd/govulncheck@latest
 
 ### go-size-analyzer
 
 Explore which dependencies are making your binary large.
 
-    $ go install github.com/zxilly/go-size-analyzer/cmd/gsa@latest
+    $ go install github.com/Zxilly/go-size-analyzer/cmd/gsa@latest
     $ gsa hello-world
 
 
@@ -127,11 +140,22 @@ Satic analysis tool that attempts to find potential nil panics.
 
 ### revive
 
-Go linter
+Very fast, stand-alone Go linter with good defaults.
 
     $ go install github.com/mgechev/revive@latest
     $ revive ./...
 
+### scc
+
+Sloc, Cloc and Code: scc is a fast code counter.
+
+    $ go install github.com/boyter/scc/v3@latest
+
+### sqlc
+
+Generates fully type-safe idiomatic Go code from SQL.
+
+    $ go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 
 ### testifylint
 
