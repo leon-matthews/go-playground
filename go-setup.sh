@@ -1,7 +1,5 @@
 #!/bin/bash
-#
 # Install the Go tools listed in go-setup.md
-#
 set -eu
 
 PACKAGES=(
@@ -17,26 +15,39 @@ PACKAGES=(
     github.com/Zxilly/go-size-analyzer/cmd/gsa@latest
     gotest.tools/gotestsum@latest
     github.com/tsliwowicz/go-wrk@latest
-    github.com/nats-io/natscli/nats@latest
     go.uber.org/nilaway/cmd/nilaway@latest
     github.com/mgechev/revive@latest
     github.com/boyter/scc/v3@latest
-    github.com/sqlc-dev/sqlc/cmd/sqlc@latest
     github.com/Antonboom/testifylint@latest
 )
 
-if ! command -v go > /dev/null; then
-    echo "Error: 'go' not found in PATH" >&2
-    exit 1
+# Packages needing more memory to build than some Raspberry Pi can provide
+MINIMUM_RAM_MB=1500
+FAT_PACKAGES=(
+    github.com/nats-io/natscli/nats@latest
+    github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+)
+
+# Install each of the given packages in turn.
+install_packages() {
+    local package
+    for package in "$@"; do
+        echo "==> go install $package"
+        go install "$package"
+    done
+}
+
+# Install core set of packages
+install_packages "${PACKAGES[@]}"
+
+# Install 'fat' packages?
+ram_mb=$(( $(awk '/^MemTotal:/ { print $2 }' /proc/meminfo) / 1024 ))
+if (( ram_mb >= MINIMUM_RAM_MB )); then
+    install_packages "${FAT_PACKAGES[@]}"
+else
+    echo
+    echo "Only ${ram_mb}MB RAM, need ${MINIMUM_RAM_MB}MB: skipping ${#FAT_PACKAGES[@]} large packages"
 fi
-
-for package in "${PACKAGES[@]}"; do
-    echo "==> go install $package"
-    go install "$package"
-done
-
-echo
-echo "Installed ${#PACKAGES[@]} packages into $(go env GOPATH)/bin"
 
 echo
 echo "Clear all Go caches"
