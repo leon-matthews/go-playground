@@ -153,9 +153,18 @@ Very fast, stand-alone Go linter with good defaults.
 
 ### scc
 
-Sloc, Cloc and Code: scc is a fast code counter.
+Sloc, Cloc and Code, or the Succinct Code Counter.
 
-    $ go install github.com/boyter/scc/v3@latest
+As well as being extremely fast at generating a per-language breakdown of a 
+repo, it generates some very interesting other reports:
+
+    $ go install github.com/boyter/scc/v4@latest
+    $ scc                               # Lines of code per language plus cost estimate
+    $ scc --by-author                   # How much is that bus accident going to hurt?
+    $ scc --hotspots                    # Which files are trouble makers?
+    $ scc --coupling-for some/file.go   # Which files tend to get modified with this one
+    $ scc --by-file -s complexity       # All files sorted by complexity
+
 
 ### sqlc
 

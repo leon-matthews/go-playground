@@ -17,7 +17,7 @@ PACKAGES=(
     github.com/tsliwowicz/go-wrk@latest
     go.uber.org/nilaway/cmd/nilaway@latest
     github.com/mgechev/revive@latest
-    github.com/boyter/scc/v3@latest
+    github.com/boyter/scc/v4@latest
     github.com/Antonboom/testifylint@latest
 )
 
