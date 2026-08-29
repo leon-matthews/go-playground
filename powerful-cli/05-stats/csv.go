@@ -32,15 +32,19 @@ func csv2Float(input io.Reader, columnIndex int) ([]float64, error) {
 		return nil, fmt.Errorf("%w: must be positive: %d", ErrInvalidColumn, columnIndex+1)
 	}
 
-	// Read in all CSV data
-	r := csv.NewReader(input)
-	data, err := r.ReadAll()
-	if err != nil {
-		return nil, fmt.Errorf("reading csv data: %w", err)
-	}
-
+	cr := csv.NewReader(input)
+	cr.ReuseRecord = true
 	var column []float64
-	for rowIndex, row := range data {
+	for rowIndex := 0; ; rowIndex++ {
+		// Read row
+		row, err := cr.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("reading row %d: %w", rowIndex, err)
+		}
+
 		// Skip first row
 		if rowIndex == 0 {
 			continue
