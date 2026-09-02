@@ -57,6 +57,18 @@ Benchstat computes statistical summaries and A/B comparisons of Go benchmarks.
 
     $ go install golang.org/x/perf/cmd/benchstat@latest
 
+### deadcode
+
+Reports unreachable functions in Go programs.
+
+	$ go install golang.org/x/tools/cmd/deadcode@latest
+
+### delve (dlv)
+
+Delve is a debugger for the Go programming language.
+
+	$ go install github.com/go-delve/delve/cmd/dlv@latest
+
 ### glow
 
 Browse and read markdown documentation under current folder:
@@ -144,6 +156,12 @@ Satic analysis tool that attempts to find potential nil panics.
 
 	$ go install go.uber.org/nilaway/cmd/nilaway@latest
 
+### plow
+
+HTTP benchmarking tool that includes a real-time web UI and terminal display.
+
+	$ go install github.com/six-ddc/plow@latest
+
 ### revive
 
 Very fast, stand-alone Go linter with good defaults.
@@ -165,12 +183,17 @@ repo, it generates some very interesting other reports:
     $ scc --coupling-for some/file.go   # Which files tend to get modified with this one
     $ scc --by-file -s complexity       # All files sorted by complexity
 
-
 ### sqlc
 
 Generates fully type-safe idiomatic Go code from SQL.
 
     $ go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
+### stringer
+
+Stringer is a tool to automate the creation of methods that satisfy the fmt.Stringer interface.
+
+	$ go install golang.org/x/tools/cmd/stringer@latest
 
 ### testifylint
 
@@ -179,6 +202,11 @@ Improve usage of testing library `github.com/stretchr/testify`
     $ go install github.com/Antonboom/testifylint@latest
     $ testifylint ./...
 
+### witr (Why is this running?)
+
+TUI for tracing process, port, container, or file back to what started it.
+
+ $ go install github.com/pranshuparmar/witr/cmd/witr@latest
 
 ## Editor snippets
 

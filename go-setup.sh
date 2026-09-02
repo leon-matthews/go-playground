@@ -5,6 +5,7 @@ set -eu
 PACKAGES=(
     go.etcd.io/bbolt/cmd/bbolt@latest
     golang.org/x/perf/cmd/benchstat@latest
+    github.com/go-delve/delve/cmd/dlv@latest
     github.com/charmbracelet/glow@latest
     mvdan.cc/gofumpt@latest
     golang.org/x/tools/cmd/goimports@latest
@@ -16,9 +17,12 @@ PACKAGES=(
     gotest.tools/gotestsum@latest
     github.com/tsliwowicz/go-wrk@latest
     go.uber.org/nilaway/cmd/nilaway@latest
+    github.com/six-ddc/plow@latest
     github.com/mgechev/revive@latest
     github.com/boyter/scc/v4@latest
+    golang.org/x/tools/cmd/stringer@latest
     github.com/Antonboom/testifylint@latest
+    github.com/pranshuparmar/witr/cmd/witr@latest
 )
 
 # Packages needing more memory to build than some Raspberry Pi can provide
