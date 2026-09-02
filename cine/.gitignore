@@ -2,3 +2,4 @@ cine
 *.db
 *.log
 *.pprof
+*.tmp
