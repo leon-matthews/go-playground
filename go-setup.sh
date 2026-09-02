@@ -5,7 +5,6 @@ set -eu
 PACKAGES=(
     go.etcd.io/bbolt/cmd/bbolt@latest
     golang.org/x/perf/cmd/benchstat@latest
-    github.com/go-delve/delve/cmd/dlv@latest
     github.com/charmbracelet/glow@latest
     mvdan.cc/gofumpt@latest
     golang.org/x/tools/cmd/goimports@latest
@@ -25,9 +24,10 @@ PACKAGES=(
     github.com/pranshuparmar/witr/cmd/witr@latest
 )
 
-# Packages needing more memory to build than some Raspberry Pi can provide
+# Fat packages for big machines only
 MINIMUM_RAM_MB=1500
 FAT_PACKAGES=(
+    github.com/go-delve/delve/cmd/dlv@latest
     github.com/nats-io/natscli/nats@latest
     github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 )
