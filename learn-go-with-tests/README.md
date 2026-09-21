@@ -4,4 +4,4 @@ https://quii.gitbook.io/learn-go-with-tests/
 
 ## Next
 
-Continue from [Arrays and slices](https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/arrays-and-slices#refactor-1)
+Continue from [Struts, methods, and interfaces](https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/structs-methods-and-interfaces)
