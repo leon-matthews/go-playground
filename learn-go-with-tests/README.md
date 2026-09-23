@@ -4,6 +4,6 @@ https://quii.gitbook.io/learn-go-with-tests/
 
 ## Next
 
-Continue from: Maps
+Continue from: Dependency Injection
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/maps
+https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/dependency-injection
