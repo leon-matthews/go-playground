@@ -4,6 +4,6 @@ https://quii.gitbook.io/learn-go-with-tests/
 
 ## Next
 
-Continue from: Dependency Injection
+Continue from: Mocking
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/dependency-injection
+https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/mocking
