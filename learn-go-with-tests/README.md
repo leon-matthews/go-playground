@@ -4,6 +4,6 @@ https://quii.gitbook.io/learn-go-with-tests/
 
 ## Next
 
-Continue from: Mocking
+Continue from: Concurrency
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/mocking
+https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/concurrency
