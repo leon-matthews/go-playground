@@ -4,6 +4,6 @@ https://quii.gitbook.io/learn-go-with-tests/
 
 ## Next
 
-Continue from: Concurrency
+Continue from: Select
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/concurrency
+https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/select

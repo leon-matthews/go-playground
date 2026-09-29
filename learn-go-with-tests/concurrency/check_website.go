@@ -9,16 +9,17 @@ type result struct {
 
 func CheckWebsites(checker WebsiteChecker, urls []string) map[string]bool {
     // Start workers
+    numURLs := len(urls)
     resultChannel := make(chan result)
-    for _, url := range urls {
+    for i := range numURLs {
         go func() {
-            resultChannel <- result{url, checker(url)}
+            resultChannel <- result{urls[i], checker(urls[i])}
         }()
     }
 
     // Collect results
-    results := make(map[string]bool, len(urls))
-    for range len(urls) {
+    results := make(map[string]bool, numURLs)
+    for range numURLs {
         r := <-resultChannel
         results[r.string] = r.bool
     }
