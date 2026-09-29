@@ -4,6 +4,6 @@ https://quii.gitbook.io/learn-go-with-tests/
 
 ## Next
 
-Continue from: Select
+Continue from: Reflection
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/select
+https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/reflection
