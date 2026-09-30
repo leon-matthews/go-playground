@@ -4,6 +4,6 @@ https://quii.gitbook.io/learn-go-with-tests/
 
 ## Next
 
-Continue from: Reflection
+Continue from: Sync
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/reflection
+https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/sync
