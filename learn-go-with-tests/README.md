@@ -4,6 +4,6 @@ https://quii.gitbook.io/learn-go-with-tests/
 
 ## Next
 
-Continue from: Sync
+Continue from: Context
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/sync
+https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/context
