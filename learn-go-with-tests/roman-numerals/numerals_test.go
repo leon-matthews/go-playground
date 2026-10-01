@@ -2,9 +2,9 @@ package main
 
 import (
 	"testing"
-	"testing/quick"
 
 	"github.com/alecthomas/assert/v2"
+	"pgregory.net/rapid"
 )
 
 var tests = []struct {
@@ -54,14 +54,19 @@ func TestConvertToArabic(t *testing.T) {
 	}
 }
 
-func TestConversionProperties(t *testing.T) {
-	roundTrip := func(arabic int) bool {
-		roman := ConvertToRoman(int(arabic))
-		fromRoman := ConvertToArabic(roman)
-		return fromRoman == arabic
+func conversionRoundTrip(t *rapid.T) {
+	arabic := rapid.IntRange(1, 3999).Draw(t, "arabic")
+	roman := ConvertToRoman(arabic)
+	got := ConvertToArabic(roman)
+	if got != arabic {
+		t.Fatalf("ConvertToArabic(%q) = %d, want %d", roman, got, arabic)
 	}
+}
 
-	if err := quick.Check(roundTrip, nil); err != nil {
-		t.Error("failed checks:", err)
-	}
+func TestConversionProperties(t *testing.T) {
+	rapid.Check(t, conversionRoundTrip)
+}
+
+func FuzzRoundTrip(f *testing.F) {
+	f.Fuzz(rapid.MakeFuzz(conversionRoundTrip))
 }
