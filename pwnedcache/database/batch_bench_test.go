@@ -10,9 +10,8 @@ import (
 	"pwnedcache/database/sqlite"
 )
 
-// BenchmarkChunkSizes measures Insert throughput across chunk sizes, looking
-// for the balance between per-statement overhead, which favours large chunks,
-// and the driver's quadratic per-parameter bind cost, which favours small ones.
+// BenchmarkChunkSizes measures Insert throughput across chunk sizes.
+// It shows where larger chunks stop paying for themselves.
 func BenchmarkChunkSizes(b *testing.B) {
 	const rowsPerPrefix = 1_750
 	ctx := context.Background()

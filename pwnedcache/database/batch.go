@@ -10,9 +10,8 @@ import (
 )
 
 // insertChunkSize is the number of rows bound to the reusable INSERT statement.
-// Larger chunks amortise per-statement overhead but pay the modernc driver's
-// per-parameter bind cost, which grows quadratically with statement size; see
-// BenchmarkChunkSizes for the measured balance point.
+// Larger chunks amortise per-statement overhead, but past about 100 rows the
+// gain is negligible; see BenchmarkChunkSizes.
 const insertChunkSize = 100
 
 // A HashInserter writes hash rows in bulk using multi-row INSERT statements.
