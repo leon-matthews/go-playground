@@ -8,7 +8,7 @@ PACKAGES=(
     github.com/charmbracelet/glow@latest
     mvdan.cc/gofumpt@latest
     golang.org/x/tools/cmd/goimports@latest
-    github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.1
+    github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
     github.com/oligot/go-mod-upgrade@latest
     golang.org/x/tools/gopls@latest
     golang.org/x/vuln/cmd/govulncheck@latest
