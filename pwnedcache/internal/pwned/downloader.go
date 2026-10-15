@@ -14,8 +14,8 @@ import (
 
 	"github.com/dustin/go-humanize"
 
-	"pwnedcache/database"
-	"pwnedcache/database/sqlite"
+	"local.dev/pwnedcache/internal/database"
+	"local.dev/pwnedcache/internal/database/sqlite"
 )
 
 // Report progress at this interval unless [Downloader.Progress] is set

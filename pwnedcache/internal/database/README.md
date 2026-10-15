@@ -13,7 +13,7 @@ code generator which produces "fully type-safe idiomatic Go code" from SQL.
 In our case, it reads the `schema.sql` and `queries.sql` files and produces
 the `database/sqlite` package.
 
-    $ cd database
+    $ cd internal/database
     $ ls
     query.sql schema.sql sqlc.yaml sqlite/
     $ sqlc generate

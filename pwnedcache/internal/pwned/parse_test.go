@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"pwnedcache/pwned"
+	"local.dev/pwnedcache/internal/pwned"
 )
 
 func TestParseHashList(t *testing.T) {

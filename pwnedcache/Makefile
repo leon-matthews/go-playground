@@ -7,10 +7,10 @@
 .PHONY: build run test lint vulncheck check clean
 
 build:
-	go build -o pwnedcache ./cmd
+	go build -o pwnedcache .
 
 run:
-	go run ./cmd
+	go run .
 
 test:
 	go test ./...

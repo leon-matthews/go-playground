@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"pwnedcache/database"
-	"pwnedcache/database/sqlite"
+	"local.dev/pwnedcache/internal/database"
+	"local.dev/pwnedcache/internal/database/sqlite"
 )
 
 // syntheticRows builds distinct 20-byte hashes with predictable counts.

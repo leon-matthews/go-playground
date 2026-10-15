@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"pwnedcache/database/sqlite"
+	"local.dev/pwnedcache/internal/database/sqlite"
 )
 
 // insertChunkSize is the number of rows bound to the reusable INSERT statement.
