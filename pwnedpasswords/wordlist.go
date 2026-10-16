@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"pwnedpasswords/logging"
-	"pwnedpasswords/wordlist"
+	"local.dev/pwnedpasswords/internal/logging"
+	"local.dev/pwnedpasswords/internal/wordlist"
 )
 
 // newWordlistCmd builds the "wordlist" sub-command.

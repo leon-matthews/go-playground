@@ -16,10 +16,10 @@ import (
 
 	"github.com/dustin/go-humanize"
 
-	"pwnedpasswords/database"
-	"pwnedpasswords/database/sqlite"
-	"pwnedpasswords/logging"
-	"pwnedpasswords/progress"
+	"local.dev/pwnedpasswords/internal/database"
+	"local.dev/pwnedpasswords/internal/database/sqlite"
+	"local.dev/pwnedpasswords/internal/logging"
+	"local.dev/pwnedpasswords/internal/progress"
 )
 
 // Commit the merge in batches this size, checkpointing the WAL after each, so a

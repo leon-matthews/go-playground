@@ -1,4 +1,4 @@
-pwnedpasswords
+/pwnedpasswords
 *.bak
 *.csv
 *.db

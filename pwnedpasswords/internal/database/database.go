@@ -18,7 +18,7 @@ import (
 	// Registers the "sqlite" driver with database/sql.
 	_ "modernc.org/sqlite"
 
-	"pwnedpasswords/database/sqlite"
+	"local.dev/pwnedpasswords/internal/database/sqlite"
 )
 
 //go:embed schema.sql

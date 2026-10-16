@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"pwnedpasswords/buildfilter"
-	"pwnedpasswords/logging"
+	"local.dev/pwnedpasswords/internal/buildfilter"
+	"local.dev/pwnedpasswords/internal/logging"
 )
 
 // newBuildFilterCmd builds the "buildfilter" sub-command.

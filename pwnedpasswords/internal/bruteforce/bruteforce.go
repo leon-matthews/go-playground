@@ -12,11 +12,11 @@ import (
 	"sync"
 	"time"
 
-	"pwnedpasswords/checker"
-	"pwnedpasswords/database"
-	"pwnedpasswords/filter"
-	"pwnedpasswords/logging"
-	"pwnedpasswords/progress"
+	"local.dev/pwnedpasswords/internal/checker"
+	"local.dev/pwnedpasswords/internal/database"
+	"local.dev/pwnedpasswords/internal/filter"
+	"local.dev/pwnedpasswords/internal/logging"
+	"local.dev/pwnedpasswords/internal/progress"
 )
 
 // Tuning for the parallel bruteforce.

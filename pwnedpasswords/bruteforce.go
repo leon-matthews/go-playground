@@ -9,8 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"pwnedpasswords/bruteforce"
-	"pwnedpasswords/logging"
+	"local.dev/pwnedpasswords/internal/bruteforce"
+	"local.dev/pwnedpasswords/internal/logging"
 )
 
 const bruteforceUsage = "Generate candidate passwords in order and record breach matches"

@@ -11,10 +11,10 @@
 .PHONY: build run test lint vulncheck check clean
 
 build:
-	go build -o pwnedpasswords ./cmd
+	go build -o pwnedpasswords .
 
 run:
-	go run ./cmd
+	go run .
 
 test:
 	gotestsum --hide-summary=skipped -f testdox -- --failfast ./...

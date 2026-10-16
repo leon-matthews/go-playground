@@ -114,9 +114,9 @@ per size for the lowest false-positive rate on the ~2 billion hash corpus:
 
 ## Code layout
 
-The tool is split into focused packages. `cmd/` holds only the CLI wiring - a cobra
-builder per sub-command that parses flags and calls into a library package. The real work
-lives in those packages:
+The tool is split into focused packages. The module root holds only the CLI wiring - a
+cobra builder per sub-command that parses flags and calls into a library package. The real
+work lives in those packages, all under `internal/`:
 
 - `checker/` - the shared core: hash a candidate, consult the filter, look any hit up in
   the `hashes` table, and record a match in the output database.

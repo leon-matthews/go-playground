@@ -16,9 +16,9 @@ import (
 
 	"github.com/dustin/go-humanize"
 
-	"pwnedpasswords/database"
-	"pwnedpasswords/database/sqlite"
-	"pwnedpasswords/progress"
+	"local.dev/pwnedpasswords/internal/database"
+	"local.dev/pwnedpasswords/internal/database/sqlite"
+	"local.dev/pwnedpasswords/internal/progress"
 )
 
 // Options carries the resolved command-line settings.

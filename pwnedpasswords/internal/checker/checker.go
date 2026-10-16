@@ -9,10 +9,10 @@ import (
 	"database/sql"
 	"errors"
 
-	"pwnedpasswords/database"
-	"pwnedpasswords/database/sqlite"
-	"pwnedpasswords/filter"
-	"pwnedpasswords/progress"
+	"local.dev/pwnedpasswords/internal/database"
+	"local.dev/pwnedpasswords/internal/database/sqlite"
+	"local.dev/pwnedpasswords/internal/filter"
+	"local.dev/pwnedpasswords/internal/progress"
 )
 
 // Checker runs candidate passwords through the membership filter and, on a

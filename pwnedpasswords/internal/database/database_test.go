@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"pwnedpasswords/database/sqlite"
+	"local.dev/pwnedpasswords/internal/database/sqlite"
 )
 
 func TestUpsertPassword(t *testing.T) {

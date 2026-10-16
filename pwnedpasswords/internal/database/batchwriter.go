@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"pwnedpasswords/database/sqlite"
+	"local.dev/pwnedpasswords/internal/database/sqlite"
 )
 
 // Batch commit thresholds: an open batch is committed once it reaches batchMaxRows

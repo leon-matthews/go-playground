@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"pwnedpasswords/bruteforce"
+	"local.dev/pwnedpasswords/internal/bruteforce"
 )
 
 // bruteforceSubCmd returns the parsed bruteforce sub-command for the given

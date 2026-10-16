@@ -5,9 +5,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"pwnedpasswords/export"
-	"pwnedpasswords/logging"
-	"pwnedpasswords/progress"
+	"local.dev/pwnedpasswords/internal/export"
+	"local.dev/pwnedpasswords/internal/logging"
+	"local.dev/pwnedpasswords/internal/progress"
 )
 
 // newExportCmd builds the "export" sub-command.

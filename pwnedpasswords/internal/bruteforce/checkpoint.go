@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"pwnedpasswords/progress"
+	"local.dev/pwnedpasswords/internal/progress"
 )
 
 // checkpointVersion is the schema version stamped into the resume file.
