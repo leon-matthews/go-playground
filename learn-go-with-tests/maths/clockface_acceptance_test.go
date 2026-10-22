@@ -17,10 +17,11 @@ func TestSecondHand(t *testing.T) {
 		assert.Equal(t, want, got)
 	})
 
-	// t.Run("at 30 seconds", func(t *testing.T) {
-	// 	now := time.Date(1337, time.January, 1, 0, 0, 30, 0, time.UTC)
-	// 	want := clockface.Point{X: 150, Y: 150 + 90}
-	// 	got := clockface.SecondHand(now)
-	// 	assert.Equal(t, want, got)
-	// })
+	t.Run("at 30 seconds", func(t *testing.T) {
+		now := time.Date(1337, time.January, 1, 0, 0, 30, 0, time.UTC)
+		want := clockface.Point{X: 150, Y: 150 + 90}
+		got := clockface.SecondHand(now)
+		clockface.AssertAlmostEqual(t, want.X, got.X)
+		clockface.AssertAlmostEqual(t, want.Y, got.Y)
+	})
 }

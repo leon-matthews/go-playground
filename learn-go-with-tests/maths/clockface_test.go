@@ -25,28 +25,38 @@ func TestSecondsInRadians(t *testing.T) {
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			got := secondsInRadians(tt.time)
-			assertAlmostEqual(t, tt.angle, got)
+			AssertAlmostEqual(t, tt.angle, got)
 		})
 	}
 }
 
-// func assertAlmostEqual(tb testing.TB, want, got float64) {
-// 	tb.Helper()
-// 	const tolerance = 1e-9
-// 	if math.Abs(want-got) > tolerance {
-// 		tb.Errorf("want %v, got %v (tolerance %v)", want, got, tolerance)
-// 	}
-// }
+func TestSecondHandPoint(t *testing.T) {
+	tests := map[string]struct {
+		time  time.Time
+		point Point
+	}{
+		"30 seconds": {date(0, 0, 30), Point{0, -1}},
+		"45 seconds": {date(0, 0, 45), Point{-1, 0}},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := secondHandPoint(tt.time)
+			AssertAlmostEqual(t, tt.point.X, got.X)
+			AssertAlmostEqual(t, tt.point.Y, got.Y)
+		})
+	}
+}
 
 func date(hours, minutes, seconds int) time.Time {
 	return time.Date(312, time.October, 14, hours, minutes, seconds, 0, time.UTC)
 }
 
-// assertAlmostEqual compares two floating-point numbers within reasonable precision.
+// AssertAlmostEqual compares two floating-point numbers within reasonable precision.
 //
 // The tolerance is increased automatically for float32 values, and when the numbers to
 // be compared are larger. Equal infinities pass, unequal infinities and NaN always fail.
-func assertAlmostEqual[T ~float32 | ~float64](tb testing.TB, want, got T) {
+func AssertAlmostEqual[T ~float32 | ~float64](tb testing.TB, want, got T) {
 	tb.Helper()
 
 	// Determine defaults for relative and absolute tolerance, far above float64
@@ -85,7 +95,7 @@ func TestAssertAlmostEqual(t *testing.T) {
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			tb := &failureRecorder{TB: t}
-			assertAlmostEqual(tb, tt.want, tt.got)
+			AssertAlmostEqual(tb, tt.want, tt.got)
 			assert.Equal(t, tt.wantFail, tb.failed)
 		})
 	}
@@ -96,25 +106,25 @@ func TestAssertAlmostEqualTypes(t *testing.T) {
 
 	t.Run("float32 is relaxed", func(t *testing.T) {
 		tb := &failureRecorder{TB: t}
-		assertAlmostEqual(tb, float32(1), float32(1+1e-6))
+		AssertAlmostEqual(tb, float32(1), float32(1+1e-6))
 		assert.False(t, tb.failed)
 	})
 
 	t.Run("float32 still fails", func(t *testing.T) {
 		tb := &failureRecorder{TB: t}
-		assertAlmostEqual(tb, float32(1), float32(1.01))
+		AssertAlmostEqual(tb, float32(1), float32(1.01))
 		assert.True(t, tb.failed)
 	})
 
 	t.Run("defined type passes", func(t *testing.T) {
 		tb := &failureRecorder{TB: t}
-		assertAlmostEqual(tb, celsius(1), celsius(1+1e-12))
+		AssertAlmostEqual(tb, celsius(1), celsius(1+1e-12))
 		assert.False(t, tb.failed)
 	})
 
 	t.Run("defined type fails", func(t *testing.T) {
 		tb := &failureRecorder{TB: t}
-		assertAlmostEqual(tb, celsius(1), celsius(1.001))
+		AssertAlmostEqual(tb, celsius(1), celsius(1.001))
 		assert.True(t, tb.failed)
 	})
 }
