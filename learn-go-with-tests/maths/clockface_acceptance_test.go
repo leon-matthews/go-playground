@@ -3,10 +3,9 @@ package clockface_test
 import (
 	"bytes"
 	"encoding/xml"
+	"slices"
 	"testing"
 	"time"
-
-	"github.com/alecthomas/assert/v2"
 
 	"local.dev/clockface"
 )
@@ -20,58 +19,83 @@ type SVG struct {
 	Height  string   `xml:"height,attr"`
 	ViewBox string   `xml:"viewBox,attr"`
 	Version string   `xml:"version,attr"`
-
-	Circle struct {
-		Text  string `xml:",chardata"`
-		Cx    string `xml:"cx,attr"`
-		Cy    string `xml:"cy,attr"`
-		R     string `xml:"r,attr"`
-		Style string `xml:"style,attr"`
-	} `xml:"circle"`
-
-	Line []struct {
-		Text  string `xml:",chardata"`
-		X1    string `xml:"x1,attr"`
-		Y1    string `xml:"y1,attr"`
-		X2    string `xml:"x2,attr"`
-		Y2    string `xml:"y2,attr"`
-		Style string `xml:"style,attr"`
-	} `xml:"line"`
+	Circle  Circle   `xml:"circle"`
+	Line    []Line   `xml:"line"`
 }
 
-func TestSecondHand(t *testing.T) {
-	t.Run("at midnight", func(t *testing.T) {
-		now := time.Date(1337, time.January, 1, 0, 0, 0, 0, time.UTC)
-		want := clockface.Point{X: 150, Y: 150 - 90}
-		got := clockface.SecondHand(now)
-		assert.Equal(t, want, got)
-	})
-
-	t.Run("at 30 seconds", func(t *testing.T) {
-		now := time.Date(1337, time.January, 1, 0, 0, 30, 0, time.UTC)
-		want := clockface.Point{X: 150, Y: 150 + 90}
-		got := clockface.SecondHand(now)
-		clockface.AssertAlmostEqual(t, want.X, got.X)
-		clockface.AssertAlmostEqual(t, want.Y, got.Y)
-	})
+type Circle struct {
+	Cx float64 `xml:"cx,attr"`
+	Cy float64 `xml:"cy,attr"`
+	R  float64 `xml:"r,attr"`
 }
 
-func TestSVGWriter(t *testing.T) {
-	t.Run("at midnight", func(t *testing.T) {
-		now := time.Date(2027, time.January, 1, 0, 0, 0, 0, time.UTC)
-		buf := bytes.Buffer{}
-		svg := SVG{}
+type Line struct {
+	X1 float64 `xml:"x1,attr"`
+	Y1 float64 `xml:"y1,attr"`
+	X2 float64 `xml:"x2,attr"`
+	Y2 float64 `xml:"y2,attr"`
+}
 
-		clockface.SVGWriter(&buf, now)
-		xml.Unmarshal(buf.Bytes(), &svg)
+func TestSVGWriterSecondHand(t *testing.T) {
+	tests := map[string]struct {
+		time time.Time
+		line Line
+	}{
+		"midnight": {
+			date(0, 0, 0),
+			Line{150, 150, 150, 60},
+		},
+		"30 seconds": {
+			date(0, 0, 30),
+			Line{150, 150, 150, 240},
+		},
+	}
 
-		// Just one hand (for now)
-		assert.Equal(t, 1, len(svg.Line))
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			buf := bytes.Buffer{}
+			clockface.SVGWriter(&buf, tt.time)
 
-		for _, line := range svg.Line {
-			// Check end of second hand
-			assert.Equal(t, "150.000", line.X2)
-			assert.Equal(t, "60.000", line.Y2)
-		}
-	})
+			svg := SVG{}
+			xml.Unmarshal(buf.Bytes(), &svg)
+
+			if !containsLine(tt.line, svg.Line) {
+				t.Errorf("Expected second hand at %+v in SVG lines %+v", tt.line, svg.Line)
+			}
+		})
+	}
+}
+
+func TestSVGWriterMinuteHand(t *testing.T) {
+	tests := map[string]struct {
+		time time.Time
+		line Line
+	}{
+		"midnight": {
+			date(0, 0, 0),
+			Line{150, 150, 150, 70},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			buf := bytes.Buffer{}
+			clockface.SVGWriter(&buf, tt.time)
+
+			svg := SVG{}
+			xml.Unmarshal(buf.Bytes(), &svg)
+
+			if !containsLine(tt.line, svg.Line) {
+				t.Errorf("Expected minute hand at %+v in SVG lines %+v", tt.line, svg.Line)
+			}
+		})
+	}
+}
+
+func date(hours, minutes, seconds int) time.Time {
+	return time.Date(312, time.October, 14, hours, minutes, seconds, 0, time.UTC)
+}
+
+func containsLine(needle Line, haystack []Line) bool {
+	return slices.Contains(haystack, needle)
 }

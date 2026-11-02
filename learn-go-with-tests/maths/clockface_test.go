@@ -30,6 +30,26 @@ func TestSecondsInRadians(t *testing.T) {
 	}
 }
 
+func TestMinutesInRadians(t *testing.T) {
+	tests := map[string]struct {
+		time  time.Time
+		angle float64
+	}{
+		"30 minutes": {date(0, 30, 0), math.Pi},
+		"7 seconds": {
+			date(0, 0, 7),
+			7 * (math.Pi / (30 * 60)),
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := minutesInRadians(tt.time)
+			AssertAlmostEqual(t, tt.angle, got)
+		})
+	}
+}
+
 func TestSecondHandPoint(t *testing.T) {
 	tests := map[string]struct {
 		time  time.Time
@@ -42,6 +62,24 @@ func TestSecondHandPoint(t *testing.T) {
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			got := secondHandPoint(tt.time)
+			AssertAlmostEqual(t, tt.point.X, got.X)
+			AssertAlmostEqual(t, tt.point.Y, got.Y)
+		})
+	}
+}
+
+func TestMinuteHandPoint(t *testing.T) {
+	tests := map[string]struct {
+		time  time.Time
+		point Point
+	}{
+		"30 minutes": {date(0, 30, 0), Point{0, -1}},
+		"45 minutes": {date(0, 45, 0), Point{-1, 0}},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := minuteHandPoint(tt.time)
 			AssertAlmostEqual(t, tt.point.X, got.X)
 			AssertAlmostEqual(t, tt.point.Y, got.Y)
 		})
