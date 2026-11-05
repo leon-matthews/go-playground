@@ -4,6 +4,7 @@ https://quii.gitbook.io/learn-go-with-tests/
 
 ## Next
 
-Continue from: Property-based tests
+Continue from: Reading files
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/roman-numerals
+https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/reading-files#error-handling
+
