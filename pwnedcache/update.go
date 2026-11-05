@@ -114,9 +114,9 @@ func runUpdate(ctx context.Context) error {
 			signal.Notify(sig, os.Interrupt)
 			select {
 			case <-sig:
-				signal.Stop(sig) // a second Ctrl-C now hard-kills the process
-				captureHeap()    // workers still hold their buffers, so RAM is real
-				cancel()         // begin the graceful shutdown
+				signal.Stop(sig)
+				captureHeap() // workers still hold their buffers, so RAM is real
+				cancel()      // begin the graceful shutdown
 			case <-runCtx.Done():
 				signal.Stop(sig)
 			}
