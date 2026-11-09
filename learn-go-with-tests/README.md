@@ -4,7 +4,6 @@ https://quii.gitbook.io/learn-go-with-tests/
 
 ## Next
 
-Continue from: Reading files
+Continue from: Templating
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/reading-files#error-handling
-
+https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/html-templates
