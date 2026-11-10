@@ -18,7 +18,7 @@ const logPath = "pwnedcache.log"
 type logging struct {
 	console *slog.Logger // Friendly, human-readable console output
 	file    *slog.Logger // Structured NDJSON records
-	logFile *os.File     // Backing file, for the caller to close
+	logFile *os.File     // Backing file, closed by Close
 }
 
 // setupLogging installs a fan-out slog default that writes every log to both a
@@ -54,6 +54,11 @@ func setupLogging(verbose bool) (logging, error) {
 		file:    slog.New(file),
 		logFile: logFile,
 	}, nil
+}
+
+// Close closes the run log file.
+func (l logging) Close() error {
+	return l.logFile.Close()
 }
 
 // fanout is an slog.Handler that dispatches each record to every child handler.

@@ -7,30 +7,25 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"text/tabwriter"
-
-	"github.com/spf13/cobra"
 
 	"local.dev/pwnedcache/internal/database"
 )
 
-// newCheckCmd builds the "check" sub-command, which checks passwords against
-// the local database.
-func newCheckCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "check <password>...",
-		Short: "Check one or more passwords against the local database",
-		Args:  cobra.MinimumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return runCheck(cmd.Context(), cmd.OutOrStdout(), args)
-		},
-	}
-	return cmd
+// checkCmd holds the arguments of the "check" command.
+type checkCmd struct {
+	Passwords []string `arg:"" help:"Passwords to check."`
+}
+
+// Run prints how many times each password appears in the local database.
+func (c *checkCmd) Run(ctx context.Context, global *cli) error {
+	return runCheck(ctx, os.Stdout, global.Database, c.Passwords)
 }
 
 // runCheck prints a table reporting how many times each password appears in
 // the local database.
-func runCheck(ctx context.Context, out io.Writer, passwords []string) error {
+func runCheck(ctx context.Context, out io.Writer, databasePath string, passwords []string) error {
 	queries, db, err := database.OpenReadOnly(ctx, databasePath)
 	if err != nil {
 		if errors.Is(err, database.ErrNotFound) {

@@ -12,59 +12,33 @@ import (
 	"sync"
 	"time"
 
-	"github.com/spf13/cobra"
-
 	"local.dev/pwnedcache/internal/database"
 	"local.dev/pwnedcache/internal/pwned"
 )
 
-var (
-	concurrency int
-	limit       int
-	progress    time.Duration
-	profile     bool
-	retries     int
-)
-
-// newUpdateCmd builds the "update" sub-command, which downloads or refreshes
-// the local mirror of the password hash database.
-func newUpdateCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "update",
-		Short: "Download or refresh the local password hash database",
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runUpdate(cmd.Context())
-		},
-	}
-
-	cmd.Flags().IntVarP(&concurrency, "concurrency", "c", 64, "number of parallel fetch workers")
-	cmd.Flags().IntVar(&limit, "limit", 0, "stop after this many prefixes (0 = no limit)")
-	cmd.Flags().DurationVarP(&progress, "progress", "p", 10*time.Second, "interval between progress reports")
-	cmd.Flags().BoolVar(&profile, "profile", false, "write CPU (cpu.pprof) and heap (heap.pprof) profiles")
-	cmd.Flags().IntVar(&retries, "retries", 10, "retry attempts per failed fetch (0 disables)")
-	return cmd
+// updateCmd holds the flags of the "update" command.
+type updateCmd struct {
+	Concurrency int           `short:"c" default:"64" help:"Number of parallel fetch workers."`
+	Limit       int           `default:"0" help:"Stop after this many prefixes (0 = no limit)."`
+	Progress    time.Duration `short:"p" default:"10s" help:"Interval between progress reports."`
+	Profile     bool          `help:"Write CPU (cpu.pprof) and heap (heap.pprof) profiles."`
+	Retries     int           `default:"10" help:"Retry attempts per failed fetch (0 disables)."`
 }
 
-// runUpdate downloads hash lists until finished, limited, or interrupted.
-func runUpdate(ctx context.Context) error {
-	logs, err := setupLogging(verbose)
-	if err != nil {
-		return fmt.Errorf("logging setup: %w", err)
-	}
-	defer logs.logFile.Close()
-
+// Run downloads hash lists until finished, limited, or interrupted.
+func (c *updateCmd) Run(ctx context.Context, global *cli, logs logging) error {
 	logs.file.Info(
 		"starting run",
-		"concurrency", concurrency,
-		"database", databasePath,
-		"limit", limit,
-		"progress", progress.String(),
-		"profile", profile,
-		"retries", retries,
-		"verbose", verbose,
+		"concurrency", c.Concurrency,
+		"database", global.Database,
+		"limit", c.Limit,
+		"progress", c.Progress.String(),
+		"profile", c.Profile,
+		"retries", c.Retries,
+		"verbose", global.Verbose,
 	)
 
-	queries, db, err := database.Open(ctx, databasePath)
+	queries, db, err := database.Open(ctx, global.Database)
 	if err != nil {
 		return err
 	}
@@ -77,14 +51,14 @@ func runUpdate(ctx context.Context) error {
 	}()
 
 	downloader := pwned.NewDownloader(db, queries)
-	downloader.Concurrency = concurrency
-	downloader.Limit = limit
-	downloader.Progress = progress
-	downloader.MaxRetries = retries
+	downloader.Concurrency = c.Concurrency
+	downloader.Limit = c.Limit
+	downloader.Progress = c.Progress
+	downloader.MaxRetries = c.Retries
 	downloader.ConsoleLog = logs.console
 	downloader.FileLog = logs.file
 
-	if profile {
+	if c.Profile {
 		stopProfile, err := startProfile("cpu.pprof")
 		if err != nil {
 			return fmt.Errorf("creating profile: %w", err)
