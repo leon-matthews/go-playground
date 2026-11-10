@@ -2,8 +2,11 @@ version: "2"
 
 linters:
   default: standard
+  disable:
+    - errcheck
   enable:
     - bodyclose      # Checks whether HTTP response body is closed successfully
+    - dupl           # Detects duplicate fragments of code
     - durationcheck  # Check for two durations multiplied together
     - errname        # Checks name rules for error values and types
     - errorlint      # Find code that can cause problems with error wrapping
@@ -16,6 +19,7 @@ linters:
     - revive         # Fast, configurable, extensible, flexible, and beautiful linter for Go
     - rowserrcheck   # Checks whether Rows.Err of rows is checked successfully
     - sqlclosecheck  # Checks that sql.Rows, sql.Stmt, sqlx.NamedStmt, pgx.Query are closed
+    - staticcheck    # Staticcheck does what staticcheck can
     - testifylint    # Checks usage of github.com/stretchr/testify
     - unconvert      # Remove unnecessary type conversions
     - usestdlibvars  # A linter that detect the possibility to use variables/constants from the Go standard library
@@ -23,8 +27,12 @@ linters:
     - wastedassign   # Finds wasted assignment statements
 
   settings:
+    dupl:
+      threshold: 50
+
     errcheck:
       check-type-assertions: true
+      verbose: true
 
     govet:
       enable-all: true
@@ -42,12 +50,16 @@ linters:
         - name: unused-parameter
         - name: early-return
 
-    staticcheck:
-      checks:
-        - all
-
   exclusions:
-    generated: lax  # exclude anything that even *looks* like a generated file
+    # Don't check generated code, ie. matches the regexp:
+    # ^// Code generated .* DO NOT EDIT\.$
+    # See: https://pkg.go.dev/cmd/go#hdr-Generate_Go_files_by_processing_source
+    generated: strict
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  #new-from-merge-base: origin/develop
 
 formatters:
   enable:
