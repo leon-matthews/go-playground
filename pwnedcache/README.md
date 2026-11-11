@@ -51,14 +51,11 @@ Options:
 
 | Flag                | Default | Description                                             |
 |---------------------|---------|---------------------------------------------------------|
-| `-c, --concurrency` | 64      | Number of parallel fetch workers                        |
+| `-c, --concurrency` | 100     | Number of parallel fetch workers                        |
 | `--limit`           | 0       | Stop after this many prefixes (0 means no limit)        |
 | `-p, --progress`    | 10s     | Interval between progress reports                       |
 | `--retries`         | 10      | Retry attempts per failed fetch (0 disables)            |
 | `--profile`         | off     | Write CPU and heap profiles (`cpu.pprof`, `heap.pprof`) |
-
-While most requests are cheap "not modified" checks, `update` runs ten times the requested
-number of workers. It drops back to the normal number as soon as the first changed list arrives.
 
 Each run writes a structured (NDJSON) log to `pwnedcache.log` in the current folder, replacing
 the log from the previous run.

@@ -18,7 +18,7 @@ import (
 
 // updateCmd holds the flags of the "update" command.
 type updateCmd struct {
-	Concurrency int           `short:"c" default:"64" help:"Number of parallel fetch workers."`
+	Concurrency int           `short:"c" default:"100" help:"Number of parallel fetch workers."`
 	Limit       int           `default:"0" help:"Stop after this many prefixes (0 = no limit)."`
 	Progress    time.Duration `short:"p" default:"10s" help:"Interval between progress reports."`
 	Profile     bool          `help:"Write CPU (cpu.pprof) and heap (heap.pprof) profiles."`
