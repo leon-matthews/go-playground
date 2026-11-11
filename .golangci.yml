@@ -6,11 +6,13 @@ linters:
     - errcheck
   enable:
     - bodyclose      # Checks whether HTTP response body is closed successfully
+    - cyclop         # Checks function and package cyclomatic complexity
     - dupl           # Detects duplicate fragments of code
     - durationcheck  # Check for two durations multiplied together
     - errname        # Checks name rules for error values and types
     - errorlint      # Find code that can cause problems with error wrapping
     - misspell       # Finds commonly misspelled English words
+    - nakedret       # Checks that functions with naked returns are not longer than a maximum size
     - nilerr         # Find the code that returns nil even if it checks that the error is not nil
     - noctx          # Detects function and method with missing usage of context.Context
     - nolintlint     # Reports ill-formed or insufficient nolint directives
@@ -28,7 +30,7 @@ linters:
 
   settings:
     dupl:
-      threshold: 50
+      threshold: 100 # tokens, not lines
 
     errcheck:
       check-type-assertions: true
@@ -39,16 +41,32 @@ linters:
       disable:
         - fieldalignment
 
+    nakedret:
+      max-func-lines: 0
+
     nolintlint:
       require-explanation: true
       require-specific: true
 
     revive:
+      enable-default-rules: true
       rules:
-        - name: exported
-          arguments: [checkPrivateReceivers, disableStutteringCheck]
         - name: unused-parameter
-        - name: early-return
+          arguments:
+            - allow-regex: "^(_|ctx$|t$)"
+        - name: var-naming
+          arguments:
+          - ["API", "ID", "IDS"] # Allow list
+          - [] # Deny list
+        - name: exported
+          arguments:
+            - "disable-checks-on-constants"
+            - "disable-checks-on-types"
+            - "disable-checks-on-variables"
+
+    testifylint:
+      disable:
+        - require-error
 
   exclusions:
     # Don't check generated code, ie. matches the regexp:
@@ -59,6 +77,7 @@ linters:
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
+  uniq-by-line: false
   #new-from-merge-base: origin/develop
 
 formatters:
@@ -70,3 +89,9 @@ formatters:
         group-params: true
         clothe-returns: true
         balance-calls: true
+
+output:
+  sort-order:
+    - file
+    - linter
+    - severity
