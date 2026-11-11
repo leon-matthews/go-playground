@@ -71,8 +71,9 @@ the log from the previous run.
     correct horse battery staple  391
 
 Each password is hashed locally and looked up in the database. A count of zero means that the
-password does not appear in the corpus. The database is opened read-only, and nothing is sent
-over the network.
+password does not appear in the corpus. If the hash list that would hold a password has not been
+downloaded yet, for example after an interrupted `update`, the count shows as `not downloaded`.
+The database is opened read-only, and nothing is sent over the network.
 
 **Note:** passwords given on the command line are saved in your shell history, and can be seen
 by other users on the same machine while the command runs. Avoid checking passwords you
