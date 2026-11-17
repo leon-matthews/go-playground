@@ -4,6 +4,6 @@ https://quii.gitbook.io/learn-go-with-tests/
 
 ## Next
 
-Continue from: Templating
+Continue from: Generics
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/html-templates
+https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/generics
