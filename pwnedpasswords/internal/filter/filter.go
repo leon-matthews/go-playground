@@ -182,8 +182,6 @@ func Open(path, sourcePath string) (_ *Filter, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("mmap filter: %w", err)
 	}
-	// Queries are uniformly random, so suppress read-ahead
-	_ = syscall.Madvise(data, syscall.MADV_RANDOM)
 
 	blocks := unsafe.Slice((*uint64)(unsafe.Pointer(&data[headerSize])), dataLen/8)
 	return &Filter{
