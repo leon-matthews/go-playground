@@ -3,14 +3,27 @@ version: "2"
 linters:
   default: standard
   disable:
-    - errcheck
+    # Too much for Standby MP - for now!
+    # (Takes precedence over 'enable')
+    - funcorder      # Checks the order of functions, methods, and constructors
+    - funlen         # Checks for too-long functions
+    - lll            # Reports too-long lines
+
   enable:
     - bodyclose      # Checks whether HTTP response body is closed successfully
     - cyclop         # Checks function and package cyclomatic complexity
+    - containedctx   # Detects structs containing context.Context fields
+    - contextcheck   # Check whether the function uses a non-inherited context
+    - copyloopvar    # Detects places where loop variables are copied
     - dupl           # Detects duplicate fragments of code
     - durationcheck  # Check for two durations multiplied together
+    - errcheck       # Looks for unchecked errors
     - errname        # Checks name rules for error values and types
     - errorlint      # Find code that can cause problems with error wrapping
+    - funcorder      # Checks the order of functions, methods, and constructors
+    - funlen         # Checks for too-long functions
+    - gosec          # Inspects source code for security problems
+    - lll            # Reports long lines.
     - misspell       # Finds commonly misspelled English words
     - nakedret       # Checks that functions with naked returns are not longer than a maximum size
     - nilerr         # Find the code that returns nil even if it checks that the error is not nil
@@ -24,11 +37,15 @@ linters:
     - staticcheck    # Staticcheck does what staticcheck can
     - testifylint    # Checks usage of github.com/stretchr/testify
     - unconvert      # Remove unnecessary type conversions
+    - unused         # Checks for unused constants, variables, functions and types
     - usestdlibvars  # A linter that detect the possibility to use variables/constants from the Go standard library
     - usetesting     # Reports uses of functions with replacement inside the testing package
     - wastedassign   # Finds wasted assignment statements
 
   settings:
+    cyclop:
+      max-complexity: 15
+
     dupl:
       threshold: 100 # tokens, not lines
 
@@ -36,16 +53,26 @@ linters:
       check-type-assertions: true
       verbose: true
 
+    funcorder:
+      constructor: true
+      struct-method: true
+      alphabetical: true
+      function: true
+
     govet:
       enable-all: true
       disable:
         - fieldalignment
+        - shadow
+
+    lll:
+      line-length: 100
+      tab-width: 4
 
     nakedret:
       max-func-lines: 0
 
     nolintlint:
-      require-explanation: true
       require-specific: true
 
     revive:
@@ -73,6 +100,12 @@ linters:
     # ^// Code generated .* DO NOT EDIT\.$
     # See: https://pkg.go.dev/cmd/go#hdr-Generate_Go_files_by_processing_source
     generated: strict
+
+    rules:
+      # Don't run security checks against test code.
+      - path: _test\.go$
+        linters:
+          - gosec
 
 issues:
   max-issues-per-linter: 0
