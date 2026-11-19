@@ -1,7 +1,7 @@
 // Package database opens the SQLite stores this tool reads and writes.
 //
 // We read from a database of SHA-1 hashes created by our sibling
-// tool `pwnedcache`. Ther are in the table `hashes` in a separate SQLite file
+// tool `pwnedcache`. They're in the table `hashes` in a separate SQLite file
 // that we mount read-only.
 //
 // We write results to the `passwords` table that we maintain with this tool
