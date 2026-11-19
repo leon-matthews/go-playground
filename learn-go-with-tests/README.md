@@ -4,6 +4,6 @@ https://quii.gitbook.io/learn-go-with-tests/
 
 ## Next
 
-Continue from: Generics
+Continue from: Scaling Acceptance Tests:
 
-https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/generics
+https://quii.gitbook.io/learn-go-with-tests/testing-fundamentals/scaling-acceptance-tests
