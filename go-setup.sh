@@ -5,6 +5,7 @@ set -eu
 PACKAGES=(
     go.etcd.io/bbolt/cmd/bbolt@latest
     golang.org/x/perf/cmd/benchstat@latest
+    github.com/peterretief/codemap@latest
     github.com/charmbracelet/glow@latest
     mvdan.cc/gofumpt@latest
     golang.org/x/tools/cmd/goimports@latest
@@ -23,6 +24,7 @@ PACKAGES=(
     github.com/Antonboom/testifylint@latest
     github.com/pranshuparmar/witr/cmd/witr@latest
 )
+
 
 # Fat packages for big machines only
 MINIMUM_RAM_MB=1500
