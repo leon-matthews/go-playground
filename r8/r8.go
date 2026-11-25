@@ -3,16 +3,19 @@ package r8
 
 // Opcodes
 const (
+	Dec  = 49 // Decrement value in A
 	Inc  = 48 // Increment value in A
 	Noop = 0  // No-operation
 )
 
+const MaxRAM = 65536 // 64 KiB
+
 type CPU struct {
-	PC  int
-	Mem [65536]int
+	PC  uint16
+	Mem [MaxRAM]byte
 
 	// Registers
-	A int
+	A byte
 }
 
 func NewCPU() *CPU {
@@ -26,6 +29,8 @@ func (cpu *CPU) Step() {
 	cpu.PC++
 
 	switch opcode {
+	case Dec:
+		cpu.A--
 	case Inc:
 		cpu.A++
 	case Noop:
