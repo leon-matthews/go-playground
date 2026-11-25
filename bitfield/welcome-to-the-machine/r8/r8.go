@@ -7,10 +7,11 @@ import (
 
 // Opcodes
 const (
+	AddA = 90 // Add next operand into A
 	DecA = 64 // Decrement value in A
 	Halt = 0  // Halt stepping
 	IncA = 48 // Increment value in A
-	LdA  = 16 // Load value into A
+	LdA  = 16 // Load next operand into A
 )
 
 const MaxRAM = 65536 // 64 KiB
@@ -47,6 +48,8 @@ func (cpu *CPU) Run() {
 func (cpu *CPU) Step() bool {
 	opcode := cpu.Fetch()
 	switch opcode {
+	case AddA:
+		cpu.A += cpu.Fetch()
 	case DecA:
 		cpu.A--
 	case Halt:

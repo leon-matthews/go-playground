@@ -7,7 +7,7 @@ import (
 	"local.dev/r8"
 )
 
-func TestNewInitialisesCPU(t *testing.T) {
+func TestNewCPU(t *testing.T) {
 	t.Parallel()
 	cpu := r8.NewCPU()
 	assert.Equal(t, uint16(0), cpu.PC)
@@ -15,7 +15,21 @@ func TestNewInitialisesCPU(t *testing.T) {
 	assert.Equal(t, byte(0), cpu.A)
 }
 
-func TestStepIncrementsPC(t *testing.T) {
+func TestAdd(t *testing.T) {
+	t.Parallel()
+	t.Run("add to A", func(t *testing.T) {
+		t.Parallel()
+		cpu := r8.NewCPU()
+		cpu.A = 10
+		cpu.Mem[0] = r8.AddA
+		cpu.Mem[1] = 7
+		cpu.Mem[2] = r8.Halt
+		cpu.Run()
+		assert.Equal(t, byte(17), cpu.A)
+	})
+}
+
+func TestStep(t *testing.T) {
 	t.Parallel()
 	t.Run("step increments PC", func(t *testing.T) {
 		t.Parallel()
