@@ -29,6 +29,13 @@ func NewCPU() *CPU {
 	return &CPU{}
 }
 
+// Fetch returns the opcode at PC and increments it
+func (cpu *CPU) Fetch() byte {
+	opcode := cpu.Mem[cpu.PC]
+	cpu.PC++
+	return opcode
+}
+
 // Run steps through opcodes until a Halt is encountered
 func (cpu *CPU) Run() {
 	for cpu.Step() {
@@ -38,9 +45,7 @@ func (cpu *CPU) Run() {
 // Execute a single instruction, returning false if halted
 // Halts and catches fire (panics) if unknown opcode found
 func (cpu *CPU) Step() bool {
-	opcode := cpu.Mem[cpu.PC]
-	cpu.PC++
-
+	opcode := cpu.Fetch()
 	switch opcode {
 	case DecA:
 		cpu.A--
@@ -49,8 +54,7 @@ func (cpu *CPU) Step() bool {
 	case IncA:
 		cpu.A++
 	case LdA:
-		cpu.A = cpu.Mem[cpu.PC]
-		cpu.PC++
+		cpu.A = cpu.Fetch()
 	default:
 		panic("unknown opcode")
 	}
