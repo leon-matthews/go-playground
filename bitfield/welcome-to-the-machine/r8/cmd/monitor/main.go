@@ -8,9 +8,9 @@ import (
 
 func main() {
 	cpu := r8.NewCPU()
-	cpu.Mem[0] = r8.Inc
-	cpu.Mem[1] = r8.Inc
-	cpu.Mem[2] = r8.Inc
+	cpu.Mem[0] = r8.IncA
+	cpu.Mem[1] = r8.IncA
+	cpu.Mem[2] = r8.IncA
 
 	fmt.Println("R8 Monitor (press enter to step CPU)")
 	fmt.Println("  PC  A")

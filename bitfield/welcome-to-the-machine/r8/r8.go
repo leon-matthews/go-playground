@@ -7,9 +7,10 @@ import (
 
 // Opcodes
 const (
-	Dec  = 49 // Decrement value in A
+	DecA = 64 // Decrement value in A
 	Halt = 0  // Halt stepping
-	Inc  = 48 // Increment value in A
+	IncA = 48 // Increment value in A
+	LdA  = 16 // Load value into A
 )
 
 const MaxRAM = 65536 // 64 KiB
@@ -41,13 +42,15 @@ func (cpu *CPU) Step() bool {
 	cpu.PC++
 
 	switch opcode {
-	case Dec:
+	case DecA:
 		cpu.A--
 	case Halt:
 		return false
-	case Inc:
+	case IncA:
 		cpu.A++
-
+	case LdA:
+		cpu.A = cpu.Mem[cpu.PC]
+		cpu.PC++
 	default:
 		panic("unknown opcode")
 	}
