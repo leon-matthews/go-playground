@@ -2,16 +2,18 @@
 package r8
 
 import (
+	"encoding/binary"
 	"errors"
 )
 
 // Opcodes
 const (
-	AddA = 90 // Add next operand into A
-	DecA = 64 // Decrement value in A
-	Halt = 0  // Halt stepping
-	IncA = 48 // Increment value in A
-	LdA  = 16 // Load next operand into A
+	AddA = 90  // Add next operand into A
+	DecA = 64  // Decrement value in A
+	Halt = 0   // Halt stepping
+	IncA = 48  // Increment value in A
+	Jmp  = 247 // Set PC to the 16-bit value from next two operands
+	LdA  = 16  // Load next operand into A
 )
 
 const MaxRAM = 65536 // 64 KiB
@@ -37,10 +39,17 @@ func (cpu *CPU) Fetch() byte {
 	return opcode
 }
 
-// Run steps through opcodes until a Halt is encountered
+// Run steps through opcodes in memory until a Halt is encountered
 func (cpu *CPU) Run() {
 	for cpu.Step() {
 	}
+}
+
+// Load given program into memory and run until halted
+func (cpu *CPU) RunProgram(program []byte) {
+	cpu.PC = 0
+	copy(cpu.Mem[:], program)
+	cpu.Run()
 }
 
 // Execute a single instruction, returning false if halted
@@ -56,6 +65,10 @@ func (cpu *CPU) Step() bool {
 		return false
 	case IncA:
 		cpu.A++
+	case Jmp:
+		low, high := cpu.Fetch(), cpu.Fetch()
+		addr := binary.LittleEndian.Uint16([]byte{low, high})
+		cpu.PC = addr
 	case LdA:
 		cpu.A = cpu.Fetch()
 	default:
