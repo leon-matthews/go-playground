@@ -39,6 +39,13 @@ func (cpu *CPU) Fetch() byte {
 	return opcode
 }
 
+// Fetch16 consumes two opcodes into a 16-bit value, in little endian mode.
+func (cpu *CPU) Fetch16() uint16 {
+	low, high := cpu.Fetch(), cpu.Fetch()
+	addr := binary.LittleEndian.Uint16([]byte{low, high})
+	return addr
+}
+
 // Run steps through opcodes in memory until a Halt is encountered
 func (cpu *CPU) Run() {
 	for cpu.Step() {
@@ -66,9 +73,7 @@ func (cpu *CPU) Step() bool {
 	case IncA:
 		cpu.A++
 	case Jmp:
-		low, high := cpu.Fetch(), cpu.Fetch()
-		addr := binary.LittleEndian.Uint16([]byte{low, high})
-		cpu.PC = addr
+		cpu.PC = cpu.Fetch16()
 	case LdA:
 		cpu.A = cpu.Fetch()
 	default:

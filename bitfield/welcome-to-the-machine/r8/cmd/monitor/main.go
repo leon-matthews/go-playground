@@ -2,16 +2,29 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"strconv"
 
 	"local.dev/r8"
 )
 
 func main() {
-	cpu := r8.NewCPU()
-	cpu.Mem[0] = r8.IncA
-	cpu.Mem[1] = r8.IncA
-	cpu.Mem[2] = r8.IncA
+	// Build program from args
+	program := make([]byte, 0, len(os.Args)-1)
+	for _, arg := range os.Args[1:] {
+		opcode, err := strconv.ParseUint(arg, 10, 8)
+		if err != nil {
+			log.Fatal("reading program:", err)
+		}
+		program = append(program, byte(opcode))
+	}
 
+	// Create CPU & load program
+	cpu := r8.NewCPU()
+	copy(cpu.Mem[:], program)
+
+	// Run program
 	fmt.Println("R8 Monitor (press enter to step CPU)")
 	fmt.Println("  PC  A")
 	for {
