@@ -67,9 +67,21 @@ func TestDecrement(t *testing.T) {
 	})
 }
 
+func TestHalt(t *testing.T) {
+	t.Parallel()
+	t.Run("halts at second opcode", func(t *testing.T) {
+		cpu := r8.NewCPU()
+		cpu.Mem[0] = r8.Inc
+		cpu.Mem[1] = r8.Halt
+
+		assert.Equal(t, uint16(0), cpu.PC)
+		cpu.Run()
+		assert.Equal(t, uint16(2), cpu.PC)
+	})
+}
+
 func TestIncrement(t *testing.T) {
 	t.Parallel()
-
 	t.Run("increments A", func(t *testing.T) {
 		t.Parallel()
 		cpu := r8.NewCPU()
