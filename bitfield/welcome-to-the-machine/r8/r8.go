@@ -30,17 +30,13 @@ func NewCPU() *CPU {
 
 // Run steps through opcodes until a Halt is encountered
 func (cpu *CPU) Run() {
-	for {
-		err := cpu.Step()
-		if errors.Is(err, ErrHalted) {
-			return
-		}
+	for cpu.Step() {
 	}
 }
 
-// Step through instructions
+// Execute a single instruction, returning false if halted
 // Halts and catches fire (panics) if unknown opcode found
-func (cpu *CPU) Step() error {
+func (cpu *CPU) Step() bool {
 	opcode := cpu.Mem[cpu.PC]
 	cpu.PC++
 
@@ -48,12 +44,12 @@ func (cpu *CPU) Step() error {
 	case Dec:
 		cpu.A--
 	case Halt:
-		return ErrHalted
+		return false
 	case Inc:
 		cpu.A++
 
 	default:
 		panic("unknown opcode")
 	}
-	return nil
+	return true
 }
