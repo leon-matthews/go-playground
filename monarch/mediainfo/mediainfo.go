@@ -19,9 +19,7 @@ import (
 // Binary is the name of the CLI program used
 const Binary = "mediainfo"
 
-const timeout = 10 * time.Second
-
-// ErrTimeout is returned when mediainfo exceeds the per-file timeout.
+// ErrTimeout is returned when mediainfo runs past the context's deadline.
 var ErrTimeout = errors.New("timed out")
 
 // Duration wraps time.Duration with JSON serialization as fractional seconds.
@@ -73,15 +71,13 @@ type TextTrack struct {
 }
 
 // Info attempts to read metadata for the given media file
-func Info(name string) (*Media, error) {
+func Info(ctx context.Context, name string) (*Media, error) {
 	// Check path
 	if _, err := os.Stat(name); err != nil {
 		return nil, err
 	}
 
 	// Run command
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
 	out, err := run(ctx, "--Output=JSON", name)
 	if err != nil {
 		return nil, err
@@ -97,10 +93,7 @@ func Info(name string) (*Media, error) {
 
 // Version runs the binary and returns its version string
 // Intended to be used to check that the binary can be found and run successfully.
-func Version() (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
+func Version(ctx context.Context) (string, error) {
 	out, err := run(ctx, "--version")
 	if err != nil {
 		return "", err

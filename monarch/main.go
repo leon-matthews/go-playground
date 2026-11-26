@@ -3,6 +3,7 @@ package main
 
 import (
 	"cmp"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -32,6 +33,7 @@ func main() {
 	noCache := pflag.Bool("no-cache", false, "disable the per-folder metadata cache")
 	sortKey := pflag.StringP("sort", "s", "bitrate", "column to sort by: "+strings.Join(validSortKeys, ", "))
 	reverse := pflag.BoolP("reverse", "r", false, "reverse the sort direction")
+	timeout := pflag.DurationP("timeout", "t", 10*time.Second, "per-file mediainfo timeout")
 	verbose := pflag.BoolP("verbose", "v", false, "enable debug logging")
 	pflag.Parse()
 
@@ -53,7 +55,9 @@ func main() {
 	}
 	folder := pflag.Arg(0)
 
-	version, err := mediainfo.Version()
+	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+	version, err := mediainfo.Version(ctx)
+	cancel()
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
@@ -68,7 +72,7 @@ func main() {
 		}
 	}
 
-	media, s, err := scan(folder, *jobs, c)
+	media, s, err := scan(folder, *jobs, *timeout, c)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
@@ -220,7 +224,7 @@ type result struct {
 
 // scan reads the folder (non-recursive) and returns media info for each file
 // that mediainfo can parse; unparseable files are skipped.
-func scan(folder string, jobs int, c *cache.Cache) ([]*mediainfo.Media, stats, error) {
+func scan(folder string, jobs int, timeout time.Duration, c *cache.Cache) ([]*mediainfo.Media, stats, error) {
 	entries, err := os.ReadDir(folder)
 	if err != nil {
 		return nil, stats{}, err
@@ -248,7 +252,9 @@ func scan(folder string, jobs int, c *cache.Cache) ([]*mediainfo.Media, stats, e
 						continue
 					}
 				}
-				info, err := mediainfo.Info(path)
+				ctx, cancel := context.WithTimeout(context.Background(), timeout)
+				info, err := mediainfo.Info(ctx, path)
+				cancel()
 				if err != nil {
 					slog.Warn("skipping", "path", path, "err", err)
 					results <- result{err: err}
