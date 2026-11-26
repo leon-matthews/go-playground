@@ -13,6 +13,7 @@ func TestNewCPU(t *testing.T) {
 	assert.Equal(t, uint16(0), cpu.PC)
 	assert.Equal(t, byte(0), cpu.Mem[0])
 	assert.Equal(t, byte(0), cpu.A)
+	assert.Equal(t, false, cpu.Zero)
 }
 
 func TestAdd(t *testing.T) {

@@ -27,7 +27,8 @@ type CPU struct {
 	Mem [MaxRAM]byte
 
 	// Registers
-	A byte
+	A    byte
+	Zero bool
 }
 
 func NewCPU() *CPU {
