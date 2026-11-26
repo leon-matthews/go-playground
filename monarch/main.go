@@ -13,69 +13,91 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/spf13/pflag"
+	"github.com/alecthomas/kong"
 	"golang.org/x/term"
 
 	"go-playground/monarch/cache"
 	"go-playground/monarch/mediainfo"
 )
 
+// Exit codes: 1 for a failed run, 2 for a bad command line
+const (
+	exitFailure = 1
+	exitUsage   = 2
+)
+
+// cli is the whole command line.
+type cli struct {
+	Jobs    int           `short:"j" default:"${jobs}" help:"Number of parallel mediainfo processes."`
+	JSON    bool          `help:"Output JSON instead of a table."`
+	Kbs     int           `short:"k" help:"Minimum overall bitrate in kb/s (0 for no filter)."`
+	NoCache bool          `help:"Disable the per-folder metadata cache."`
+	Sort    string        `short:"s" default:"bitrate" enum:"${sortKeys}" help:"Column to sort by: ${enum}."`
+	Reverse bool          `short:"r" help:"Reverse the sort direction."`
+	Timeout time.Duration `short:"t" default:"10s" help:"Per-file mediainfo timeout."`
+	Verbose bool          `short:"v" help:"Enable debug logging."`
+
+	Folder string `arg:"" help:"Folder of media files to list."`
+}
+
 func main() {
-	validSortKeys := slices.Sorted(maps.Keys(sortColumns))
+	os.Exit(run(os.Args[1:]))
+}
 
-	jobs := pflag.IntP("jobs", "j", max(1, runtime.NumCPU()/2), "number of parallel mediainfo processes")
-	jsonOutput := pflag.Bool("json", false, "output JSON instead of table")
-	kbs := pflag.IntP("kbs", "k", 0, "minimum overall bitrate in kb/s (default: no filter)")
-	noCache := pflag.Bool("no-cache", false, "disable the per-folder metadata cache")
-	sortKey := pflag.StringP("sort", "s", "bitrate", "column to sort by: "+strings.Join(validSortKeys, ", "))
-	reverse := pflag.BoolP("reverse", "r", false, "reverse the sort direction")
-	timeout := pflag.DurationP("timeout", "t", 10*time.Second, "per-file mediainfo timeout")
-	verbose := pflag.BoolP("verbose", "v", false, "enable debug logging")
-	pflag.Parse()
+// run parses the command line, lists the folder, and returns the exit code.
+func run(args []string) int {
+	var root cli
+	parser := kong.Must(&root,
+		kong.Name("monarch"),
+		kong.Description("List media files in a folder, sorted by bitrate descending."),
+		kong.Vars{
+			"jobs":     strconv.Itoa(max(1, runtime.NumCPU()/2)),
+			"sortKeys": strings.Join(slices.Sorted(maps.Keys(sortColumns)), ","),
+		},
+	)
+	if _, err := parser.Parse(args); err != nil {
+		var parseErr *kong.ParseError
+		if errors.As(err, &parseErr) {
+			_ = parseErr.Context.PrintUsage(false)
+		}
+		parser.Errorf("%s", err)
+		return exitUsage
+	}
 
-	if *verbose {
+	if root.Verbose {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
 
-	col, ok := sortColumns[*sortKey]
-	if !ok {
-		fmt.Fprintf(os.Stderr, "unknown sort column %q (valid: %s)\n", *sortKey, strings.Join(validSortKeys, ", "))
-		os.Exit(1)
-	}
-	descending := col.descending != *reverse
+	// Kong's enum check guarantees the key exists
+	col := sortColumns[root.Sort]
+	descending := col.descending != root.Reverse
 
-	if pflag.NArg() != 1 {
-		fmt.Fprintf(os.Stderr, "usage: %s [flags] <folder>\n", os.Args[0])
-		pflag.PrintDefaults()
-		os.Exit(1)
-	}
-	folder := pflag.Arg(0)
-
-	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), root.Timeout)
 	version, err := mediainfo.Version(ctx)
 	cancel()
 	if err != nil {
 		slog.Error(err.Error())
-		os.Exit(1)
+		return exitFailure
 	}
 
 	var c *cache.Cache
-	if !*noCache {
-		c, err = cache.Load(folder, version)
+	if !root.NoCache {
+		c, err = cache.Load(root.Folder, version)
 		if err != nil {
 			slog.Warn("ignoring cache", "err", err)
 			c = nil
 		}
 	}
 
-	media, s, err := scan(folder, *jobs, *timeout, c)
+	media, s, err := scan(root.Folder, root.Jobs, root.Timeout, c)
 	if err != nil {
 		slog.Error(err.Error())
-		os.Exit(1)
+		return exitFailure
 	}
 
 	if c != nil {
@@ -95,30 +117,31 @@ func main() {
 		return cmp.Compare(a.Name, b.Name)
 	})
 
-	if *kbs > 0 {
+	if root.Kbs > 0 {
 		media = slices.DeleteFunc(media, func(m *mediainfo.Media) bool {
-			return m.OverallBitrate < *kbs*1_000
+			return m.OverallBitrate < root.Kbs*1_000
 		})
 	}
 
-	if *jsonOutput {
+	if root.JSON {
 		out, err := json.MarshalIndent(media, "", "  ")
 		if err != nil {
 			slog.Error(err.Error())
-			os.Exit(1)
+			return exitFailure
 		}
 		fmt.Println(string(out))
-		return
+		return 0
 	}
 
 	width := terminalWidth()
 	if len(media) > 0 {
-		printHeader(width, *sortKey, descending)
+		printHeader(width, root.Sort, descending)
 	}
 	for _, m := range media {
 		printLine(m, width)
 	}
 	printSummary(s, width)
+	return 0
 }
 
 // terminalWidth returns the current terminal width, or 80 as a fallback.
