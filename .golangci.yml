@@ -4,7 +4,7 @@ linters:
   default: standard
   disable:
     # Too much for Standby MP - for now!
-    # (Takes precedence over 'enable')
+    # (These override 'enable')
     - funcorder      # Checks the order of functions, methods, and constructors
     - funlen         # Checks for too-long functions
     - lll            # Reports too-long lines
@@ -53,6 +53,9 @@ linters:
       check-type-assertions: true
       verbose: true
 
+    errorlint:
+      errorf: false # Allow %v wrapping of errors inside `fmt.Errorf()`
+
     funcorder:
       constructor: true
       struct-method: true
@@ -66,7 +69,7 @@ linters:
         - shadow
 
     lll:
-      line-length: 100
+      line-length: 160
       tab-width: 4
 
     nakedret:
