@@ -9,6 +9,7 @@ import (
 // Opcodes
 const (
 	AddA = 90  // Add next operand into A
+	Bra  = 240 // Branch always skips ahead by its argument's value
 	DecA = 64  // Decrement value in A
 	Halt = 0   // Halt stepping
 	IncA = 48  // Increment value in A
@@ -20,6 +21,7 @@ const MaxRAM = 65536 // 64 KiB
 
 var ErrHalted = errors.New("CPU halted")
 
+// CPU holds the state of the R8 processor and its memory
 type CPU struct {
 	PC  uint16
 	Mem [MaxRAM]byte
@@ -66,6 +68,8 @@ func (cpu *CPU) Step() bool {
 	switch opcode {
 	case AddA:
 		cpu.A += cpu.Fetch()
+	case Bra:
+		cpu.PC += uint16(cpu.Fetch())
 	case DecA:
 		cpu.A--
 	case Halt:

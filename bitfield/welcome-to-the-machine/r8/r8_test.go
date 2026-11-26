@@ -22,12 +22,28 @@ func TestAdd(t *testing.T) {
 		cpu := r8.NewCPU()
 		cpu.A = 10
 		program := []byte{
-			r8.AddA, // AddA, 7
+			r8.AddA,
 			7,
-			r8.Halt, // Halt
+			r8.Halt,
 		}
 		cpu.RunProgram(program)
 		assert.Equal(t, byte(17), cpu.A)
+	})
+}
+
+func TestBranchAlways(t *testing.T) {
+	t.Parallel()
+	t.Run("jumps over halt", func(t *testing.T) {
+		t.Parallel()
+		cpu := r8.NewCPU()
+		program := []byte{
+			r8.Bra,
+			1,
+			r8.Halt,
+			r8.Halt,
+		}
+		cpu.RunProgram(program)
+		assert.Equal(t, uint16(4), cpu.PC)
 	})
 }
 
