@@ -57,6 +57,7 @@ func TestDecrement(t *testing.T) {
 		cpu.Mem[0] = r8.DecA
 		cpu.Step()
 		assert.Equal(t, byte(16), cpu.A)
+		assert.False(t, cpu.Zero)
 	})
 
 	t.Run("wraps around to 255", func(t *testing.T) {
@@ -66,11 +67,13 @@ func TestDecrement(t *testing.T) {
 		cpu.Mem[0] = r8.DecA
 		cpu.Mem[1] = r8.DecA
 
-		assert.Equal(t, byte(1), cpu.A)
 		cpu.Step()
 		assert.Equal(t, byte(0), cpu.A)
+		assert.True(t, cpu.Zero)
 		cpu.Step()
+
 		assert.Equal(t, byte(255), cpu.A)
+		assert.False(t, cpu.Zero)
 	})
 }
 
@@ -96,6 +99,7 @@ func TestIncrement(t *testing.T) {
 		cpu.Mem[0] = r8.IncA
 		cpu.Step()
 		assert.Equal(t, byte(1), cpu.A)
+		assert.False(t, cpu.Zero)
 	})
 
 	t.Run("wraps around to zero", func(t *testing.T) {
@@ -105,6 +109,7 @@ func TestIncrement(t *testing.T) {
 		cpu.Mem[0] = r8.IncA
 		cpu.Step()
 		assert.Equal(t, byte(0), cpu.A)
+		assert.True(t, cpu.Zero)
 	})
 }
 
@@ -136,12 +141,26 @@ func TestLoad(t *testing.T) {
 		cpu.Mem[1] = byte(42)
 		cpu.Mem[2] = r8.Halt
 
-		assert.Equal(t, byte(0), cpu.A)
-		assert.Equal(t, uint16(0), cpu.PC)
 		cpu.Run()
 		assert.Equal(t, byte(42), cpu.A)
 		assert.Equal(t, uint16(3), cpu.PC)
+		assert.False(t, cpu.Zero)
 	})
+
+	t.Run("loading zero into A sets zero flag", func(t *testing.T) {
+		t.Parallel()
+		cpu := r8.NewCPU()
+
+		cpu.Mem[0] = r8.LdA
+		cpu.Mem[1] = byte(0)
+		cpu.Mem[2] = r8.Halt
+
+		cpu.Run()
+		assert.Equal(t, byte(0), cpu.A)
+		assert.True(t, cpu.Zero)
+		assert.Equal(t, uint16(3), cpu.PC)
+	})
+
 }
 
 func TestMemory(t *testing.T) {

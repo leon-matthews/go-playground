@@ -26,9 +26,11 @@ type CPU struct {
 	PC  uint16
 	Mem [MaxRAM]byte
 
-	// Registers
-	A    byte
+	// Flags
 	Zero bool
+
+	// Registers
+	A byte
 }
 
 func NewCPU() *CPU {
@@ -69,20 +71,29 @@ func (cpu *CPU) Step() bool {
 	switch opcode {
 	case AddA:
 		cpu.A += cpu.Fetch()
+		cpu.UpdateZero(cpu.A)
 	case Bra:
 		cpu.PC += uint16(cpu.Fetch())
 	case DecA:
 		cpu.A--
+		cpu.UpdateZero(cpu.A)
 	case Halt:
 		return false
 	case IncA:
 		cpu.A++
+		cpu.UpdateZero(cpu.A)
 	case Jmp:
 		cpu.PC = cpu.Fetch16()
 	case LdA:
 		cpu.A = cpu.Fetch()
+		cpu.UpdateZero(cpu.A)
 	default:
 		panic("unknown opcode")
 	}
 	return true
+}
+
+// UpdateZero sets the zero flag to true if value is zero
+func (cpu *CPU) UpdateZero(value byte) {
+	cpu.Zero = value == 0
 }
